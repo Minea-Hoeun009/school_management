@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ប្រព័ន្ធគ្រប់គ្រងសាលារៀន | Modern School System</title>
+  
+  <!-- Fonts ពី Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Moul&family=Siemreap&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class', /* បើកមុខងារ Dark Mode */
+      theme: { extend: { fontFamily: { siemreap: ['Siemreap', 'sans-serif'], moul: ['Moul', 'sans-serif'] } } }
+    }
+  </script>
+
+  <!-- Libraries ផ្សេងៗ -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <!-- Library សម្រាប់ Export PDF គុណភាពខ្ពស់ -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  
+  <style>
+    /* Custom Animations & Scrollbar */
+    .fade-in { animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+    .custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
+
+    .header-vertical {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      white-space: nowrap;
+      padding: 8px 2px;
+      margin: auto;
+      height: 115px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+    }
+  </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800 antialiased font-siemreap overflow-hidden dark:bg-slate-900 dark:text-slate-200 transition-colors duration-300">
+  
+  <!-- ==========================================
+       ១. LANDING PAGE (ផ្ទាំងស្វាគមន៍ដំបូង)
+       ========================================== -->
+  <div id="landing-screen" class="fixed inset-0 bg-white z-[3000] overflow-y-auto fade-in dark:bg-slate-900">
+    <header class="bg-white shadow-sm sticky top-0 z-50 border-b border-slate-100 dark:bg-slate-800 dark:border-slate-700">
+      <div class="container mx-auto px-4 md:px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-indigo-600 text-white rounded-full flex items-center justify-center text-xl shadow-lg shadow-indigo-200 dark:shadow-none">
+            <i class="fa-solid fa-school"></i>
+          </div>
+          <div>
+            <h1 class="font-moul text-indigo-900 text-base md:text-lg dark:text-indigo-300">ប្រព័ន្ធគ្រប់គ្រងសាលារៀន</h1>
+            <p class="text-[9px] md:text-[10px] text-slate-500 font-bold tracking-widest uppercase dark:text-slate-400">School Management System</p>
+          </div>
+        </div>
+        <div>
+          <button onclick="toggleAuthScreen()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-full font-bold shadow-md shadow-indigo-200 transition-transform transform hover:scale-105 text-sm dark:shadow-none">
+            <i class="fa-solid fa-right-to-bracket mr-2"></i> <span class="hidden md:inline">ចូលប្រើប្រាស់</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <section class="container mx-auto px-4 md:px-6 py-12 md:py-24 flex flex-col lg:flex-row items-center gap-12">
+      <div class="lg:w-1/2 text-center lg:text-left">
+        <div class="inline-block bg-indigo-50 text-indigo-700 px-4 py-1.5 rounded-full text-xs font-bold mb-6 tracking-wide shadow-sm border border-indigo-100 dark:bg-indigo-900 dark:text-indigo-200 dark:border-indigo-800">
+          <i class="fa-solid fa-star text-amber-500 mr-1"></i> ជំនាន់ថ្មី ឆ្នាំ២០២៦
+        </div>
+        <h2 class="font-moul text-3xl md:text-4xl lg:text-5xl text-slate-800 mb-6 leading-tight dark:text-slate-100">
+          បង្កើនប្រសិទ្ធភាពការងារ <span class="text-indigo-600 dark:text-indigo-400">គ្រូបង្រៀន</span><br>តាមរយៈបច្ចេកវិទ្យា
+        </h2>
+        <p class="text-slate-600 text-base md:text-lg mb-10 leading-relaxed max-w-2xl mx-auto lg:mx-0 font-medium dark:text-slate-300">
+          ប្រព័ន្ធត្រូវបានរៀបចំឡើងយ៉ាងពិសេស ដើម្បីជួយសម្រួលដល់ការងារប្រចាំថ្ងៃរបស់លោកគ្រូ អ្នកគ្រូ ក្នុងការគ្រប់គ្រងទិន្នន័យសិស្ស វត្តមាន ពិន្ទុ និងឯកសារ បានយ៉ាងរហ័ស និងមានសុវត្ថិភាព។
+        </p>
+        <button onclick="toggleAuthScreen()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3.5 rounded-full font-bold text-base shadow-lg shadow-indigo-500/40 transition-transform transform hover:-translate-y-1 dark:shadow-none">
+          ចាប់ផ្តើមឥឡូវនេះ <i class="fa-solid fa-arrow-right ml-2"></i>
+        </button>
+      </div>
+      
+      <div class="lg:w-1/2 grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+         <div class="bg-white p-6 rounded-3xl shadow-lg shadow-slate-200/50 border border-slate-100 hover:-translate-y-1 transition-transform dark:bg-slate-800 dark:border-slate-700 dark:shadow-none">
+            <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center text-xl mb-4 dark:bg-blue-900 dark:text-blue-300"><i class="fa-solid fa-users"></i></div>
+            <h3 class="font-bold text-lg text-slate-800 mb-2 dark:text-slate-200">គ្រប់គ្រងទិន្នន័យសិស្ស</h3>
+            <p class="text-slate-500 text-xs leading-relaxed dark:text-slate-400">រក្សាទុក ស្វែងរក និងតាមដានប្រវត្តិសិស្សបានលឿនរហ័ស។</p>
+         </div>
+         <div class="bg-white p-6 rounded-3xl shadow-lg shadow-slate-200/50 border border-slate-100 hover:-translate-y-1 transition-transform mt-0 sm:mt-8 dark:bg-slate-800 dark:border-slate-700 dark:shadow-none">
+            <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center text-xl mb-4 dark:bg-emerald-900 dark:text-emerald-300"><i class="fa-solid fa-calendar-check"></i></div>
+            <h3 class="font-bold text-lg text-slate-800 mb-2 dark:text-slate-200">ស្រង់វត្តមានវៃឆ្លាត</h3>
+            <p class="text-slate-500 text-xs leading-relaxed dark:text-slate-400">គណនាអវត្តមានស្វ័យប្រវត្តិ និងចេញរបាយការណ៍ប្រចាំខែ។</p>
+         </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ==========================================
+       ២. ទំព័រ LOGIN
+       ========================================== -->
+  <div id="loginView" class="fixed inset-0 bg-gradient-to-br from-indigo-900 via-blue-900 to-slate-900 flex items-center justify-center p-4 z-[4000] hidden fade-in">
+    <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-8 text-center transform transition-all duration-300 relative overflow-hidden dark:bg-slate-800">
+      <div class="text-left mb-4">
+        <button onclick="backToLanding()" class="text-slate-400 hover:text-indigo-600 bg-slate-50 hover:bg-indigo-50 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center dark:bg-slate-700 dark:hover:bg-indigo-900 dark:text-slate-300">
+          <i class="fa-solid fa-arrow-left mr-1.5"></i> ត្រឡប់ក្រោយ
+        </button>
+      </div>
+
+      <div class="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-600 text-3xl border-4 border-indigo-100 shadow-inner dark:bg-indigo-900/50 dark:border-indigo-800 dark:text-indigo-400">
+        <i class="fa-solid fa-school"></i>
+      </div>
+      
+      <h2 id="loginSchoolName" class="font-moul text-xl text-indigo-900 mb-1 dark:text-indigo-300">សាលាចំណេះទូទៅ គំរូ</h2>
+      <p class="text-slate-500 text-xs mb-6 font-medium dark:text-slate-400">សូមបញ្ចូលព័ត៌មានគណនីរបស់អ្នក</p>
+
+      <div id="loginError" class="hidden mb-4 p-3 rounded-xl bg-rose-50 text-rose-600 text-xs font-bold border border-rose-100 dark:bg-rose-900/30 dark:border-rose-800 dark:text-rose-400"></div>
+
+      <form id="loginForm" class="space-y-4 text-left">
+        <div>
+          <label for="usernameOrPhone" class="block text-xs font-bold text-slate-700 mb-1 dark:text-slate-300">គណនី (Username)</label>
+          <div class="relative">
+            <i class="fa-solid fa-user absolute left-4 top-3 text-slate-400 text-sm"></i>
+            <input type="text" id="usernameOrPhone" name="usernameOrPhone" required placeholder="admin"
+                   class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition font-medium dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:focus:bg-slate-700">
+          </div>
+        </div>
+
+        <div>
+          <label for="password" class="block text-xs font-bold text-slate-700 mb-1 dark:text-slate-300">ពាក្យសម្ងាត់ (Password)</label>
+          <div class="relative">
+            <i class="fa-solid fa-lock absolute left-4 top-3 text-slate-400 text-sm"></i>
+            <input type="password" id="password" name="password" required placeholder="••••••••"
+                   class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition font-medium dark:bg-slate-700 dark:border-slate-600 dark:text-white dark:focus:bg-slate-700">
+          </div>
+        </div>
+
+        <button type="submit" id="btnLogin" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-all shadow-md shadow-indigo-200 hover:shadow-lg mt-2 flex items-center justify-center gap-2 dark:shadow-none">
+          <i class="fa-solid fa-right-to-bracket"></i> ចូលប្រើប្រាស់
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       ៣. ផ្ទាំងកម្មវិធីមេ (APP VIEW)
+       ========================================== -->
+  <div id="appView" class="hidden flex h-screen overflow-hidden fade-in">
+    
+    <!-- Sidebar -->
+    <aside id="appSidebar" class="w-64 bg-slate-900 text-slate-300 flex flex-col flex-shrink-0 shadow-2xl relative transition-all duration-300 ease-in-out z-20 print:hidden">
+      <!-- Header / Logo Area -->
+      <div class="h-20 p-4 border-b border-white/10 flex items-center justify-between bg-black/20 shrink-0">
+        <div class="flex items-center space-x-3 overflow-hidden">
+          <div class="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg text-xl border border-white/20">
+             <img id="sidebarLogo" src="https://via.placeholder.com/150?text=Logo" alt="និមិត្តសញ្ញាសាលា" class="w-full h-full object-contain rounded-xl hidden" onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden');">
+             <span>🏫</span>
+          </div>
+          <div class="sidebar-text transition-opacity duration-300 whitespace-nowrap">
+            <h3 id="sidebarSchoolName" class="font-moul text-white text-[13px] leading-tight w-[130px] truncate">សាលាគំរូ</h3>
+            <span id="sidebarAcademicYear" class="text-[10px] text-indigo-300 font-bold uppercase">ឆ្នាំសិក្សា ២០២៦-២០២៧</span>
+          </div>
+        </div>
+        <button type="button" onclick="toggleSidebar()" title="បើក/បិទម៉ឺនុយ" aria-label="បើក/បិទម៉ឺនុយ" class="text-white/70 hover:text-white p-2 rounded-lg hover:bg-white/10 transition shrink-0 outline-none"><i class="fa-solid fa-bars"></i></button>
+      </div>
+
+      <!-- Navigation Area -->
+      <nav class="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-1.5 text-[13px] font-semibold">
+        
+        <button onclick="switchView('dashboard')" class="w-full flex items-center px-3 py-3 rounded-xl hover:bg-white/10 hover:text-white transition-all text-left group nav-btn" id="nav-dashboard">
+          <span class="text-xl w-8 text-center shrink-0 group-hover:scale-110 group-hover:text-blue-400 transition-transform">📊</span>
+          <span class="sidebar-text ml-2 whitespace-nowrap">ផ្ទាំងគ្រប់គ្រង</span>
+        </button>
+        
+        <button onclick="switchView('academic')" class="w-full flex items-center px-3 py-3 rounded-xl hover:bg-white/10 hover:text-white transition-all text-left group nav-btn" id="nav-academic">
+          <span class="text-xl w-8 text-center shrink-0 group-hover:scale-110 group-hover:text-indigo-400 transition-transform">🎓</span>
+          <span class="sidebar-text ml-2 whitespace-nowrap">គ្រប់គ្រងការសិក្សា</span>
+        </button>
+
+        <button onclick="switchView('classrooms')" class="w-full flex items-center px-3 py-3 rounded-xl hover:bg-white/10 hover:text-white transition-all text-left group nav-btn" id="nav-classrooms">
+          <span class="text-xl w-8 text-center shrink-0 group-hover:scale-110 group-hover:text-teal-400 transition-transform"><i class="fa-solid fa-chalkboard-user"></i></span>
+          <span class="sidebar-text ml-2 whitespace-nowrap">ថ្នាក់រៀន (Classrooms)</span>
+        </button>
+        
+        <button onclick="switchView('students')" class="role-admin w-full flex items-center px-3 py-3 rounded-xl hover:bg-white/10 hover:text-white transition-all text-left group nav-btn" id="nav-students">
+          <span class="text-xl w-8 text-center shrink-0 group-hover:scale-110 group-hover:text-emerald-400 transition-transform">👥</span>
+          <span class="sidebar-text ml-2 whitespace-nowrap">គ្រប់គ្រងសិស្ស</span>
+        </button>
+        
+        <button onclick="switchView('attendance')" class="role-admin role-teacher w-full flex items-center px-3 py-3 rounded-xl hover:bg-white/10 hover:text-white transition-all text-left group nav-btn" id="nav-attendance">
+          <span class="text-xl w-8 text-center shrink-0 group-hover:scale-110 group-hover:text-rose-400 transition-transform">📅</span>
+          <span class="sidebar-text ml-2 whitespace-nowrap">កត់វត្តមានប្រចាំថ្ងៃ</span>
+        </button>
+        
+        <button onclick="switchView('scores')" class="role-admin role-teacher w-full flex items-center px-3 py-3 rounded-xl hover:bg-white/10 hover:text-white transition-all text-left group nav-btn" id="nav-scores">
+          <span class="text-xl w-8 text-center shrink-0 group-hover:scale-110 group-hover:text-amber-400 transition-transform">📝</span>
+          <span class="sidebar-text ml-2 whitespace-nowrap">បញ្ចូលពិន្ទុ & និទ្ទេស</span>
+        </button>
+        
+        <button onclick="switchView('certificates')" class="role-admin role-teacher w-full flex items-center px-3 py-3 rounded-xl hover:bg-white/10 hover:text-white transition-all text-left group nav-btn" id="nav-certificates">
+          <span class="text-xl w-8 text-center shrink-0 group-hover:scale-110 group-hover:text-orange-400 transition-transform">📜</span>
+          <span class="sidebar-text ml-2 whitespace-nowrap">ប័ណ្ណសរសើរ</span>
+        </button>
+        
+        <div class="sidebar-text pt-4 mt-2 mb-2 border-t border-white/10 mx-3"></div>
+        
+        <button onclick="switchView('staff')" class="role-admin w-full flex items-center px-3 py-3 rounded-xl hover:bg-white/10 hover:text-white transition-all text-left group nav-btn" id="nav-staff">
+          <span class="text-xl w-8 text-center shrink-0 group-hover:scale-110 group-hover:text-cyan-400 transition-transform">👨‍🏫</span>
+          <span class="sidebar-text ml-2 whitespace-nowrap">គ្រប់គ្រងបុគ្គលិក</span>
+        </button>
+        
+        <button onclick="switchView('library')" class="role-admin w-full flex items-center px-3 py-3 rounded-xl hover:bg-white/10 hover:text-white transition-all text-left group nav-btn" id="nav-library">
+          <span class="text-xl w-8 text-center shrink-0 group-hover:scale-110 group-hover:text-fuchsia-400 transition-transform">📚</span>
+          <span class="sidebar-text ml-2 whitespace-nowrap">បណ្ណាល័យ & ទ្រព្យ</span>
+        </button>
+        
+        <div class="sidebar-text pt-4 mt-2 mb-2 border-t border-white/10 mx-3"></div>
+
+        <button onclick="switchView('examManager')" class="w-full flex items-center px-3 py-3 rounded-xl hover:bg-white/10 hover:text-white transition-all text-left group nav-btn" id="nav-examManager">
+          <span class="text-xl w-8 text-center shrink-0 group-hover:scale-110 group-hover:text-rose-400 transition-transform">✍️</span>
+          <span class="sidebar-text ml-2 whitespace-nowrap">រៀបចំការប្រឡង</span>
+        </button>
+
+        <button onclick="switchView('schoolReports')" class="w-full flex items-center px-3 py-3 rounded-xl hover:bg-white/10 hover:text-white transition-all text-left group nav-btn" id="nav-schoolReports">
+          <span class="text-xl w-8 text-center shrink-0 group-hover:scale-110 group-hover:text-sky-400 transition-transform">📈</span>
+          <span class="sidebar-text ml-2 whitespace-nowrap">របាយការណ៍រដ្ឋបាល</span>
+        </button>
+
+        <button onclick="switchView('settings')" class="role-admin w-full flex items-center px-3 py-3 rounded-xl hover:bg-white/10 hover:text-white transition-all text-left group mt-4 nav-btn" id="nav-settings">
+          <span class="text-xl w-8 text-center shrink-0 group-hover:scale-110 group-hover:text-slate-200 transition-transform">⚙️</span>
+          <span class="sidebar-text ml-2 whitespace-nowrap">កំណត់ទូទៅ</span>
+        </button>
+
+      </nav>
+
+      <!-- User Info & Logout -->
+      <div class="p-4 bg-black/30 border-t border-white/5 shrink-0 flex items-center justify-between">
+        <div class="flex items-center gap-3 overflow-hidden">
+          <div class="w-9 h-9 shrink-0 rounded-full bg-gradient-to-r from-pink-500 to-orange-400 flex items-center justify-center text-white text-sm shadow-md">👤</div>
+          <div class="sidebar-text whitespace-nowrap">
+            <div id="navUserName" class="text-sm font-bold text-white truncate w-28">ឈ្មោះអ្នកប្រើ</div>
+            <div id="navUserRole" class="text-[10px] text-indigo-300 uppercase tracking-widest font-bold">តួនាទី</div>
+          </div>
+        </div>
+        <button type="button" onclick="handleLogout()" title="ចាកចេញ" class="p-2 text-rose-400 hover:text-white hover:bg-rose-500 rounded-xl transition-colors shrink-0 outline-none"><i class="fa-solid fa-right-from-bracket"></i></button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 flex flex-col overflow-y-auto relative w-full h-full bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
+      
+      <!-- Top Header -->
+      <header class="bg-white px-6 md:px-8 py-3 border-b border-slate-200 flex justify-between items-center sticky top-0 z-10 shadow-sm no-print dark:bg-slate-800 dark:border-slate-700">
+         <div class="flex items-center gap-3">
+            <button onclick="toggleSidebar()" title="បើកម៉ឺនុយ" aria-label="បើកម៉ឺនុយ" class="md:hidden text-slate-500 hover:text-indigo-600 text-xl outline-none"><i class="fa-solid fa-bars"></i></button>
+            <h2 id="pageTitleHeader" class="text-lg font-bold text-slate-800 dark:text-slate-200 font-moul">ផ្ទាំងការងារ</h2>
+         </div>
+         <div class="flex items-center gap-3">
+            <!-- Dark Mode Toggle -->
+            <button onclick="toggleDarkMode()" title="ប្តូរពណ៌" class="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-amber-400 transition-colors outline-none shadow-sm">
+              <i id="darkModeIcon" class="fa-solid fa-moon"></i>
+            </button>
+            
+            <button onclick="clearLocalCacheWithConfirm()" title="សម្អាត Cache" class="hidden md:flex px-3 py-2 bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition shadow-sm items-center gap-1.5 outline-none">
+              <i class="fa-solid fa-rotate-right"></i> <span class="hidden lg:inline">ទាញយកថ្មី</span>
+            </button>
+            
+            <button onclick="syncDataToServer()" id="btnSyncData" class="hidden relative px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 text-white rounded-xl text-xs font-bold items-center gap-2 shadow-sm transition outline-none">
+              <i class="fa-solid fa-cloud-arrow-up"></i>
+              <span class="font-Siemreap text-[12px] hidden lg:inline">Sync ទិន្នន័យ</span>
+              <span id="syncBadgeCount" class="absolute -top-1.5 -right-1.5 bg-rose-600 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full shadow-md">0</span>
+            </button>
+         </div>
+      </header>
+
+      <!-- Containers សម្រាប់ផ្ទុក UI ពី JS -->
+      <main id="dashboardView" class="hidden p-0 h-full w-full overflow-hidden transition duration-200"><div id="mainContentArea" class="h-full w-full"></div></main>
+      <main id="academicView" class="hidden p-0 h-full w-full overflow-hidden transition duration-200"><div id="academic" class="h-full w-full"></div></main>
+      <main id="classroomsView" class="hidden p-0 h-full w-full overflow-hidden transition duration-200"><div id="classroomsContainer" class="h-full w-full"></div></main>
+      <main id="studentsView" class="hidden p-0 h-full w-full overflow-hidden transition duration-200"><div id="studentsContainer" class="h-full w-full"></div></main>
+      <main id="attendanceView" class="hidden p-0 h-full w-full overflow-hidden transition duration-200"><div id="attendanceContainer" class="h-full w-full"></div></main>
+      <main id="scoresView" class="hidden p-0 h-full w-full overflow-hidden transition duration-200"><div id="scores" class="h-full w-full"></div></main>      
+      <main id="rankingsView" class="hidden p-0 transition duration-200 h-full w-full overflow-hidden"><div id="rankingsContainer" class="h-full w-full p-4 md:p-8 overflow-y-auto"></div></main>     
+      <main id="certificatesView" class="hidden p-0 transition duration-200 h-full w-full overflow-hidden"><div id="certificatesContainer" class="h-full w-full p-4 md:p-8 overflow-y-auto"></div></main>     
+      <main id="staffView" class="hidden p-0 transition duration-200 h-full w-full overflow-hidden"><div id="staffContainer" class="h-full w-full p-4 md:p-8 overflow-y-auto"></div></main>
+      <main id="libraryView" class="hidden p-0 transition duration-200 h-full w-full overflow-hidden"><div id="libraryContainer" class="h-full w-full p-4 md:p-8 overflow-y-auto"></div></main>
+      <main id="settingsView" class="hidden p-0 transition duration-200 h-full w-full overflow-hidden"><div id="settingsContainer" class="h-full w-full p-4 md:p-8 overflow-y-auto"></div></main>
+      <main id="examManagerView" class="hidden p-0 transition duration-200 h-full w-full overflow-hidden"><div id="examManager" class="h-full w-full"></div></main>
+      <main id="schoolReportsView" class="hidden p-0 transition duration-200 h-full w-full overflow-hidden"><div id="schoolReports" class="h-full w-full"></div></main>
+      <main id="tracking-bookView" class="hidden p-0 transition duration-200 h-full w-full overflow-hidden"><div id="tracking-bookContainer" class="h-full w-full"></div></main>
+
+    </div>
+  </div>
+
+  <!-- Global Toast Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-[9999] flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Scripts Logic សម្រាប់ Layout & Toggle Sidebar -->
+  <script>
+    // មុខងារប្តូរ View (Routing)
+    window.switchView = function(viewName) {
+        // លាក់ផ្ទាំងទាំងអស់សិន
+        document.querySelectorAll('main').forEach(el => {
+            el.classList.add('hidden');
+            el.classList.remove('flex', 'flex-col');
+        });
+
+        // បើកផ្ទាំងដែលបានជ្រើសរើស ដោយប្រើប្រាស់ flex
+        const targetView = document.getElementById(viewName + 'View');
+        if (targetView) {
+            targetView.classList.remove('hidden');
+            targetView.classList.add('flex', 'flex-col');
+        }
+
+        // Update Active Menu
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.classList.remove('bg-white/10', 'text-white', 'border-l-4', 'border-indigo-400');
+        });
+        const activeNav = document.getElementById(`nav-${viewName}`);
+        if(activeNav) activeNav.classList.add('bg-white/10', 'text-white', 'border-l-4', 'border-indigo-400');
+
+        // កំណត់ចំណងជើង Header
+        const titleMap = {
+            'dashboard': 'ផ្ទាំងគ្រប់គ្រង (Dashboard)',
+            'academic': 'ប្រព័ន្ធគ្រប់គ្រងការសិក្សា',
+            'classrooms': 'ថ្នាក់រៀន (Classrooms Workspace)',
+            'students': 'បញ្ជីរាយនាមសិស្ស',
+            'attendance': 'ស្រង់វត្តមានសិស្ស',
+            'scores': 'បញ្ចូលពិន្ទុ និងនិទ្ទេស',
+            'tracking-book': 'សៀវភៅតាមដាន (របាយការណ៍)',
+            'rankings': 'តារាងចំណាត់ថ្នាក់',
+            'certificates': 'បោះពុម្ពប័ណ្ណសរសើរ',
+            'staff': 'គ្រប់គ្រងបុគ្គលិក',
+            'library': 'បណ្ណាល័យ និងទ្រព្យសកម្ម',
+            'examManager': 'ប្រព័ន្ធគ្រប់គ្រងការប្រឡង',
+            'schoolReports': 'របាយការណ៍រដ្ឋបាល',
+            'settings': 'ការកំណត់ទូទៅ'
+        };
+        const hd = document.getElementById("pageTitleHeader");
+        if(hd) hd.innerText = titleMap[viewName] || 'ផ្ទាំងការងារ';
+        
+        // ហៅ Function ឱ្យដំណើរការគូរ UI តែម្តងគត់ (Lazy Loading)
+        if (viewName === 'dashboard' && typeof window.loadDashboard === 'function') window.loadDashboard();
+        if (viewName === 'academic' && typeof window.loadAcademicView === 'function') window.loadAcademicView();
+        if (viewName === 'classrooms' && typeof window.loadClassroomsView === 'function') window.loadClassroomsView();
+        if (viewName === 'students' && typeof window.loadStudentsView === 'function') window.loadStudentsView();
+        if (viewName === 'attendance' && typeof window.loadAttendanceView === 'function') window.loadAttendanceView();
+        if (viewName === 'scores' && typeof window.loadScoresView === 'function') window.loadScoresView();
+        if (viewName === 'tracking-book' && typeof window.loadTrackingBookView === 'function') window.loadTrackingBookView();
+        if (viewName === 'rankings' && typeof window.loadRankingsView === 'function') window.loadRankingsView();
+        if (viewName === 'certificates' && typeof window.loadCertificatesView === 'function') window.loadCertificatesView();
+        if (viewName === 'staff' && typeof window.loadStaffView === 'function') window.loadStaffView();
+        if (viewName === 'library' && typeof window.loadLibraryView === 'function') window.loadLibraryView();
+        if (viewName === 'examManager' && typeof window.loadExamManagerView === 'function') window.loadExamManagerView();
+        if (viewName === 'schoolReports' && typeof window.loadSchoolReportsView === 'function') window.loadSchoolReportsView();
+        if (viewName === 'settings' && typeof window.loadSettingsView === 'function') window.loadSettingsView();
+
+        // សម្រាប់ទូរស័ព្ទ បិទ Sidebar ក្រោយពេលចុចជ្រើសរើសរួច
+        if (window.innerWidth < 768) {
+            const sidebar = document.getElementById("appSidebar");
+            if(sidebar && !sidebar.classList.contains("hidden")) {
+                sidebar.classList.add("hidden");
+                sidebar.style.display = "none";
+            }
+        }
+    }
+
+    // គ្រប់គ្រងស្ថានភាព Sidebar Desktop/Mobile
+    let isSidebarExpanded = true;
+    
+    window.toggleSidebar = function() {
+      const sidebar = document.getElementById("appSidebar");
+      const texts = document.querySelectorAll(".sidebar-text");
+      
+      // សម្រាប់ Mobile (លោតចេញ/លាក់)
+      if (window.innerWidth < 768) {
+         if (sidebar.classList.contains("hidden") || sidebar.style.display === "none") {
+             sidebar.classList.remove("hidden");
+             sidebar.style.display = "flex";
+             sidebar.style.position = "absolute";
+             sidebar.style.height = "100%";
+             sidebar.style.zIndex = "50";
+         } else {
+             sidebar.classList.add("hidden");
+             sidebar.style.display = "none";
+         }
+         return;
+      }
+
+      // សម្រាប់ Desktop (ពង្រីក/បង្រួម)
+      isSidebarExpanded = !isSidebarExpanded;
+      if (isSidebarExpanded) {
+        sidebar.classList.remove("w-20");
+        sidebar.classList.add("w-64");
+        texts.forEach(el => {
+          el.classList.remove("hidden");
+          setTimeout(() => el.classList.remove("opacity-0"), 50);
+        });
+      } else {
+        sidebar.classList.remove("w-64");
+        sidebar.classList.add("w-20");
+        texts.forEach(el => {
+          el.classList.add("opacity-0");
+          setTimeout(() => el.classList.add("hidden"), 300);
+        });
+      }
+    };
+
+    function toggleAuthScreen() {
+      document.getElementById('landing-screen').classList.add('hidden');
+      document.getElementById('loginView').classList.remove('hidden');
+    }
+    
+    function backToLanding() {
+      document.getElementById('loginView').classList.add('hidden');
+      document.getElementById('landing-screen').classList.remove('hidden');
+    }
+
+    // មុខងារបង្ហាញសារខ្លីៗ (Global Toast Notification)
+    window.showToast = function(message, isError = false) {
+      const container = document.getElementById("toast-container");
+      if (!container) return;
+
+      const toast = document.createElement("div");
+      const bgColor = isError ? "bg-rose-600" : "bg-slate-800";
+      const icon = isError ? "fa-circle-exclamation" : "fa-circle-check";
+
+      toast.className = `${bgColor} text-white px-5 py-3 rounded-xl shadow-lg animate-fade-in flex items-center gap-3`;
+      toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span class="text-sm font-siemreap font-semibold">${message}</span>`;
+      
+      container.appendChild(toast);
+      
+      setTimeout(() => {
+          toast.style.opacity = "0";
+          toast.style.transition = "opacity 0.5s ease, transform 0.5s ease";
+          toast.style.transform = "translateY(20px)";
+          setTimeout(() => toast.remove(), 500);
+      }, 3000);
+    };
+
+    // Dark Mode Toggle
+    function toggleDarkMode() {
+      document.documentElement.classList.toggle('dark');
+      const isDark = document.documentElement.classList.contains('dark');
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+      document.getElementById('darkModeIcon').className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+    }
+    
+    // ឆែកមើលពេលបើកវេបសាយដំបូង
+    if (localStorage.getItem('theme') === 'dark') {
+      document.documentElement.classList.add('dark');
+      if(document.getElementById('darkModeIcon')) document.getElementById('darkModeIcon').className = 'fa-solid fa-sun';
+    }
+
+  </script>
+
+  <!-- External Script Files -->
+  <!-- ត្រូវប្រាកដថា File JS ទាំងអស់នេះមាននៅក្នុង Folder /js -->
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/settings.js"></script> 
+  <script src="js/classrooms.js"></script>
+  <script src="js/students.js"></script>
+  <script src="js/academic.js"></script>
+  <script src="js/attendance.js"></script>
+  <script src="js/scores.js"></script>
+  <script src="js/certificates.js"></script>
+  <script src="js/staff-finance.js"></script> 
+  <script src="js/library.js"></script>
+  <script src="js/tracking-book.js"></script>
+  <script src="js/exam-manager.js"></script>
+  <script src="js/school-reports.js"></script>
+  
+</body>
+</html>

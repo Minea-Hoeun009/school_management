@@ -1,0 +1,328 @@
+/* ១. ទាញយក Web Fonts ជា Fallback ពី Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Moul&family=Siemreap&display=swap');
+
+/* ២. កំណត់ Font សម្រាប់អត្ថបទ និងតួអក្សរទូទៅ (Body, Table, Input, Button) */
+*,
+body,
+input,
+select,
+button,
+textarea,
+p,
+span,
+td,
+th {
+  font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif !important;
+  line-height: 1.6;
+}
+
+/* ៣. កំណត់ Font សម្រាប់ចំណងជើងធំៗទាំងអស់ (Headings) */
+h1, 
+h2, 
+h3, 
+h4, 
+h5, 
+h6,
+.font-moul,
+.title-moul {
+  font-family: 'Khmer OS Muol Light', 'Khmer OS Muol', 'Moul', serif !important;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+}
+
+/* ៤. ក្បាលតារាងបញ្ឈរសម្រាប់តារាងពិន្ទុ និងវត្តមាន */
+.header-vertical {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  white-space: nowrap;
+  padding: 6px 2px;
+  max-height: 110px;
+  font-size: 10px;
+  font-weight: 500;
+  text-align: left;
+  font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif !important;
+}
+
+/* ៥. កំណត់ Font ពិសេសលើចំណងជើងប័ណ្ណសរសើរ និងក្បាលលិខិតជាតិ */
+.cert-title {
+  font-family: 'Khmer OS Muol Light', 'Khmer OS Muol', 'Moul', serif !important;
+}
+/* ==========================================
+   PRINT ONLY WORKSHEET (ព្រីនតែសន្លឹកការងារសុទ្ធ)
+   ========================================== */
+@media print {
+  @page {
+    size: A4 portrait; /* ក្រដាស A4 ផ្តេក */
+    margin: 6mm 8mm;    /* រឹមក្រដាសតូចល្មមស្អាត */
+  }
+
+  /* លាក់ធាតុទាំងអស់លើគេហទំព័រជាមុន */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* បង្ហាញតែសន្លឹកការងារណាដែលមាន class "print-active-sheet" និងកូនៗរបស់វា */
+  .print-active-sheet,
+  .print-active-sheet * {
+    visibility: visible !important;
+  }
+
+  /* រុញសន្លឹកការងារមកដាក់លើកំពូលទំព័រ A4 ឱ្យពេញ */
+  .print-active-sheet {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: white !important;
+  }
+
+  /* លុប Border ប្រអប់វាយលេខ/អក្សរពេលព្រីន */
+  .print-active-sheet input {
+    border: none !important;
+    background: transparent !important;
+  }
+
+  /* បង្ខំឱ្យចេញពណ៌ Background ពណ៌បៃតង និងលឿងលើក្រដាស */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  
+}
+
+/* បន្ថែមនៅខាងក្រោមគេនៃ style.css របស់អ្នក */
+
+/* Custom Scrollbar ពណ៌ស្រទន់ */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9; 
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1; 
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8; 
+}
+
+
+/* រចនាបថតារាងឱ្យមានពណ៌ឆ្លាស់គ្នា (Zebra Stripes) និង Hover បែបទំនើប */
+tbody tr {
+  transition: all 0.2s ease-in-out;
+}
+tbody tr:nth-child(even) {
+  background-color: #f8fafc;
+}
+tbody tr:hover {
+  background-color: #eef2ff !important; /* ពណ៌ខៀវស្រាលពេល Hover */
+  transform: scale(1.001);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Glassmorphism Effect សម្រាប់ Sidebar Overlay */
+.backdrop-blur-md {
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+/* កំណត់អក្សរឱ្យវិលបញ្ឈរ ៩០ ដឺក្រេ និងរៀបចំឱ្យចំកណ្ដាល */
+.header-vertical {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  white-space: nowrap;
+  margin: 0 auto;
+  padding: 8px 2px;
+  line-height: 1.2;
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* កំណត់កម្ពស់ជួរដេកមុខវិជ្ជារង ដើម្បីកុំឱ្យទើសឬបាំងជើងអក្សរ */
+.vertical-subhead th {
+  height: 125px;
+  vertical-align: bottom;
+  padding-bottom: 6px !important;
+}
+/* ==========================================
+   ឯកសារ styles.css - រចនាបថទូទៅនៃប្រព័ន្ធសាលារៀន
+   ========================================== */
+
+/* ១. Import ក្បួនអក្សរខ្មែរពី Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Moul&family=Siemreap&display=swap');
+
+/* ២. ការកំណត់លំនាំដើម */
+body {
+    font-family: 'Siemreap', sans-serif;
+    background-color: #f8fafc; /* ព៌ណប្រផេះស្រាល */
+    -webkit-font-smoothing: antialiased;
+    color: #1e293b;
+}
+
+.font-moul {
+    font-family: 'Moul', serif !important;
+}
+
+/* ៣. Custom Scrollbar (របារអូសចុះឡើង) */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Scrollbar រាងធំបន្តិចសម្រាប់តារាងធំៗ */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #94a3b8;
+}
+
+/* ៤. ចលនា (Animations) សម្រាប់ភាពរស់រវើក */
+.animate-fade-in {
+    animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ៥. រចនាបថសម្រាប់ Canva Engine (ឧបករណ៍រចនាអូសរំកិល) */
+.canva-el {
+    transition: box-shadow 0.2s ease, outline 0.2s ease;
+  -webkit-user-select: none;
+    user-select: none; /* ការពារកុំឱ្យ highlight អក្សរពេលកំពុង Drag */
+}
+
+/* ពេល Hover លើអក្សរក្នុង Canva Mode */
+.canva-el:hover {
+    outline: 2px dashed #93c5fd;
+    outline-offset: 2px;
+    cursor: grab;
+}
+
+/* ពេលកំពុងចុចសង្កត់ (Dragging) */
+.canva-el:active {
+    cursor: grabbing !important;
+}
+
+/* ក្បាលតារាងសរសេរបញ្ឈរ (Vertical Headers) សម្រាប់តារាងពិន្ទុ */
+.header-vertical {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    white-space: nowrap;
+    padding: 8px 2px;
+    margin: auto;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+}
+
+/* ៦. ការកំណត់សម្រាប់ពេលបោះពុម្ព (Print Settings) */
+@media print {
+    /* លាក់អ្វីដែលមិនចាំបាច់ពេល Print */
+    .no-print, nav, aside, header, button, .shadow-xl {
+        display: none !important;
+    }
+
+    /* ដក Background ពណ៌ស និង Margin របស់ Browser ចោល */
+    body, html {
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: transparent !important;
+    }
+
+    /* ធ្វើឱ្យ Background ពណ៌ចេញច្បាស់ពេល Print */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* លុបស៊ុមនិងស្រមោលក្រដាសសិប្បនិម្មិតចេញ */
+    #printSeatingTarget, 
+    #print-card-target, 
+    #top5HonorPrintArea, 
+    .print\:shadow-none {
+        box-shadow: none !important;
+        margin: 0 !important;
+        border: none !important;
+    }
+}
+/* បង្កើតអក្សរបញ្ឈរសម្រាប់ក្បាលតារាង */
+.header-vertical {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    white-space: nowrap;
+    padding: 8px 2px;
+    height: 110px; /* កំណត់កម្ពស់ក្បាលតារាងនៅទីនេះ */
+    text-align: center;
+    vertical-align: middle;
+    margin: 0 auto;
+}
+
+/* រចនាបថជំនួយសម្រាប់បោះពុម្ព (Print) */
+@media print {
+    /* លុបពាក្យ size ចេញ ទុកតែ margin ដើម្បីឱ្យ Browser បើកសិទ្ធិឱ្យយើងរើស Landscape/Portrait ដោយខ្លួនឯង */
+    @page { margin: 10mm; } 
+    
+    .no-print { display: none !important; }
+    
+    /* ធ្វើឱ្យ Input box ក្លាយជាអត្ថបទធម្មតា គ្មានស៊ុម គ្មាន Background */
+    .score-input { 
+        border: none !important; 
+        background: transparent !important; 
+        -moz-appearance: textfield !important; 
+        appearance: none !important; 
+        padding: 0 !important;
+        color: black !important;
+    }
+    
+    /* លាក់សញ្ញាព្រួញឡើងចុះរបស់ Input Number ពេល Print */
+    .score-input::-webkit-outer-spin-button,
+    .score-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    
+    /* លាក់សញ្ញាឡើងចុះ (Spin Button) របស់ Input Number */
+    .score-input::-webkit-outer-spin-button,
+    .score-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    /* ធានាថា Background Color ដែលដាក់ inline style ត្រូវបានចេញមកទាំងអស់ */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+}
