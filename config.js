@@ -3,7 +3,7 @@
 // ==========================================
 
 // 👉 URL របស់ Google Apps Script 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyQYPpw2Vkc607225a4GCDftplq9XRPsTok3wgsUKUI9wBnwGikuEBzvhyk1exau-blBQ/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz3BAb42xG9nXlgukxRD8k5ZvdvFsnF-Cyby9ZzqnN4Sc9GWlVd6PXwyN_qRNSJDyne/exec";
 
 // =========================================================
 // ១. ការកំណត់ទូទៅ (Global Settings Data)

@@ -968,7 +968,11 @@ window.printStudentList = function() {
                 <div class="header-right">
                     <p class="font-moul">ព្រះរាជាណាចក្រកម្ពុជា</p>
                     <p class="font-moul">ជាតិ សាសនា ព្រះមហាក្សត្រ</p>
-                    <div style="font-family: serif; letter-spacing: 3px; font-weight: bold; margin-top: -3px;">𑁋𑁋𑁋𑁋𑁋</div>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin: 4px auto 10px auto; width: 60%;">
+                        <div style="height: 1px; flex: 1; background: linear-gradient(to right, transparent, #d97706);"></div>
+                        <span style="color: #d97706; font-size: 11px;">❖ ❖ ❖</span>
+                        <div style="height: 1px; flex: 1; background: linear-gradient(to left, transparent, #d97706);"></div>
+                    </div>
                 </div>
             </div>
             

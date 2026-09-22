@@ -38,7 +38,7 @@ window.loadDashboard = async function() {
         
         <div class="relative z-10 flex flex-col sm:flex-row gap-4 items-center">
            <button onclick="if(typeof switchView === 'function') switchView('examManager');" class="px-5 py-3 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white rounded-2xl text-xs font-bold shadow-lg transition transform hover:-translate-y-1 flex items-center gap-2 cursor-pointer border border-white/20">
-             <i class="fa-solid fa-file-pdf"></i> បង្កើតគំរូវិញ្ញាសា
+             <i class="fa-solid fa-file-pdf"></i> គ្រប់គ្រងការប្រឡង
            </button>
            <button onclick="if(typeof switchView === 'function') switchView('attendance');" class="px-5 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-2xl text-xs font-bold shadow-lg transition transform hover:-translate-y-1 flex items-center gap-2 cursor-pointer border border-emerald-400">
              <i class="fa-solid fa-clipboard-user text-sm"></i> ពិនិត្យវត្តមានថ្ងៃនេះ
@@ -51,7 +51,7 @@ window.loadDashboard = async function() {
       </div>
 
       <!-- ២. កាតចំណុចសំខាន់ៗ (KPI Cards) -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         
         <div class="bg-white rounded-3xl p-5 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-slate-100 relative overflow-hidden transform hover:-translate-y-2 hover:shadow-xl transition duration-300 group cursor-pointer" onclick="if(typeof switchView === 'function') switchView('students');">
           <i class="fa-solid fa-users absolute -right-6 -bottom-6 text-8xl text-blue-50 group-hover:text-blue-100 transition-colors z-0 group-hover:scale-110 duration-500"></i>
@@ -100,21 +100,6 @@ window.loadDashboard = async function() {
             <div class="mt-3 flex justify-between text-xs font-bold text-slate-600 border-t border-slate-100 pt-2">
               <span class="text-emerald-600">វត្តមានគ្រូ៖ <span id="d_teacherPresent">100</span>%</span>
               <span class="text-amber-600">ច្បាប់៖ <span id="d_teacherLeave">0</span></span>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-white rounded-3xl p-5 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-slate-100 relative overflow-hidden transform hover:-translate-y-2 hover:shadow-xl transition duration-300 group cursor-pointer" onclick="if(typeof switchView === 'function') switchView('finance');">
-          <i class="fa-solid fa-vault absolute -right-6 -bottom-6 text-8xl text-amber-50 group-hover:text-amber-100 transition-colors z-0 group-hover:scale-110 duration-500"></i>
-          <div class="relative z-10">
-            <div class="flex justify-between items-start mb-2">
-              <p class="text-[11px] text-slate-500 font-bold tracking-widest uppercase">សមតុល្យថវិកាសុទ្ធ</p>
-              <div class="w-8 h-8 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center text-sm group-hover:bg-amber-500 group-hover:text-white transition-colors"><i class="fa-solid fa-sack-dollar"></i></div>
-            </div>
-            <h3 class="text-4xl font-black text-amber-500 font-mono tracking-tight" id="d_netBalance">$0.00</h3>
-            <div class="mt-3 flex justify-between text-[11px] font-bold text-slate-600 border-t border-slate-100 pt-2">
-              <span class="text-emerald-600">ចំណូល: <span id="d_totalIncome">+$0</span></span>
-              <span class="text-rose-500">ចំណាយ: <span id="d_totalExpense">-$0</span></span>
             </div>
           </div>
         </div>
