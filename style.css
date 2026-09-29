@@ -326,3 +326,44 @@ body {
         print-color-adjust: exact !important;
     }
 }
+
+/* ========================================================
+   Global Mobile Scrolling & Custom Scrollbar
+======================================================== */
+
+/* ធ្វើឱ្យការអូសលើទូរសព្ទ (ពិសេស iOS/iPhone) មានភាពរលូន (Smooth) */
+.custom-scrollbar {
+    -webkit-overflow-scrolling: touch; 
+    scrollbar-width: thin; /* សម្រាប់ Firefox */
+}
+
+/* ទំហំរបស់របារ Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;  /* កម្រាស់បញ្ឈរ */
+    height: 8px; /* កម្រាស់ផ្តេក (សំខាន់សម្រាប់តារាង) */
+}
+
+/* ផ្ទៃខាងក្រោយរបារ */
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #f8fafc; 
+    border-radius: 10px;
+}
+
+/* ពណ៌របស់ដុំអូស */
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #cbd5e1; 
+    border-radius: 10px;
+}
+
+/* ពណ៌ដុំអូសពេលយកកណ្តុរទៅចង្អុល */
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8; 
+}
+
+/* បង្ខំឱ្យតារាងមិនបាក់បន្ទាត់ពេលមើលលើទូរសព្ទ */
+.table-responsive-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    touch-action: pan-x; /* អនុញ្ញាតឱ្យអូសឆ្វេងស្តាំបានរលូន */
+}

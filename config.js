@@ -1,9 +1,9 @@
 // ==========================================
-// ឯកសារ js/config.js (Advanced Cloud Sync & Instant Delete API)
+// ឯកសារ js/config.js (Advanced Cloud Sync & Multi-Teacher API)
 // ==========================================
 
 // 👉 URL របស់ Google Apps Script 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz3BAb42xG9nXlgukxRD8k5ZvdvFsnF-Cyby9ZzqnN4Sc9GWlVd6PXwyN_qRNSJDyne/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxF917gaBehKaxT3Ypeeu53ITuQ3a3kk7AF5RNigD_6Ae6Jv_8Rbogo0LAgDOiLWeul/exec";
 
 // =========================================================
 // ១. ការកំណត់ទូទៅ (Global Settings Data)
@@ -54,22 +54,36 @@ function applySettingsToUI() {
 }
 
 // =========================================================
-// ២. ប្រព័ន្ធ API (GET & POST) សម្រាប់ Google Apps Script
+// ២. ប្រព័ន្ធ API (GET & POST) សម្រាប់ Google Apps Script (កែសម្រួលបន្ថែម Auth)
 // =========================================================
+
+/**
+ * មុខងារសម្រាប់ទាញយក អត្តសញ្ញាណគ្រូ និងឆ្នាំសិក្សាបច្ចុប្បន្ន
+ */
+function getAuthCredentials() {
+    return {
+        teacher_id: localStorage.getItem('auth_teacher_id') || "TCH-001", // យកពីប្រព័ន្ធ Login
+        academic_year: localStorage.getItem('selected_academic_year') || appSettings.academic_year || "2026-2027" // យកពី Dropdown ឆ្នាំសិក្សា
+    };
+}
 
 /**
  * មុខងារសម្រាប់ហៅទិន្នន័យ (GET)
  */
 async function apiGet(action, params = {}) {
-  const cacheKey = `cache_${action}_${JSON.stringify(params)}`;
+  // 🟢 បញ្ចូលអត្តសញ្ញាណគ្រូ និងឆ្នាំសិក្សា ទៅក្នុងប៉ារ៉ាម៉ែត្រជានិច្ច 🟢
+  const auth = getAuthCredentials();
+  const finalParams = { ...auth, ...params };
+  
+  const cacheKey = `cache_${action}_${JSON.stringify(finalParams)}`;
   const cachedData = localStorage.getItem(cacheKey);
 
   if (cachedData) {
-    fetchDataFromAPI(action, params, cacheKey).catch(e => console.warn("Background Sync API Get Error"));
+    fetchDataFromAPI(action, finalParams, cacheKey).catch(e => console.warn("Background Sync API Get Error"));
     return JSON.parse(cachedData);
   }
 
-  return await fetchDataFromAPI(action, params, cacheKey);
+  return await fetchDataFromAPI(action, finalParams, cacheKey);
 }
 
 async function fetchDataFromAPI(action, params, cacheKey) {
@@ -77,10 +91,15 @@ async function fetchDataFromAPI(action, params, cacheKey) {
     const url = new URL(SCRIPT_URL);
     url.searchParams.append("action", action);
     for (const [key, val] of Object.entries(params)) { 
-      if (val) url.searchParams.append(key, val); 
+      if (val !== undefined && val !== null) url.searchParams.append(key, val); 
     }
     
-    const res = await fetch(url.toString());
+    const res = await fetch(url.toString(), {
+        method: 'GET',
+        headers: { 'Accept': 'application/json' }
+    });
+    
+    if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
     const data = await res.json();
     
     if (data.status === "success") {
@@ -88,21 +107,63 @@ async function fetchDataFromAPI(action, params, cacheKey) {
     }
     return data;
   } catch (err) { 
-    console.warn(`API GET Error [${action}]: បរាជ័យក្នុងការតភ្ជាប់។`);
-    return { status: "error", data: null };
+    console.warn(`API GET Error [${action}]: បរាជ័យក្នុងការតភ្ជាប់។`, err);
+    return { status: "error", data: null, message: err.toString() };
   }
 }
+
+
+// មុខងារទាញយកទិន្នន័យសិស្សប្រកបដោយល្បឿនលឿន (Cache-First Strategy)
+window.fetchStudentsDataFast = async function() {
+    const currentTeacherId = localStorage.getItem('auth_teacher_id');
+    const currentYear = document.getElementById("globalAcademicYear")?.value || "2026-2027";
+
+    // ១. បង្ហាញទិន្នន័យពី LocalStorage ភ្លាមៗ (Instant Display)
+    try {
+        const rawData = localStorage.getItem('academic_students');
+        if (rawData) {
+            const parsed = JSON.parse(rawData) || [];
+            window.allStudents = parsed.filter(s => String(s.teacher_id) === String(currentTeacherId) && String(s.academic_year) === String(currentYear));
+            window.filterStudents(); // បង្ហាញលើតារាងភ្លាមៗ មិនបាច់រង់ចាំអុិនធឺណិត
+        }
+    } catch(e) {}
+
+    // ២. ទាញទិន្នន័យថ្មីពី Google Sheets មកបំពេញបន្ថែមនៅខាងក្រោយ (Background Sync)
+    if (typeof window.apiGet === 'function') {
+        window.apiGet("getStudents").then(res => {
+            if (res && res.status === "success" && Array.isArray(res.data)) {
+                localStorage.setItem('academic_students', JSON.stringify(res.data));
+                window.allStudents = res.data.filter(s => String(s.teacher_id) === String(currentTeacherId) && String(s.academic_year) === String(currentYear));
+                window.filterStudents(); // Refresh តារាងម្តងទៀតជាមួយទិន្នន័យស្រស់ៗពី Cloud
+            }
+        }).catch(err => console.warn("Background fetch skipped:", err));
+    }
+};
 
 /**
  * មុខងារសម្រាប់បញ្ជូនទិន្នន័យ (POST)
  */
 async function apiPost(action, payload = {}) {
+  // 🟢 បញ្ចូលអត្តសញ្ញាណគ្រូ និងឆ្នាំសិក្សា ទៅក្នុងទិន្នន័យរាល់ពេលបញ្ជូន 🟢
+  const auth = getAuthCredentials();
+  
+  const requestBody = {
+      action: action,
+      teacher_id: auth.teacher_id,
+      academic_year: auth.academic_year,
+      // រៀបចំ payload
+      data: payload.data ? payload.data : payload
+  };
+  
+  // បើសិនមាន id ដាច់ដោយឡែក (e.g. សម្រាប់មុខងារ Delete)
+  if (payload && payload.id) requestBody.id = payload.id;
+  else if (payload && payload.data && payload.data.id) requestBody.id = payload.data.id;
+
   // ការងារបន្ទាន់ដែលត្រូវបាញ់ទៅ Server ភ្លាមៗ (មិនឆ្លងកាត់ Queue)
   const instantActions = [
       "loginUser", 
       "generateWithAI", 
       "deleteStudent", 
-      "deleteFinance", 
       "deleteStaff", 
       "deleteBook", 
       "deleteAsset"
@@ -110,19 +171,11 @@ async function apiPost(action, payload = {}) {
   
   if (instantActions.includes(action)) {
     try {
-      const formData = new URLSearchParams();
-      formData.append("action", action);
-      
-      // បញ្ជាក់ id ដាច់ដោយឡែកដើម្បីអោយ Backend ចាប់បាន
-      if(payload && payload.id) formData.append("id", payload.id);
-      else if (payload && payload.data && payload.data.id) formData.append("id", payload.data.id);
-      
-      formData.append("data", JSON.stringify(payload));
-
       const response = await fetch(SCRIPT_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: formData.toString()
+        // Google Apps Script ទាមទារ text/plain ដើម្បីកុំឱ្យជាប់ CORS error
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(requestBody)
       });
       return await response.json();
     } catch (error) {
@@ -134,8 +187,13 @@ async function apiPost(action, payload = {}) {
   // សម្រាប់ទិន្នន័យធម្មតា ត្រូវរក្សាទុកក្នុងកុំព្យូទ័រសិន (Offline-First Queue)
   let syncQueue = JSON.parse(localStorage.getItem('syncQueue') || '[]');
   
+  // ដកសំណើចាស់ៗដែលស្ទួន (Duplicate) ចេញសិនមុននឹងបន្ថែមសំណើថ្មី
   syncQueue = syncQueue.filter(item => item.action !== action);
-  syncQueue.push({ action, payload: payload, timestamp: new Date().getTime() });
+  syncQueue.push({ 
+      action, 
+      requestBody: requestBody, // រក្សាទុកកញ្ចប់ទិន្នន័យទាំងមូលរួមទាំង teacher_id
+      timestamp: new Date().getTime() 
+  });
   
   localStorage.setItem('syncQueue', JSON.stringify(syncQueue));
   updateSyncBadgeUI(syncQueue.length);
@@ -170,29 +228,12 @@ async function syncDataToServer(isSilent = false) {
 
     for (let i = 0; i < syncQueue.length; i++) {
       const task = syncQueue[i];
-      const formData = new URLSearchParams();
       
-      formData.append("action", task.action);
-      
-      // រៀបចំទិន្នន័យ data ឲ្យបានត្រឹមត្រូវ
-      if (task.payload && task.payload.data) {
-          formData.append("data", JSON.stringify(task.payload.data));
-      } else {
-          formData.append("data", JSON.stringify(task.payload));
-      }
-
-      // 🔴 ចំណុចសំខាន់ដែលបានបន្ថែម: ទាញយក id មកបញ្ជូនដាច់ដោយឡែក
-      if (task.payload && task.payload.data && task.payload.data.id) {
-         formData.append("id", task.payload.data.id);
-      } else if (task.payload && task.payload.id) {
-         formData.append("id", task.payload.id);
-      }
-
       try {
           const res = await fetch(SCRIPT_URL, { 
             method: "POST", 
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: formData.toString()
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify(task.requestBody) // បញ្ជូនអ្វីដែលបានចងក្រងទុករួចរាល់
           });
           
           const result = await res.json();
