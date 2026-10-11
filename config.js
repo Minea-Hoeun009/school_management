@@ -3,7 +3,7 @@
 // ==========================================
 
 // 👉 URL របស់ Google Apps Script 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxF917gaBehKaxT3Ypeeu53ITuQ3a3kk7AF5RNigD_6Ae6Jv_8Rbogo0LAgDOiLWeul/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwSww8UsHFDSwQ3wzECa-FhDf3A4WMstrbI5UTDNga-A8vJ9DUw4laVtWrlMHmijK5p/exec";
 
 // =========================================================
 // ១. ការកំណត់ទូទៅ (Global Settings Data)
@@ -383,6 +383,7 @@ window.printSpecificSheet = function(elementId, orientation = 'landscape') {
     iframe.contentWindow.print();
   }, 1500); 
 };
+
 
 // =========================================================
 // ៤. ដំណើរការនៅពេលកម្មវិធីចាប់ផ្តើម (Load)

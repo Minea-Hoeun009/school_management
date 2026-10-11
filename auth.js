@@ -263,7 +263,6 @@ window.switchView = function(viewId, param = "") {
         'students': 'គ្រប់គ្រងបញ្ជីឈ្មោះសិស្ស', 
         'attendance': 'កត់វត្តមានប្រចាំថ្ងៃ',
         'scores': 'បញ្ចូលពិន្ទុ និងនិទ្ទេស',  
-        'certificates': 'ប័ណ្ណសរសើរ',
         'settings': 'ការកំណត់ទូទៅ', 
         'library': 'បណ្ណាល័យ និងទ្រព្យសកម្ម',
         'schoolReports': 'របាយការណ៍រដ្ឋបាល',
@@ -278,7 +277,6 @@ window.switchView = function(viewId, param = "") {
     else if (viewId === "attendance" && typeof loadAttendanceView === 'function') loadAttendanceView(param);
     else if (viewId === "scores" && typeof loadScoresView === 'function') loadScoresView(param);
     else if (viewId === "rankings" && typeof loadRankingsView === 'function') loadRankingsView(param);
-    else if (viewId === "certificates" && typeof loadCertificatesView === 'function') loadCertificatesView();
     else if (viewId === "settings" && typeof loadSettingsView === 'function') loadSettingsView();
     else if (viewId === "library" && typeof loadLibraryView === 'function') loadLibraryView();
     else if (viewId === "schoolReports" && typeof loadSchoolReportsView === 'function') loadSchoolReportsView();

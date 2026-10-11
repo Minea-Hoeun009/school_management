@@ -158,15 +158,29 @@ window.loadLibraryView = async function() {
              <!-- Document Header (Print Only or Web Top) -->
              <div class="flex justify-between items-start mb-6 border-b border-slate-100 pb-4">
                 <div class="text-left"><br><br>
-                   <p class="text-[12px] md:text-xs font-moul text-slate-800">${schoolName}</p>
-                   <p class="text-[12px] md:text-xs font-bold text-slate-700 mt-1"><span class="text-rose-600 font-moul">${window.currentGradeFull}</span></p>
+                   <p class="text-[12px] font-moul text-slate-800">${schoolName}</p>
+                   <p class="text-[12px] font-bold text-slate-700 mt-1"><span class="text-rose-600 font-moul">${window.currentGradeFull}</span></p>
                 </div>
                 <div class="text-center">
-                   <p class="font-moul text-indigo-900 text-[12px] md:text-sm">ព្រះរាជាណាចក្រកម្ពុជា</p>
-                   <p class="font-moul text-indigo-900 text-[12px] md:text-base mt-1">ជាតិ សាសនា ព្រះមហាក្សត្រ</p>
-                   <div class="flex items-center justify-center gap-2 mt-1 mx-auto w-[60%] print:w-[80%]">
-                      <div class="h-[1.5px] flex-1 bg-slate-800"></div><span class="text-slate-800 text-[9px]">❖</span><div class="h-[1.5px] flex-1 bg-slate-800"></div>
-                   </div>
+                   <p class="font-moul text-indigo-900 text-[12px]">ព្រះរាជាណាចក្រកម្ពុជា</p>
+                   <p class="font-moul text-indigo-900 text-[12px] mt-1">ជាតិ សាសនា ព្រះមហាក្សត្រ</p>
+                   <!-- ក្បាច់រចនាប័ទ្ម Tacteing គូរដោយ HTML សុទ្ធ (ធានា ១០០% ដើរលើគ្រប់ទូរស័ព្ទ) -->
+                    <div style="display: flex; align-items: center; justify-content: center; margin: 4px auto 12px auto; gap: 3px;">
+                        <!-- បន្ទាត់ឆ្វេង -->
+                        <div style="width: 35px; height: 1.5px; background-color: #9c6705; -webkit-print-color-adjust: exact; print-color-adjust: exact;"></div>
+                        <div style="width: 3.5px; height: 3.5px; background-color: #1e3a8a; border-radius: 50%; -webkit-print-color-adjust: exact; print-color-adjust: exact;"></div>
+                        <div style="width: 12px; height: 1.5px; background-color: #9c6705; -webkit-print-color-adjust: exact; print-color-adjust: exact;"></div>
+                        <div style="width: 3.5px; height: 3.5px; background-color: #1e3a8a; border-radius: 50%; -webkit-print-color-adjust: exact; print-color-adjust: exact;"></div>
+                        
+                        <!-- ក្បាច់កណ្តាល -->
+                        <div style="font-size: 11pt; color: #755000; margin: 0 2px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">❖</div>
+                        
+                        <!-- បន្ទាត់ស្តាំ -->
+                        <div style="width: 3.5px; height: 3.5px; background-color: #1e3a8a; border-radius: 50%; -webkit-print-color-adjust: exact; print-color-adjust: exact;"></div>
+                        <div style="width: 12px; height: 1.5px; background-color: #9c6705; -webkit-print-color-adjust: exact; print-color-adjust: exact;"></div>
+                        <div style="width: 3.5px; height: 3.5px; background-color: #1e3a8a; border-radius: 50%; -webkit-print-color-adjust: exact; print-color-adjust: exact;"></div>
+                        <div style="width: 35px; height: 1.5px; background-color: #9c6705; -webkit-print-color-adjust: exact; print-color-adjust: exact;"></div>
+                    </div>
                 </div>
              </div>
 
@@ -322,7 +336,7 @@ window.renderLibTable = function() {
     // 🟢 រៀបចំក្បាលតារាង (Headers) 🟢
     let ths = `
         <th class="p-2 md:p-3 border-r border-b border-indigo-700 w-10 md:w-12 sticky left-0 z-20 bg-indigo-900 print:static print:border-black font-moul">ល.រ</th>
-        <th class="p-2 md:p-3 border-r border-b border-indigo-700 text-left px-3 min-w-[140px] md:min-w-[160px] sticky left-[40px] md:left-[48px] z-20 bg-indigo-900 print:static print:border-black font-moul">គោត្តនាម និងនាម</th>
+        <th class="p-2 md:p-3 border-r border-b border-indigo-700 text-center px-3 min-w-[140px] z-20 bg-indigo-900 print:static print:border-black font-moul">គោត្តនាម និងនាម</th>
         <th class="p-2 md:p-3 border-r border-b border-indigo-700 w-12 hidden sm:table-cell print:table-cell print:border-black font-moul">ភេទ</th>
     `;
     
@@ -388,9 +402,9 @@ window.renderLibTable = function() {
 
         trs += `
             <tr class="hover:bg-indigo-50/30 transition-colors border-b border-slate-300 print:border-black group">
-                <td class="p-1 md:p-2 border-r border-slate-300 print:border-black text-center font-mono text-slate-500 sticky left-0 z-10 bg-white group-hover:bg-indigo-50 print:static print:bg-transparent">${toKhmerNum((idx + 1).toString())}</td>
-                <td class="p-1 md:p-2 border-r border-slate-300 print:border-black text-left px-3 font-moul text-[11px] md:text-xs text-slate-800 whitespace-nowrap sticky left-[40px] md:left-[48px] z-10 bg-white group-hover:bg-indigo-50 print:static print:bg-transparent" title="${stu.id}">${stu.name}</td>
-                <td class="p-1 md:p-2 border-r border-slate-300 print:border-black text-center font-bold ${isF ? 'text-rose-600' : 'text-blue-600'} hidden sm:table-cell print:table-cell bg-white print:bg-transparent">${isF ? 'ស' : 'ប'}</td>
+                <td class="p-1 md:p-2 border-r border-slate-300 print:border-black text-center font-mono text-slate-500 sticky left-0 z-10 bg-white group-hover:bg-indigo-50 print:static print:bg-transparent font-siemreap">${toKhmerNum((idx + 1).toString())}</td>
+                <td class="p-1 md:p-2 border-r border-slate-300 print:border-black text-left px-3 md:text-xs text-slate-800 whitespace-nowrap sticky left-[40px] md:left-[48px] z-10 bg-white group-hover:bg-indigo-50 print:static print:bg-transparent font-siemreap text-[12px] font-bold" title="${stu.id}">${stu.name}</td>
+                <td class="p-1 md:p-2 border-r border-slate-300 print:border-black text-center font-bold ${isF ? 'text-rose-600' : 'text-blue-600'} hidden sm:table-cell print:table-cell bg-white print:bg-transparent font-siemreap">${isF ? 'ស' : 'ប'}</td>
                 ${subCells}
                 <td class="p-1 border-r border-slate-300 print:border-black bg-blue-50/40 print:bg-transparent" style="width: 110px; min-width: 110px;">
                     <input type="date" id="bDate_${stu.id}" value="${sData.borrowDate || ''}" onchange="window.updateLibDate('${stu.id}', 'borrowDate', this.value, '${stu.name}', '${stu.gender}')" class="w-full text-[10px] md:text-[11px] bg-transparent outline-none font-mono text-center text-blue-700 border-0 focus:bg-white px-1 font-bold">
@@ -554,111 +568,256 @@ window.clearLibData = function() {
 };
 
 // ==========================================
-// ៤. មុខងារបោះពុម្ព (Print) - Hidden Iframe
+// ៤. មុខងារបោះពុម្ព (Print) - បញ្ជីឈ្មោះខ្ចីសៀវភៅ (កែសម្រួលគម្លាតហត្ថលេខា)
 // ==========================================
 window.printLibraryReport = function() {
-    const printArea = document.getElementById("libPrintArea");
-    if (!printArea) return alert("⚠️ រកមិនឃើញទិន្នន័យដើម្បីបោះពុម្ព!");
+    if (!window.libStudents || window.libStudents.length === 0) return alert("គ្មានទិន្នន័យដើម្បីបោះពុម្ពទេ!");
 
-    const clonedArea = printArea.cloneNode(true);
+    const sInfo = typeof appSettings !== 'undefined' ? appSettings : {};
+    const schoolName = sInfo.school_name || "សាលាបឋមសិក្សា";
+    const districtName = sInfo.district || "ស្រុកកៀនស្វាយ";
+    const academicYear = document.getElementById("globalAcademicYear")?.value || "2026-2027";
+    const teacherName = window.AuthState ? window.AuthState.teacherName : (sInfo.teacher_name || ".......................");
+    const principalName = sInfo.principal_name || ".......................";
     
-    // បំប្លែង Input Date និង Text ទៅជា Span ដើម្បី Print ចេញមកស្អាត និងយកទម្រង់ខ្មែរ
-    const inputsDate = clonedArea.querySelectorAll('input[type="date"]');
-    inputsDate.forEach(input => {
-        const val = input.value;
-        const span = document.createElement('span');
-        span.textContent = val ? formatKhmerDate(val) : '.../.../....';
-        span.style.fontSize = '9.5px';
-        span.style.fontFamily = 'monospace';
-        span.style.color = '#1e3a8a';
-        span.style.fontWeight = 'bold';
-        input.parentNode.replaceChild(span, input);
+    const lunarStr = typeof window.getKhmerLunarDate === 'function' ? window.getKhmerLunarDate() : "ថ្ងៃ.......................";
+    const solarStr = typeof window.getFormattedSolarDate === 'function' ? window.getFormattedSolarDate() : "ធ្វើនៅ..............., ថ្ងៃទី....... ខែ....... ឆ្នាំ២០២...";
+
+    const toKhNum = typeof window.toKhmerNum === 'function' ? window.toKhmerNum : String;
+    
+    // កំណត់ចំណងជើងផ្អែកលើប្រភេទបញ្ជី (ខ្ចី ឬ សង)
+    let isBorrowList = window.currentLibTab === 'borrow';
+    let docTitle = isBorrowList ? "បញ្ជីខ្ចីសៀវភៅសិក្សាគោល" : "បញ្ជីប្រមូលសៀវភៅសិក្សាគោលមកវិញ";
+
+    // រៀបចំក្បាលតារាង (Headers)
+    let thsHtml = `
+        <th style="width: 4%;">ល.រ</th>
+        <th style="width: 20%; text-align: left; padding-left: 8px;">គោត្តនាម និងនាម</th>
+        <th style="width: 5%;">ភេទ</th>
+    `;
+    
+    let subWidth = Math.floor(45 / Math.max(1, window.libSubjects.length)); // ចែកទំហំក្រឡាស្មើៗគ្នា
+    window.libSubjects.forEach(sub => {
+        thsHtml += `<th style="width: ${subWidth}%; font-family: 'Siemreap', sans-serif;">${sub.name}</th>`;
     });
-
-    const inputsText = clonedArea.querySelectorAll('input[type="text"]');
-    inputsText.forEach(input => {
-        const val = input.value.trim();
-        const span = document.createElement('span');
-        span.textContent = val;
-        span.style.fontSize = '10px';
-        span.style.color = '#475569';
-        input.parentNode.replaceChild(span, input);
-    });
-
-    // ដកយក Class Tailwind មួយចំនួនដែលរំខានដល់ការ Print
-    const allEls = clonedArea.querySelectorAll('*');
-    allEls.forEach(el => {
-        el.className = (el.className || "")
-            .replace(/sticky/g, "")
-            .replace(/left-\[?[^\]\s]+\]?/g, "")
-            .replace(/z-\d+/g, "")
-            .replace(/shadow-[^"'\s]*/g, "")
-            .replace(/bg-white/g, ""); 
-        el.style.position = "static";
-        el.style.left = "auto";
-    });
-
-    const printContent = clonedArea.outerHTML;
-
-    const printDocument = `
-      <!DOCTYPE html>
-      <html lang="km">
-      <head>
-        <meta charset="utf-8">
-        <title>${document.getElementById('libDocTitle').innerText}</title>
-        <script src="https://cdn.tailwindcss.com"></script>
-        <style>
-          @import url('https://fonts.googleapis.com/css2?family=Battambang:wght@400;700&family=Moul&family=Siemreap&display=swap');
-          @page { size: A4 landscape; margin: 8mm 10mm; }
-          body { margin: 0; padding: 0; display: flex; justify-content: center; background: white; font-family: 'Siemreap', sans-serif; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          .font-moul { font-family: 'Moul', serif !important; font-weight: normal !important; }
-          .font-battambang { font-family: 'Battambang', sans-serif !important; }
-          
-          /* បង្ខំពណ៌ Badge ពេល Print */
-          .badge-new { color: #059669 !important; font-size: 10px; }
-          .badge-old { color: #d97706 !important; font-size: 10px; }
-          .badge-poor { color: #e11d48 !important; font-size: 10px; }
-          .badge-none { color: #cbd5e1 !important; font-size: 10px; }
-          
-          .badge-check { color: #059669 !important; font-size: 12px; font-weight: bold; }
-          .badge-cross { color: #e11d48 !important; font-size: 12px; font-weight: bold; }
-          
-          table { width: 100%; border-collapse: collapse; border: 1.5px solid black; }
-          th { background-color: #f1f5f9 !important; color: black !important; font-family: 'Moul', serif; padding: 4px; font-size: 10px; border: 1px solid black; text-align: center; }
-          td { border: 1px solid black; padding: 4px 2px; font-size: 10.5px; text-align: center; height: 24px; vertical-align: middle;}
-          td:nth-child(2) { text-align: left; padding-left: 6px; font-family: 'Moul', serif; font-size: 11px;}
-          tr:nth-child(even) { background-color: #f8fafc !important; }
-        </style>
-      </head>
-      <body>
-        <div style="width: 100%; max-width: 277mm;">
-           ${printContent}
-        </div>
-      </body>
-      </html>
+    
+    thsHtml += `
+        <th style="width: 9%;">ថ្ងៃខ្ចី</th>
+        <th style="width: 9%;">ថ្ងៃសង</th>
+        <th style="width: 8%;">ផ្សេងៗ/ហត្ថលេខា</th>
     `;
 
-    // ប្រើប្រាស់ Hidden Iframe ដើម្បី Print ចៀសវាង Pop-up Blocker
-    let iframe = document.getElementById('printLibIframe');
-    if (!iframe) {
-        iframe = document.createElement('iframe');
-        iframe.id = 'printLibIframe';
-        iframe.style.position = 'fixed';
-        iframe.style.right = '0';
-        iframe.style.bottom = '0';
-        iframe.style.width = '0';
-        iframe.style.height = '0';
-        iframe.style.border = '0';
-        document.body.appendChild(iframe);
-    }
+    // គណនាស្ថិតិ និងរៀបចំជួរដេក (Rows)
+    let totalBorrowed = 0, totalReturned = 0, totalLost = 0;
+    let totalNew = 0, totalOld = 0, totalPoor = 0;
+    let rowsHtml = "";
 
-    const doc = iframe.contentWindow.document;
-    doc.open();
-    doc.write(printDocument);
-    doc.close();
+    window.libStudents.forEach((stu, idx) => {
+        const sData = window.libData[stu.id] || {};
+        const isF = stu.gender === 'ស្រី';
+        let subCellsHtml = "";
 
+        window.libSubjects.forEach(sub => {
+            const currentSubData = sData[sub.key] || {};
+            const bVal = currentSubData.borrow || "គ្មាន";
+            const rVal = currentSubData.return || "គ្មាន";
+            
+            // រាប់ស្ថិតិ
+            if (bVal === "ថ្មី" || bVal === "ចាស់" || bVal === "អន់") totalBorrowed++;
+            if (bVal === "ថ្មី") totalNew++;
+            if (bVal === "ចាស់") totalOld++;
+            if (bVal === "អន់") totalPoor++;
+            if (rVal === "✔") totalReturned++;
+            if (rVal === "✘") totalLost++;
+
+            let displayHtml = "";
+            if (isBorrowList) {
+                if (bVal === "ថ្មី") displayHtml = `<span style="color: #059669; font-weight: bold;">ថ្មី</span>`;
+                else if (bVal === "ចាស់") displayHtml = `<span style="color: #d97706; font-weight: bold;">ចាស់</span>`;
+                else if (bVal === "អន់") displayHtml = `<span style="color: #e11d48; font-weight: bold;">អន់</span>`;
+                else displayHtml = `<span style="color: #cbd5e1;">គ្មាន</span>`;
+            } else {
+                if (rVal === "✔") displayHtml = `<span style="color: #059669; font-weight: bold;">✔</span>`;
+                else if (rVal === "✘") displayHtml = `<span style="color: #e11d48; font-weight: bold;">✘</span>`;
+                else displayHtml = `<span style="color: #cbd5e1;">គ្មាន</span>`;
+            }
+
+            subCellsHtml += `<td style="text-align: center;">${displayHtml}</td>`;
+        });
+
+        const formatDateToPrint = (dateStr) => {
+            if (!dateStr) return '';
+            const parts = dateStr.split('-');
+            if (parts.length === 3) return `${toKhNum(parts[2])}/${toKhNum(parts[1])}/${toKhNum(parts[0])}`;
+            return dateStr;
+        };
+
+        const bDate = formatDateToPrint(sData.borrowDate);
+        const rDate = formatDateToPrint(sData.returnDate);
+        const noteStr = sData.note || '';
+
+        let bgRow = idx % 2 !== 0 ? 'background-color: #f8fafc;' : 'background-color: #ffffff;';
+        let genColor = isF ? '#e11d48' : '#1e3a8a';
+
+        rowsHtml += `
+            <tr style="height: 30px; ${bgRow}">
+                <td style="text-align: center; color: #475569;">${toKhNum(idx + 1)}</td>
+                <td style="text-align: left; padding-left: 8px; font-weight: bold;">${stu.name}</td>
+                <td style="text-align: center; font-weight: bold; color: ${genColor};">${isF ? 'ស' : 'ប'}</td>
+                ${subCellsHtml}
+                <td style="text-align: center; color: #020079; font-size: 10.5pt;">${bDate}</td>
+                <td style="text-align: center; color: #059669; font-size: 10.5pt;">${rDate}</td>
+                <td style="text-align: center; color: #475569; font-size: 10pt;">${noteStr}</td>
+            </tr>
+        `;
+    });
+
+    // រៀបចំស្ថិតិខាងក្រោមតារាង
+    let statsHtml = `
+        <table style="width: 100%; border: none; margin-top: 15px; font-size: 11pt; color: #0f172a; border-collapse: collapse;">
+            <tr>
+                <td style="width: 50%; vertical-align: top; border: none; padding-right: 15px;">
+                    <h4 style="font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 11.5pt; color: #1e3a8a; margin: 0 0 10px 0; text-decoration: underline;">សរុបស្ថិតិសៀវភៅក្នុងថ្នាក់៖</h4>
+                    <p style="margin: 0 0 5px 0;">• ចំនួនសិស្សសរុប៖ <strong style="color: #be123c;">${toKhNum(window.libStudents.length)}</strong> នាក់</p>
+                    <p style="margin: 0 0 5px 0;">• ចំនួនសៀវភៅដែលបានខ្ចីសរុប៖ <strong style="color: #be123c;">${toKhNum(totalBorrowed)}</strong> ក្បាល</p>
+                    <p style="margin: 0 0 5px 0;">• ចំនួនសៀវភៅដែលបានសងសរុប៖ <strong style="color: #be123c;">${toKhNum(totalReturned)}</strong> ក្បាល</p>
+                    <p style="margin: 0 0 5px 0;">• ចំនួនសៀវភៅបាត់បង់/ខូច៖ <strong style="color: #be123c;">${toKhNum(totalLost)}</strong> ក្បាល</p>
+                </td>
+                <td style="width: 50%; vertical-align: top; border: none; padding-left: 15px;">
+                    <h4 style="font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 11.5pt; color: #1e3a8a; margin: 0 0 10px 0; text-decoration: underline;">លម្អិតស្ថានភាពសៀវភៅដែលបានខ្ចី៖</h4>
+                    <p style="margin: 0 0 5px 0;">• សៀវភៅថ្មី៖ <strong style="color: #059669;">${toKhNum(totalNew)}</strong> ក្បាល</p>
+                    <p style="margin: 0 0 5px 0;">• សៀវភៅចាស់៖ <strong style="color: #d97706;">${toKhNum(totalOld)}</strong> ក្បាល</p>
+                    <p style="margin: 0 0 5px 0;">• សៀវភៅអន់៖ <strong style="color: #e11d48;">${toKhNum(totalPoor)}</strong> ក្បាល</p>
+                </td>
+            </tr>
+        </table>
+    `;
+
+    // លុបចោលកុងតឺន័រចាស់បើមាន
+    let oldContainer = document.getElementById('mobile-print-container-lib');
+    if (oldContainer) oldContainer.remove();
+
+    // បង្កើតកុងតឺន័រថ្មីសម្រាប់ផ្ទុកទិន្នន័យ Print
+    const printContainer = document.createElement('div');
+    printContainer.id = 'mobile-print-container-lib';
+    
+    printContainer.innerHTML = `
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Battambang:wght@400;700&family=Moul&family=Siemreap:wght@400;700&display=swap');
+            
+            @media print {
+                body > *:not(#mobile-print-container-lib) { display: none !important; }
+                body { background: white !important; margin: 0; padding: 0; }
+                @page { size: A4 landscape; margin: 10mm; }
+            }
+            
+            @media screen {
+                #mobile-print-container-lib { display: none; }
+            }
+
+            #mobile-print-container-lib {
+                background: white; color: black; width: 100%; max-width: 277mm; margin: 0 auto;
+                font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif;
+                -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;
+                line-height: 1.3;
+            }
+            
+            .p-header { width: 100%; margin-bottom: 20px; border-collapse: collapse; }
+            .p-header td { vertical-align: top; border: none; padding: 0; }
+            .ph-left { text-align: left; width: 40%; font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 11pt; color: #020079; line-height: 1.4; white-space: nowrap; }
+            .ph-right { text-align: center; width: 30%; font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 12pt; color: #020079; line-height: 1.4; }
+            
+            .p-title { text-align: center; margin: 10px 0 20px 0; }
+            .p-title h2 { font-family: 'Khmer OS Muol Light', 'Moul', serif; margin: 0 0 6px 0; font-size: 16pt; color: #e11d48; letter-spacing: 0.5px; }
+            .p-title p { font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif; margin: 0; font-size: 11pt; color: #060053; font-weight: bold; }
+            
+            .p-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 11pt; border: 1.5pt solid #0f172a; table-layout: fixed; }
+            .p-table th { background-color: #dbeafe !important; color: #000269 !important; font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 10pt; text-align: center; padding: 6px 2px; border: 1px solid #0f172a; font-weight: normal; }
+            .p-table td { border: 1px solid #94a3b8; padding: 4px; vertical-align: middle; }
+            
+            /* 🔴 កែសម្រួលទំហំជួរឈរ (Columns) នៃហត្ថលេខាទីនេះ 🔴 */
+            .p-sign { width: 100%; text-align: center; font-size: 11pt; page-break-inside: avoid; border-collapse: collapse; margin-top: 15px; }
+            .p-sign td { vertical-align: top; border: none; padding: 0; }
+            .p-sign td:nth-child(1) { width: 30%; } /* នាយកសាលា */
+            .p-sign td:nth-child(2) { width: 25%; } /* ប្រធានបណ្ណាល័យ */
+            .p-sign td:nth-child(3) { width: 45%; } /* កាលបរិច្ឆេទ & គ្រូប្រចាំថ្នាក់ (ធំជាងគេ) */
+            
+            .ps-date { margin: 0 0 4px 0; color: #334155; }
+            .ps-role { font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 11pt; color: #000269; margin: 5px 0 50px 0; font-weight: normal; }
+            .ps-name { font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 12pt; color: #be123c; margin: 0; font-weight: normal; }
+        </style>
+        
+        <table class="p-header">
+            <tr>
+                <td class="ph-left"><br>
+                    ការិយាល័យអប់រំ យុវជន និងកីឡានៃរដ្ឋបាលស្រុក${districtName.replace('ស្រុក', '').trim()}<br>
+                    <span style="font-size: 12pt; display: block; margin-top: 8px;">${schoolName}</span>
+                </td>
+                <td class="ph-right">
+                    ព្រះរាជាណាចក្រកម្ពុជា<br>ជាតិ សាសនា ព្រះមហាក្សត្រ
+                    <div style="display: flex; align-items: center; justify-content: center; margin: 4px auto 12px auto; gap: 3px;">
+                        <div style="width: 35px; height: 1.5px; background-color: #9c6705;"></div>
+                        <div style="width: 3.5px; height: 3.5px; background-color: #1e3a8a; border-radius: 50%;"></div>
+                        <div style="width: 12px; height: 1.5px; background-color: #9c6705;"></div>
+                        <div style="width: 3.5px; height: 3.5px; background-color: #1e3a8a; border-radius: 50%;"></div>
+                        <div style="font-size: 11pt; color: #755000; margin: 0 2px; line-height: 1;">❖</div>
+                        <div style="width: 3.5px; height: 3.5px; background-color: #1e3a8a; border-radius: 50%;"></div>
+                        <div style="width: 12px; height: 1.5px; background-color: #9c6705;"></div>
+                        <div style="width: 3.5px; height: 3.5px; background-color: #1e3a8a; border-radius: 50%;"></div>
+                        <div style="width: 35px; height: 1.5px; background-color: #9c6705;"></div>
+                    </div>
+                </td>
+            </tr>
+        </table>
+        
+        <div class="p-title">
+            <h2>${docTitle}</h2>
+            <p>ថ្នាក់ទី ${window.currentGradeFull.replace('ថ្នាក់ទី ', '')} | ឆ្នាំសិក្សា <span style="font-family: 'Khmer OS Siemreap', sans-serif;">${toKhNum(academicYear)}</span></p>
+        </div>
+        
+        <table class="p-table">
+            <thead>
+                <tr>${thsHtml}</tr>
+            </thead>
+            <tbody>${rowsHtml}</tbody>
+        </table>
+        
+        ${statsHtml}
+        
+        <table class="p-sign">
+            <tr>
+                <td>
+                    <p class="ps-date" style="color: transparent;">.</p>
+                    <p class="ps-date">បានឃើញ និងឯកភាព</p>
+                    <p class="ps-role">នាយកសាលា</p>
+                    <p class="ps-name">${principalName}</p>
+                </td>
+                <td>
+                    <p class="ps-date" style="color: transparent;">.</p>
+                    <p class="ps-date" style="color: transparent;">.</p>
+                    <p class="ps-role">ប្រធានបណ្ណាល័យ</p>
+                    <p class="ps-name">.......................</p>
+                </td>
+                <td>
+                    <p class="ps-date">${lunarStr}</p>
+                    <p class="ps-date">${solarStr}</p>
+                    <p class="ps-role">គ្រូប្រចាំថ្នាក់</p>
+                    <p class="ps-name">${teacherName}</p>
+                </td>
+            </tr>
+        </table>
+    `;
+    
+    // បញ្ចូលទៅ Document ដើម
+    document.body.appendChild(printContainer);
+    
+    // បញ្ជាឱ្យ Print
     setTimeout(() => {
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print();
-    }, 1000);
+        window.print();
+        // សម្អាតចោលក្រោយ Print
+        setTimeout(() => {
+            const cleanup = document.getElementById('mobile-print-container-lib');
+            if (cleanup) cleanup.remove();
+        }, 1000);
+    }, 500);
 };

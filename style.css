@@ -47,6 +47,13 @@ h6,
 .cert-title {
   font-family: 'Khmer OS Muol Light', 'Khmer OS Muol', 'Moul', serif !important;
 }
+
+@font-face {
+    font-family: 'TACTENG';
+    /* សូមប្រាកដថាលោកគ្រូមាន File Font នេះនៅក្នុង Folder របស់ Project */
+    src: url('../fonts/TACTENG.TTF') format('truetype'); 
+}
+
 /* ==========================================
    PRINT ONLY WORKSHEET (ព្រីនតែសន្លឹកការងារសុទ្ធ)
    ========================================== */
@@ -366,4 +373,17 @@ body {
     overflow-x: auto;
     overflow-y: hidden;
     touch-action: pan-x; /* អនុញ្ញាតឱ្យអូសឆ្វេងស្តាំបានរលូន */
+}
+
+/* បន្ថែមក្នុងប្លុក <style> របស់អ្នក */
+.cell-selected {
+    background-color: #dbeafe !important; /* ពណ៌ខៀវស្រាល bg-blue-100 */
+    box-shadow: inset 0 0 0 2px #3b82f6 !important; /* ស៊ុមពណ៌ខៀវខាងក្នុង */
+    color: #1e40af !important;
+    transition: all 0.1s ease;
+}
+/* បិទការ Select Text ធម្មតា ពេលកំពុងអូសម៉ៅស៍លើតារាង */
+.no-text-select {
+    user-select: none;
+    -webkit-user-select: none;
 }

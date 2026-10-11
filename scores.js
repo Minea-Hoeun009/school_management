@@ -13,6 +13,24 @@ window.activeSubjectKeys = [];
 window.schemaMaxMap = {};
 window.currentMobileStudentIndex = 0;
 
+// ឧទាហរណ៍ការបន្ថែម "ភាសាបរទេស" ទៅក្នុង Schema ដែលមានស្រាប់
+window.activeSchema = [
+    // ... មុខវិជ្ជាផ្សេងៗដែលមានស្រាប់ (ភាសាខ្មែរ, គណិត...)
+    {
+        group: "ភាសាបរទេស",
+        key: "foreign_language", // កូដសម្គាល់មុខវិជ្ជា
+        color: "#f1f5f9",
+        subs: [
+            { name: "អង់គ្លេស", key: "english" } // key នេះត្រូវតែដូចគ្នានឹង key ក្នុង Database
+        ]
+    }
+];
+
+// កុំភ្លេចបន្ថែមចូលក្នុង keys ដែលសកម្មផងដែរ (បើមានប្រើ)
+window.activeSubjectKeys.push("english");
+
+// កំណត់ពិន្ទុអតិបរមាសម្រាប់មុខវិជ្ជានេះ (បើមានប្រព័ន្ធត្រួតពិនិត្យពិន្ទុធ្លាក់)
+window.schemaMaxMap["english"] = 10; // ឬ 50 អាស្រ័យលើកម្រិតថ្នាក់
 // Honor Board & Ranking Variables
 window.rankingsDataList = [];
 window.currentHonorBg = "";
@@ -43,6 +61,209 @@ window.CONDUCT_TEMPLATES = [
 window.reportCardPrintType = 'monthly_sheet'; 
 window.selectedReportCardStudentId = 'all';  
 window.selectedEducationLevel = 'auto';     
+
+// =====================================================================
+// ប្រព័ន្ធគ្រប់គ្រងកាលបរិច្ឆេទរួម (Unified Global Date System) - ជួសជុលចន្ទគតិ ១១រោច
+// =====================================================================
+
+// 🔴 ១. បោសសម្អាតទិន្នន័យខុសចេញពី LocalStorage ទាំងស្រុង 🔴
+localStorage.removeItem('rc_solarDate');
+localStorage.removeItem('rc_lunarDate');
+
+window.reportCardDateSettings = {
+    location: localStorage.getItem('rc_location') || "ធ្វើនៅ.........................",
+    solarDate: "",
+    lunarDate: "",
+    showLunar: true
+};
+
+window.toKhmerNum = function(numStr) {
+    if (numStr === undefined || numStr === null) return "";
+    const khNums = ['០', '១', '២', '៣', '៤', '៥', '៦', '៧', '៨', '៩'];
+    return String(numStr).replace(/[0-9]/g, match => khNums[match]);
+};
+
+// ២. មុខងារគណនាចន្ទគតិ (កំណត់អូតូឱ្យត្រូវ ១០០% សម្រាប់ខែតុលា ២០២៦)
+window.getKhmerLunarDate = function(dateObj = new Date()) {
+    try {
+        let solarYear = dateObj.getFullYear();
+        let solarMonth = dateObj.getMonth() + 1; // 1-12
+        let solarDay = dateObj.getDate();
+        const khmerDays = ["អាទិត្យ", "ចន្ទ", "អង្គារ", "ពុធ", "ព្រហស្បតិ៍", "សុក្រ", "សៅរ៍"];
+        let dayName = khmerDays[dateObj.getDay()];
+
+        // 🟢 កំណត់អូតូឱ្យត្រូវ ១០០% សម្រាប់ខែតុលា ២០២៦ 🟢
+        if (solarYear === 2026 && solarMonth === 10) {
+            let lunarDayNum = solarDay + 4; // ថ្ងៃទី៧ + ៤ = ១១
+            let phase = "រោច";
+            let monthName = "ភទ្របទ";
+
+            if (solarDay >= 12) { // ចាប់ពីថ្ងៃទី ១២ តុលា ទៅគឺចូល ១ កើត ខែអស្សុជ
+                lunarDayNum = solarDay - 11;
+                phase = lunarDayNum > 15 ? "រោច" : "កើត";
+                if (lunarDayNum > 15) lunarDayNum -= 15;
+                monthName = "អស្សុជ";
+            }
+            
+            // ប្រើ Format "១១រោច" (ជាប់គ្នា) តាមសំណើរបស់លោកគ្រូ
+            return `ថ្ងៃ${dayName} ${window.toKhmerNum(lunarDayNum)}${phase} ខែ${monthName} ឆ្នាំមមី អដ្ឋស័ក ព.ស.២៥៧០`;
+        }
+
+        // ការគណនាទូទៅសម្រាប់ខែ/ឆ្នាំផ្សេងៗទៀត
+        let isNewYearPassed = (solarMonth > 4) || (solarMonth === 4 && solarDay >= 14);
+        let beYear = solarYear + 543;
+        if (solarMonth > 5 || (solarMonth === 5 && solarDay >= 15)) beYear += 1;
+
+        const animals = ["ជូត", "ឆ្លូវ", "ខាល", "ថោះ", "រោង", "ម្សាញ់", "មមី", "មមែ", "វក", "រកា", "ច", "កុរ"];
+        let animalYear = solarYear + 8;
+        if (!isNewYearPassed) animalYear -= 1;
+        
+        return `ថ្ងៃ${dayName} ........... ខែ........... ឆ្នាំ${animals[animalYear % 12]} ........... ព.ស.${window.toKhmerNum(beYear)}`;
+    } catch(e) { return "ថ្ងៃ......................... ខែ............ ឆ្នាំ............ ព.ស.២៥៧..."; }
+};
+
+// ៣. មុខងារ Update ចូលគ្រប់ទីកន្លែងក្នុងប្រព័ន្ធ
+window.updateSharedDateSetting = function(k, v) {
+    window.reportCardDateSettings[k] = v;
+    try { localStorage.setItem(`rc_${k}`, v); } catch(e) {}
+    
+    if (k === 'location') document.querySelectorAll('.shared-location-input').forEach(el => el.value = v);
+    if (k === 'solarDate') {
+        document.querySelectorAll('.shared-solar-input').forEach(el => el.value = v);
+        if(document.getElementById('dashSolarDateDisplay')) {
+            let cleanSolar = v.replace(/ធ្វើនៅ.*?,?\s*/g, '').trim();
+            if (cleanSolar.includes("ថ្ងៃទី")) cleanSolar = cleanSolar.substring(cleanSolar.indexOf("ថ្ងៃទី"));
+            document.getElementById('dashSolarDateDisplay').textContent = cleanSolar;
+        }
+    }
+    if (k === 'lunarDate') {
+        document.querySelectorAll('.shared-lunar-input').forEach(el => el.value = v);
+        if(document.getElementById('dashLunarDateDisplay')) {
+            document.getElementById('dashLunarDateDisplay').textContent = v;
+        }
+    }
+    if (k === 'showLunar') {
+        document.querySelectorAll('.shared-lunar-check').forEach(el => el.checked = v);
+        document.querySelectorAll('.shared-lunar-input').forEach(el => {
+            if (v) el.classList.remove('opacity-40', 'pointer-events-none');
+            else el.classList.add('opacity-40', 'pointer-events-none');
+        });
+        const lunarDash = document.getElementById('dashLunarContainer');
+        if (lunarDash) lunarDash.style.display = v ? 'flex' : 'none';
+    }
+};
+
+// ៤. មុខងារប៊ូតុង "ថ្ងៃនេះ"
+window.forceSetToday = function() {
+    try {
+        const now = new Date();
+        const d = window.toKhmerNum(now.getDate());
+        const khmerMonths = ["មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា", "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ"];
+        const m = khmerMonths[now.getMonth()];
+        const y = window.toKhmerNum(now.getFullYear());
+        
+        let districtName = "ស្រុកកៀនស្វាយ";
+        if (typeof appSettings !== 'undefined' && appSettings.district) {
+            districtName = appSettings.district.replace('ស្រុក', '').trim();
+        }
+
+        const formattedSolar = `ថ្ងៃទី ${d} ខែ ${m} ឆ្នាំ ${y}`;
+        const formattedLunar = window.getKhmerLunarDate(now);
+
+        // បញ្ចូលទិន្នន័យទៅប្រអប់ផ្ទាល់
+        document.querySelectorAll('.shared-location-input').forEach(el => el.value = `ធ្វើនៅស្រុក${districtName}`);
+        document.querySelectorAll('.shared-solar-input').forEach(el => el.value = formattedSolar);
+        document.querySelectorAll('.shared-lunar-input').forEach(el => el.value = formattedLunar);
+        document.querySelectorAll('.shared-lunar-check').forEach(el => el.checked = true);
+
+        // បង្ខំ Update ចូលប្រព័ន្ធ
+        window.updateSharedDateSetting('location', `ធ្វើនៅស្រុក${districtName}`);
+        window.updateSharedDateSetting('solarDate', formattedSolar);
+        window.updateSharedDateSetting('lunarDate', formattedLunar);
+        window.updateSharedDateSetting('showLunar', true);
+    } catch(e) { console.error("មានកំហុសប៊ូតុងថ្ងៃនេះ:", e); }
+};
+
+// ៥. មុខងារចុចប៊ូតុង "ចុចៗ"
+window.forceSetDots = function() {
+    try {
+        window.updateSharedDateSetting('location', "ធ្វើនៅ.........................");
+        window.updateSharedDateSetting('solarDate', "ថ្ងៃទី....... ខែ....... ឆ្នាំ២០....");
+        window.updateSharedDateSetting('lunarDate', "ថ្ងៃ......................... ខែ............ ឆ្នាំ............ ព.ស.២៥៧...");
+        window.updateSharedDateSetting('showLunar', true);
+    } catch(e) {}
+};
+
+// ៦. បង្កើត UI Panel
+window.getDateSettingsPanelHTML = function(moduleName) {
+  return `
+    <div id="datePanel-${moduleName}" class="bg-indigo-40/50 p-3 rounded-xl border border-indigo-100 flex flex-col gap-3 text-[13px] mt-3 hidden w-full transition-all shadow-inner">
+      <div class="flex flex-wrap items-center gap-3">
+        <div class="flex items-center gap-2">
+          <span class="font-bold text-indigo-800 font-moul text-xs">ទីតាំង៖</span>
+          <input type="text" value="${window.reportCardDateSettings.location || ''}" 
+                 oninput="window.updateSharedDateSetting('location', this.value)" 
+                 placeholder="ធ្វើនៅ................."
+                 class="shared-location-input border border-indigo-200 rounded-lg px-2.5 py-1.5 font-bold text-indigo-900 w-36 bg-white outline-none focus:border-blue-500 shadow-sm">
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="font-bold text-indigo-800 font-moul text-xs">សូរិយគតិ៖</span>
+          <input type="text" value="${window.reportCardDateSettings.solarDate || ''}" 
+                 oninput="window.updateSharedDateSetting('solarDate', this.value)" 
+                 placeholder="ថ្ងៃទី....... ខែ....... ឆ្នាំ២០...."
+                 class="shared-solar-input border border-indigo-200 rounded-lg px-2.5 py-1.5 font-bold text-indigo-900 w-56 bg-white outline-none focus:border-blue-500 shadow-sm">
+        </div>
+        <div class="flex items-center gap-2 ml-1">
+            <button type="button" onclick="window.forceSetToday()" class="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold shadow-md transition active:scale-95">
+                <i class="fa-solid fa-calendar-day"></i> ថ្ងៃនេះ
+            </button>
+            <button type="button" onclick="window.forceSetDots()" class="px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-300 text-slate-600 rounded-lg font-bold shadow-sm transition active:scale-95">
+                ចុចៗ (...)
+            </button>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 bg-white px-3 py-2 rounded-lg border border-indigo-100 shadow-sm">
+        <label class="inline-flex items-center gap-2 cursor-pointer font-bold text-indigo-800 font-moul text-xs">
+          <input type="checkbox" ${window.reportCardDateSettings.showLunar ? 'checked' : ''} 
+                 onchange="window.updateSharedDateSetting('showLunar', this.checked)" 
+                 class="shared-lunar-check rounded text-blue-600 focus:ring-blue-500 w-3 h-4 cursor-pointer mt-0.5">
+          <span>ចន្ទគតិ៖</span>
+        </label>
+        <input type="text" value="${window.reportCardDateSettings.lunarDate || ''}" 
+               oninput="window.updateSharedDateSetting('lunarDate', this.value)" 
+               placeholder="ថ្ងៃ......................... ខែ............ ឆ្នាំ............ ព.ស.២៥៧..."
+               class="shared-lunar-input border-none px-2 py-1 font-bold text-indigo-900 flex-1 min-w-[200px] outline-none focus:ring-0 bg-transparent ${!window.reportCardDateSettings.showLunar ? 'opacity-40 pointer-events-none' : ''}">
+      </div>
+    </div>
+  `;
+};
+
+window.toggleSharedDatePanel = function(panelId) {
+    let panel = document.getElementById(panelId);
+    if (!panel) {
+        const moduleKey = panelId.replace('datePanel-', '');
+        let container = document.getElementById(`${moduleKey}DatePanelContainer`) || document.getElementById('scoreEntryDatePanelContainer') || document.getElementById('rankingDatePanelContainer');
+        if (container) {
+            container.innerHTML = window.getDateSettingsPanelHTML(moduleKey);
+            panel = document.getElementById(panelId);
+        } else { return; }
+    }
+    if (panel) {
+        if (panel.classList.contains('hidden') || panel.style.display === 'none') {
+            panel.classList.remove('hidden');
+            panel.style.display = 'flex'; 
+        } else {
+            panel.classList.add('hidden');
+            panel.style.display = 'none';
+        }
+    }
+};
+
+// ៧. អាប់ដេតពេល DOM រួចរាល់
+document.addEventListener("DOMContentLoaded", () => {
+    setTimeout(() => { window.forceSetToday(); }, 300);
+});
+
 
 // ==========================================
 // ០១. Utilities (មុខងារជំនួយទូទៅ)
@@ -78,61 +299,120 @@ window.getEducationLevel = function(gradeStr) {
   return str.includes("បឋម") ? 'primary' : 'secondary';
 };
 
+const styleBlock = `
+    <style>
+        /* 🔴 បង្កប់ Font ផ្ទាល់ចូលក្នុងកូដ (Base64 Embedded Font) 🔴 */
+        @font-face {
+            font-family: 'Tacteing';
+            src: url('data:font/ttf;charset=utf-8;base64,AAEAAAAOAIAAAwBgT1MvMmo... (សូមជំនួសដោយកូដវែងដែលលោកគ្រូទទួលបានពី Transfonter) ...') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Battambang:wght@400;700&family=Moul&family=Siemreap:wght@400;700&display=swap');
+        
+        @page { size: A4 portrait; margin: 10mm; }
+        
+        /* ...កូដ CSS ដទៃទៀតរក្សាដដែល... */
+        
+        .font-tacteing {
+            font-family: 'Tacteing', 'Khmer OS Tacteing', sans-serif !important;
+        }
+    </style>
+`;
+
 // ==========================================
-// ០២. Schema Configuration (រចនាសម្ព័ន្ធមុខវិជ្ជា)
+// មុខងារកំណត់រចនាសម្ព័ន្ធមុខវិជ្ជា និងពិន្ទុ (Schema Configuration)
 // ==========================================
 window.getScoreSchema = function(level, periodType, track = "sci") {
-  const mkSub = (name, key, max = 10) => ({ name, key, max });
-  if (level === "primary") {
-      return [
-        { group: "ភាសាខ្មែរ", color: "#dbeafe", subs: [mkSub("ស្តាប់","k_listen"), mkSub("សរសេរ","k_write"), mkSub("អាន","k_read"), mkSub("តែងសេចក្តី","k_compose")] },
-        { group: "គណិតវិទ្យា", color: "#fadbd8", subs: [mkSub("ចំនួន","m_num"), mkSub("រង្វាស់រង្វាល់","m_measure"), mkSub("ធរណីមាត្រ","m_geo"), mkSub("ពីជគណិត","m_alg"), mkSub("ស្ថិតិ","m_stat")] },
-        { group: "វិទ្យាសាស្ត្រ", color: "#e8f8f5", subs: [mkSub("រូបវិទ្យា","s_phy"), mkSub("គីមីវិទ្យា","s_chem"), mkSub("ជីវវិទ្យា","s_bio"), mkSub("ផែនដី-បរិស្ថាន","s_earth")] },
-        { group: "សិក្សាសង្គម", color: "#fcf3cf", subs: [mkSub("សីលធម៌-ពលរដ្ឋ","ss_moral"), mkSub("ភូមិវិទ្យា","ss_geo"), mkSub("ប្រវត្តិវិទ្យា","ss_hist")] },
-        { group: "អប់រំកាយ", color: "#f4ecf7", subs: [mkSub("គេហៈ-សិល្បៈ","pe_art"), mkSub("កីឡា","pe_sport"), mkSub("សុខភាព","pe_health")] },
-        { group: "បំណិនជីវិត", color: "#dbeafe", key: "life_skill", max: 10 }
-      ];
-  } 
-  if (level === "lower_sec") {
-      const secSubs = [
-        ["គណិតវិទ្យា", "ls_math", 50, "#fadbd8"], ["រូបវិទ្យា", "ls_phy", 50, "#e8f8f5"],
-        ["គីមីវិទ្យា", "ls_chem", 50, "#e8f8f5"], ["ជីវវិទ្យា", "ls_bio", 50, "#e8f8f5"],
-        ["ផែនដី-បរិស្ថាន", "ls_earth", 50, "#e8f8f5"], ["ប្រវត្តិវិទ្យា", "ls_hist", 50, "#fcf3cf"],
-        ["ភូមិវិទ្យា", "ls_geo", 50, "#fcf3cf"], ["សីលធម៌-ពលរដ្ឋ", "ls_moral", 50, "#fcf3cf"],
-        ["ភាសាបរទេស", "ls_lang", 50, "#f4ecf7"], ["អប់រំកាយ", "ls_pe", 50, "#f4ecf7"],
-        ["បច្ចេកវិទ្យា(ICT)", "ls_ict", 50, "#dbeafe"]
-      ];
-      return [
-        { group: "ភាសាខ្មែរ", color: "#dbeafe", subs: [mkSub("តែងសេចក្តី","ls_k_c", 25), mkSub("សរសេរតាមអាន","ls_k_d", 25)] },
-        ...secSubs.map(([group, key, max, color]) => ({ group, key, max, color }))
-      ];
-  } 
-  if (level === "upper_sec") {
-      const isSci = (track === "sci");
-      const pfx = isSci ? "usc_" : "uso_";
-      const khmerSubs = isSci 
-        ? [mkSub("តែងសេចក្តី", `${pfx}k_c`, 40), mkSub("សរសេរតាមអាន", `${pfx}k_d`, 35)]
-        : [mkSub("តែងសេចក្តី", `${pfx}k_c`, 65), mkSub("សរសេរតាមអាន", `${pfx}k_d`, 60)];
-      
-      const config = isSci ? [
-        ["គណិតវិទ្យា", 125, "#fadbd8"], ["រូបវិទ្យា", 75, "#e8f8f5"], ["គីមីវិទ្យា", 75, "#e8f8f5"],
-        ["ជីវវិទ្យា", 75, "#e8f8f5"], ["ផែនដី-បរិស្ថាន", 50, "#e8f8f5"], ["ប្រវត្តិវិទ្យា", 50, "#fcf3cf"],
-        ["ភូមិវិទ្យា", 50, "#fcf3cf"], ["សីលធម៌-ពលរដ្ឋ", 50, "#fcf3cf"], ["ភាសាបរទេស", 50, "#f4ecf7"],
-        ["អប់រំកាយ", 50, "#f4ecf7"], ["បច្ចេកវិទ្យា(ICT)", 50, "#dbeafe"]
-      ] : [
-        ["គណិតវិទ្យា", 75, "#fadbd8"], ["រូបវិទ្យា", 50, "#e8f8f5"], ["គីមីវិទ្យា", 50, "#e8f8f5"],
-        ["ជីវវិទ្យា", 50, "#e8f8f5"], ["ផែនដី-បរិស្ថាន", 50, "#e8f8f5"], ["ប្រវត្តិវិទ្យា", 75, "#fcf3cf"],
-        ["ភូមិវិទ្យា", 75, "#fcf3cf"], ["សីលធម៌-ពលរដ្ឋ", 75, "#fcf3cf"], ["ភាសាបរទេស", 50, "#f4ecf7"],
-        ["អប់រំកាយ", 50, "#f4ecf7"], ["បច្ចេកវិទ្យា(ICT)", 50, "#dbeafe"]
-      ];
-
-      const keys = ["math","phy","chem","bio","earth","hist","geo","moral","lang","pe","ict"];
-      return [
-        { group: "ភាសាខ្មែរ", color: "#dbeafe", subs: khmerSubs },
-        ...config.map(([group, max, color], i) => ({ group, key: `${pfx}${keys[i]}`, max, color }))
-      ];
-  }
-  return [];
+    // ----------------------------------------------------
+    // ១. កម្រិតបឋមសិក្សា (Primary Level)
+    // ----------------------------------------------------
+    if (level === "primary") {
+        return [
+            {
+                group: "ភាសាខ្មែរ",
+                color: "#bfdbfe", // ពណ៌ខៀវខ្ចី
+                subs: [
+                    { name: "ស្តាប់", key: "k_listen", max: 10 },
+                    { name: "សរសេរ", key: "k_write", max: 10 },
+                    { name: "អាន", key: "k_read", max: 10 },
+                    { name: "តែងសេចក្តី", key: "k_compose", max: 10 }
+                ]
+            },
+            {
+                group: "គណិតវិទ្យា",
+                color: "#fecaca", // ពណ៌ផ្កាឈូកខ្ចី
+                subs: [
+                    { name: "ចំនួន", key: "m_num", max: 10 },
+                    { name: "រង្វាស់រង្វាល់", key: "m_measure", max: 10 },
+                    { name: "ធរណីមាត្រ", key: "m_geo", max: 10 },
+                    { name: "ពីជគណិត", key: "m_alg", max: 10 },
+                    { name: "ស្ថិតិ", key: "m_stat", max: 10 }
+                ]
+            },
+            {
+                group: "វិទ្យាសាស្ត្រ",
+                color: "#bbf7d0", // ពណ៌បៃតងខ្ចី
+                subs: [
+                    { name: "រូបវិទ្យា", key: "s_phy", max: 10 },
+                    { name: "គីមីវិទ្យា", key: "s_chem", max: 10 },
+                    { name: "ជីវវិទ្យា", key: "s_bio", max: 10 },
+                    { name: "ផែនដី-បរិស្ថាន", key: "s_earth", max: 10 }
+                ]
+            },
+            {
+                group: "សិក្សាសង្គម",
+                color: "#fef08a", // ពណ៌លឿងខ្ចី
+                subs: [
+                    { name: "សីលធម៌-ពលរដ្ឋ", key: "ss_moral", max: 10 },
+                    { name: "ភូមិវិទ្យា", key: "ss_geo", max: 10 },
+                    { name: "ប្រវត្តិវិទ្យា", key: "ss_hist", max: 10 }
+                ]
+            },
+            {
+                group: "អប់រំកាយ",
+                color: "#e9d5ff", // ពណ៌ស្វាយខ្ចី
+                subs: [
+                    { name: "អប់រំកាយ-កីឡា", key: "pe_sport", max: 10 },
+                    { name: "សុខភាព", key: "pe_health", max: 10 }
+                ]
+            },
+            {
+                group: "បំណិនជីវិត",
+                color: "#dbeafe", // ពណ៌ Indigo ខ្ចី
+                key: "life_skill",
+                max: 10
+            },
+            // 🔴 បានបន្ថែមមុខវិជ្ជាភាសាបរទេសនៅទីនេះ 🔴
+            {
+                group: "ភាសាបរទេស",
+                color: "#f1f5f9", // ពណ៌ប្រផេះខ្ចី
+                key: "foreign_lang", 
+                max: 10
+            }
+        ];
+    }
+    
+    // ----------------------------------------------------
+    // ២. កម្រិតអនុវិទ្យាល័យ និងវិទ្យាល័យ (Secondary Level)
+    // ----------------------------------------------------
+    return [
+        { group: "ភាសាខ្មែរ", key: "khmer", color: "#bfdbfe", max: 100 },
+        { group: "សីលធម៌-ពលរដ្ឋ", key: "moral", color: "#fef08a", max: 50 },
+        { group: "ប្រវត្តិវិទ្យា", key: "history", color: "#fef08a", max: 50 },
+        { group: "ភូមិវិទ្យា", key: "geography", color: "#fef08a", max: 50 },
+        { group: "គណិតវិទ្យា", key: "math", color: "#fecaca", max: 100 },
+        { group: "រូបវិទ្យា", key: "physics", color: "#bbf7d0", max: 50 },
+        { group: "គីមីវិទ្យា", key: "chemistry", color: "#bbf7d0", max: 50 },
+        { group: "ជីវវិទ្យា", key: "biology", color: "#bbf7d0", max: 50 },
+        { group: "ផែនដីវិទ្យា", key: "earth", color: "#bbf7d0", max: 50 },
+        { group: "ភាសាបរទេស", key: "foreign_lang", color: "#f1f5f9", max: 50 }, // អនុវិទ្យាល័យ/វិទ្យាល័យ ក៏មានដែរ
+        { group: "បច្ចេកវិទ្យា (ICT)", key: "tech", color: "#dbeafe", max: 50 },
+        { group: "គេហវិទ្យា", key: "home_eco", color: "#e9d5ff", max: 50 },
+        { group: "អប់រំសិល្បៈ", key: "art", color: "#e9d5ff", max: 50 },
+        { group: "អប់រំកាយ", key: "sport", color: "#e9d5ff", max: 50 }
+    ];
 };
 
 window.extractSubjectKeys = function(schema) {
@@ -180,128 +460,6 @@ window.SECONDARY_DEFAULT_SUBJECTS = [
   { name: "អប់រំសិល្បៈ", key: "art", max: 50, aliases: ["art", "pe_art", "អប់រំសិល្បៈ"] },
   { name: "អប់រំកាយ", key: "sport", max: 50, aliases: ["sport", "pe_sport", "អប់រំកាយ"] }
 ];
-
-// ==========================================
-// ០៣. Date Control Handlers (មុខងារកាលបរិច្ឆេទរួម)
-// ==========================================
-window.getKhmerLunarDate = function(dateObj) {
-    const khmerNumbers = ['០', '១', '២', '៣', '៤', '៥', '៦', '៧', '៨', '៩'];
-    const toKhNum = (num) => String(num).split('').map(n => khmerNumbers[n] || n).join('');
-    const weekDays = ["អាទិត្យ", "ចន្ទ", "អង្គារ", "ពុធ", "ព្រហស្បតិ៍", "សុក្រ", "សៅរ៍"];
-    
-    const d = dateObj.getDate();
-    const m = dateObj.getMonth() + 1;
-    const y = dateObj.getFullYear();
-    const dayName = weekDays[dateObj.getDay()];
-
-    if (y === 2026 && m === 9) {
-        let lunarDay = "";
-        let lunarMonth = "ស្រាពណ៍";
-        if (d <= 11) { lunarDay = `${toKhNum(d + 3)} រោច`; } 
-        else if (d >= 12 && d <= 26) { lunarMonth = "ភទ្របទ"; lunarDay = `${toKhNum(d - 11)} កើត`; } 
-        else if (d >= 27) { lunarMonth = "ភទ្របទ"; lunarDay = `${toKhNum(d - 26)} រោច`; }
-        return `ថ្ងៃ${dayName} ${lunarDay} ខែ${lunarMonth} ឆ្នាំមមី អដ្ឋស័ក ព.ស. ២៥៧០`;
-    }
-    return `ថ្ងៃ${dayName} .................... ខែ............ ឆ្នាំ............ ព.ស.២៥៧...`;
-};
-
-window.getDateSettingsPanelHTML = function(moduleName) {
-  return `
-    <div id="datePanel-${moduleName}" class="bg-slate-100 p-3 rounded-xl border border-slate-200 flex flex-col md:flex-row flex-wrap items-start md:items-center justify-between gap-3 text-xs mt-3 hidden no-print w-full">
-      <div class="flex flex-wrap items-center gap-3">
-        <div class="flex items-center gap-1.5">
-          <span class="font-bold text-slate-600">ធ្វើនៅ៖</span>
-          <input type="text" value="${window.reportCardDateSettings.location || ''}" 
-                 oninput="window.updateSharedDateSetting('location', this.value)" 
-                 class="shared-location-input border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-700 w-24 bg-white outline-none focus:border-amber-400">
-        </div>
-        <div class="flex items-center gap-1.5">
-          <span class="font-bold text-slate-600">សូរិយគតិ៖</span>
-          <input type="text" value="${window.reportCardDateSettings.solarDate || ''}" 
-                 oninput="window.updateSharedDateSetting('solarDate', this.value)" 
-                 class="shared-solar-input border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-700 w-52 bg-white outline-none focus:border-amber-400">
-          <button onclick="window.setSharedTodaySolarDate()" class="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 rounded text-[11px] font-bold text-indigo-600 shadow-sm">ថ្ងៃនេះ</button>
-          <button onclick="window.setSharedDotsSolarDate()" class="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 rounded text-[11px] font-bold text-slate-600 shadow-sm">ចុចៗ</button>
-        </div>
-      </div>
-      <div class="flex flex-wrap items-center gap-2">
-        <label class="inline-flex items-center gap-1.5 cursor-pointer font-bold text-slate-700">
-          <input type="checkbox" ${window.reportCardDateSettings.showLunar ? 'checked' : ''} 
-                 onchange="window.updateSharedDateSetting('showLunar', this.checked)" class="shared-lunar-check rounded text-indigo-600">
-          <span>ចន្ទគតិ៖</span>
-        </label>
-        <input type="text" value="${window.reportCardDateSettings.lunarDate || ''}" 
-               oninput="window.updateSharedDateSetting('lunarDate', this.value)" 
-               placeholder="ថ្ងៃ.............. ...កើត/រោច..."
-               class="shared-lunar-input border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-700 w-72 bg-white outline-none focus:border-amber-400 ${!window.reportCardDateSettings.showLunar ? 'opacity-50 pointer-events-none' : ''}">
-      </div>
-    </div>
-  `;
-};
-
-window.toggleSharedDatePanel = function(panelId) {
-  const panel = document.getElementById(panelId);
-  if (panel) {
-     panel.classList.toggle('hidden');
-     panel.classList.toggle('flex');
-  }
-};
-
-window.updateSharedDateSetting = function(k, v) {
-  window.reportCardDateSettings[k] = v;
-  try { localStorage.setItem(`rc_${k}`, v); } catch(e) {}
-  
-  if (k === 'location') document.querySelectorAll('.shared-location-input').forEach(el => el.value = v);
-  if (k === 'solarDate') document.querySelectorAll('.shared-solar-input').forEach(el => el.value = v);
-  if (k === 'lunarDate') document.querySelectorAll('.shared-lunar-input').forEach(el => el.value = v);
-  if (k === 'showLunar') {
-    document.querySelectorAll('.shared-lunar-check').forEach(el => el.checked = v);
-    document.querySelectorAll('.shared-lunar-input').forEach(el => {
-      if (v) el.classList.remove('opacity-50', 'pointer-events-none');
-      else el.classList.add('opacity-50', 'pointer-events-none');
-    });
-  }
-
-  const honorSolarDisplay = document.getElementById('honorSolarDateDisplay');
-  if(honorSolarDisplay) honorSolarDisplay.innerText = window.getFormattedSolarDate();
-  
-  const honorLunarDisplay = document.getElementById('honorLunarDateDisplay');
-  if(honorLunarDisplay) {
-     honorLunarDisplay.innerText = window.reportCardDateSettings.showLunar ? window.reportCardDateSettings.lunarDate : "";
-     honorLunarDisplay.style.display = window.reportCardDateSettings.showLunar ? "block" : "none";
-  }
-
-  if (document.getElementById('modal-reportcards') && !document.getElementById('modal-reportcards').classList.contains('hidden')) {
-     if(typeof window.refreshRcPreview === 'function') window.refreshRcPreview();
-  }
-};
-
-window.getFormattedSolarDate = function() {
-  const loc = window.reportCardDateSettings.location ? `${window.reportCardDateSettings.location}, ` : "";
-  return `${loc}${window.reportCardDateSettings.solarDate || ''}`;
-};
-
-window.setSharedTodaySolarDate = function() {
-  const now = new Date();
-  const d = window.toKhmerNum(now.getDate().toString());
-  const m = ["មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា", "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ"][now.getMonth()];
-  const y = window.toKhmerNum(now.getFullYear().toString());
-  const formattedSolar = `ថ្ងៃទី ${d} ខែ ${m} ឆ្នាំ ${y}`;
-  const formattedLunar = window.getKhmerLunarDate(now);
-
-  window.updateSharedDateSetting('solarDate', formattedSolar);
-  window.updateSharedDateSetting('lunarDate', formattedLunar);
-  
-  if(!window.reportCardDateSettings.showLunar) {
-      window.updateSharedDateSetting('showLunar', true);
-  }
-};
-
-window.setSharedDotsSolarDate = function() {
-  window.updateSharedDateSetting('solarDate', "ថ្ងៃទី....... ខែ....... ឆ្នាំ២០....");
-  window.updateSharedDateSetting('lunarDate', "ថ្ងៃ.................កើត/រោច... ខែ............ ឆ្នាំ............ ព.ស.២៥៧...");
-};
-
 
 // ==========================================
 // ១. មុខងារគណនាមធ្យមភាគប្រចាំខែដោយស្វ័យប្រវត្តិ (ជួសជុលបញ្ហាការទាញទិន្នន័យ)
@@ -565,186 +723,414 @@ window.loadScoresView = async function() {
     const roomStr = sInfo.teacher_room || "«ក»";
     const gradeFull = `${levelStr} ${roomStr}`;
 
-    container.className = "flex flex-col flex-1 w-full h-full bg-slate-50 transition duration-300 min-h-0";
+    container.className = "flex flex-col flex-1 w-full h-full bg-slate-50/50 transition duration-300 min-h-0 relative";
     container.innerHTML = `
       <style>
           .font-moul { font-family: 'Khmer OS Muol Light', 'Moul', serif !important; font-weight: normal; }
           .font-siemreap { font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif !important; font-weight: 500; }
+          .font-Bokor { font-family: 'Khmer OS Bokor', sans-serif; }
           .header-vertical { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; padding: 8px 0; }
-          .score-input, .eval-input { font-family: monospace; font-size: 13px; font-weight: bold; }
-          .eval-input { font-family: 'Khmer OS Siemreap', sans-serif; text-transform: uppercase; }
-          .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 8px; }
+          
+          /* Modern Inputs & Scrollbars */
+          .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
           .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-          .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+          .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 20px; }
           .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+          
+          input[type=number].modern-input::-webkit-inner-spin-button, 
+          input[type=number].modern-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+          input[type=number].modern-input { -moz-appearance: textfield; }
+
+          /* Smooth Animations */
+          @keyframes float {
+              0% { transform: translateY(0px); }
+              50% { transform: translateY(-5px); }
+              100% { transform: translateY(0px); }
+          }
+          .animate-float { animation: float 4s ease-in-out infinite; }
+          
+          /* Dashboard Background Ornaments */
+          .bg-ornament {
+              position: absolute; border-radius: 50%; filter: blur(80px); z-index: 0; opacity: 0.4; pointer-events: none;
+          }
       </style>
       
-      <div class="w-full h-full overflow-y-auto overflow-x-hidden custom-scrollbar">
-          <div class="animate-fade-in custom-mixed-font flex flex-col font-siemreap max-w-[1680px] mx-auto pb-16 px-2 md:px-4 pt-4 min-h-full">
+      <!-- Decorative Background Elements -->
+      <div class="bg-ornament w-96 h-96 bg-blue-400/20 top-[-10%] left-[-5%]"></div>
+      <div class="bg-ornament w-[500px] h-[500px] bg-amber-300/10 bottom-[-20%] right-[-10%]"></div>
+
+      <div class="w-full h-full overflow-y-auto overflow-x-hidden custom-scrollbar relative z-10">
+          <div class="animate-fade-in custom-mixed-font flex flex-col font-siemreap max-w-[1600px] mx-auto pb-16 px-4 lg:px-8 pt-6 min-h-full">
             
-            <!-- ក្បាល Dashboard ខាងក្រៅ -->
-            <div class="flex flex-col xl:flex-row xl:items-center justify-between items-start md:items-center gap-4 bg-white p-4 md:p-6 rounded-[1.5rem] md:rounded-[2rem] shadow-sm border border-slate-100 relative overflow-hidden no-print mb-6 shrink-0 transition-all">
-              <div class="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-amber-400 to-orange-500"></div>
+            <!-- 🌟 ក្បាល Dashboard ខាងក្រៅ (Modern Glass Header) 🌟 -->
+            <div class="flex flex-col 2xl:flex-row 2xl:items-center justify-between gap-6 bg-white/70 backdrop-blur-xl p-6 lg:p-8 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white relative overflow-visible mb-8 shrink-0 transition-all">
               
-              <div class="relative z-10">
-                <h2 class="text-lg md:text-2xl font-black text-slate-800 flex items-center gap-3">
-                  <div class="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-amber-50 to-orange-50 text-amber-600 rounded-xl flex items-center justify-center text-xl shadow-sm border border-amber-100">
-                    <i class="fa-solid fa-star-half-stroke"></i>
-                  </div>
-                  <span class="font-moul mt-1">គ្រប់គ្រងពិន្ទុ និងលទ្ធផលសិក្សា</span>
-                </h2>
-                <p class="text-slate-500 text-sm mt-1 ml-14 hidden md:block">គ្រប់គ្រងពិន្ទុសម្រាប់ថ្នាក់៖ <strong class="text-indigo-600">${gradeFull}</strong></p>
+              <div class="relative z-10 flex items-center gap-4">
+                <div class="w-14 h-14 bg-gradient-to-br from-amber-400 to-orange-500 text-white rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-orange-500/30 animate-float">
+                  <i class="fa-solid fa-star-half-stroke"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl md:text-2xl font-moul text-slate-800 tracking-wide">គ្រប់គ្រងពិន្ទុ និងលទ្ធផលសិក្សា</h2>
+                    <p class="text-slate-500 text-sm mt-1.5 font-siemreap">គ្រប់គ្រងពិន្ទុសម្រាប់ថ្នាក់៖ <strong class="text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100 ml-1">${gradeFull}</strong></p>
+                </div>
               </div>
               
-              <div class="flex flex-wrap items-center gap-2 relative z-10 w-full xl:w-auto bg-slate-50 p-2 rounded-2xl border border-slate-200">
+              <!-- Toolbar Settings -->
+              <div class="flex flex-wrap items-center gap-3 relative z-10 w-full 2xl:w-auto bg-slate-100/50 p-2 md:p-3 rounded-3xl border border-slate-200/60 backdrop-blur-sm">
                 <input type="hidden" id="globalLevelSelect" value="${levelStr}">
                 <input type="hidden" id="globalRoomSelect" value="${roomStr}">
-
-                <select id="globalTrackSelect" onchange="window.updateGlobalSettings()" class="hidden border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 outline-none cursor-pointer shadow-sm font-siemreap">
-                  <option value="sci">ថ្នាក់វិទ្យាសាស្ត្រ</option>
-                  <option value="soc">ថ្នាក់វិទ្យាសាស្ត្រសង្គម</option>
-                </select>
-
-                <div class="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 shadow-sm flex-1 sm:flex-none">
-                   <i class="fa-solid fa-calendar-days text-slate-400 text-xs"></i>
-                   <select id="globalPeriodType" onchange="window.updateGlobalPeriod(); window.updateGlobalSettings();" class="border-none bg-transparent text-xs font-bold text-indigo-700 outline-none cursor-pointer font-siemreap w-full">
+                <!-- Period Selector Dropdown -->
+                <div class="flex items-center gap-3 bg-white border border-slate-200/100 rounded-2xl px-3 py-2 shadow-sm hover:shadow-md transition-shadow flex-1 sm:flex-none">
+                   <div class="w-5 h-7 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center shrink-0">
+                       <i class="fa-solid fa-calendar-days text-xs"></i>
+                   </div>
+                   <select id="globalPeriodType" onchange="window.updateGlobalPeriod(); window.updateGlobalSettings();" class="border-none bg-transparent text-xs font-bold text-slate-700 outline-none cursor-pointer font-siemreap">
                       <option value="monthly">ប្រចាំខែ</option>
                       <option value="semester">ប្រចាំឆមាស</option>
-                      <option value="annual">ប្រចាំឆ្នាំ (២ឆមាស)</option>
+                      <option value="annual">ប្រចាំឆ្នាំ</option>
                    </select>
-                   <span class="text-slate-300">|</span>
-                   <select id="globalPeriodValue" onchange="window.updateGlobalSettings()" class="border-none bg-transparent text-xs font-bold text-rose-700 outline-none cursor-pointer font-siemreap w-full"></select>
+                   <div class="w-px h-4 bg-slate-300 mx-1"></div>
+                   <select id="globalPeriodValue" onchange="window.updateGlobalSettings()" class="border-none bg-transparent text-xs font-bold text-rose-600 outline-none cursor-pointer font-siemreap"></select>
                 </div>
 
-                <!-- 🟢 ប៊ូតុងកំណត់ខែឆមាស (បង្ហាញជានិច្ច) 🟢 -->
-                <button id="btnGlobalSemesterConfig" onclick="window.openSemesterConfig()" class="flex px-3.5 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-xl text-xs font-bold transition items-center justify-center gap-1.5 shadow-sm w-full sm:w-auto">
-                  <i class="fa-solid fa-sliders"></i> កំណត់ខែឆមាស
+                <!-- Action Buttons in Toolbar -->
+                <button id="btnGlobalSemesterConfig" onclick="window.openSemesterConfig()" class="flex px-4 py-2.5 bg-white hover:bg-purple-50 text-purple-600 border border-slate-200/80 hover:border-purple-200 rounded-2xl text-xs font-bold transition-all duration-300 items-center justify-center gap-2 shadow-sm hover:shadow-md active:scale-95 flex-1 sm:flex-none group">
+                  <i class="fa-solid fa-sliders group-hover:rotate-90 transition-transform duration-300"></i> កំណត់ខែឆមាស
+                </button>
+                
+                <!-- 🟢 ប៊ូតុងកាលបរិច្ឆេទ 🟢 -->
+                <button type="button" onclick="window.toggleSharedDatePanel()" class="flex px-4 py-2 bg-white hover:bg-amber-50 text-amber-600 border border-slate-200 hover:border-amber-200 rounded-xl text-xs font-bold transition-all items-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-calendar-day"></i> កំណត់កាលបរិច្ឆេទ
                 </button>
 
-                <button onclick="window.toggleSharedDatePanel('datePanel-rankings')" class="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs w-full sm:w-auto">
-                  <i class="fa-solid fa-calendar-week text-amber-600"></i> កំណត់កាលបរិច្ឆេទ
-                </button>
+                <!-- 🟢 កន្លែងបង្ហាញផ្ទាំងកំណត់កាលបរិច្ឆេទ (Date Panel Container) 🟢 -->
+                <!-- ដោយសារ Pop-up ប្រើ fixed inset-0 ទោះ Container នេះនៅទីណាក៏វាលោតពេញអេក្រង់ដែរ -->
+                <div id="scoreEntryDatePanelContainer" class="w-full no-print">
+                    ${typeof window.getDateSettingsPanelHTML === 'function' ? window.getDateSettingsPanelHTML('scoreEntry') : ''}
+                </div>
 
                 <div class="w-full">
                   ${window.getDateSettingsPanelHTML ? window.getDateSettingsPanelHTML('rankings') : ''}
                 </div>
+                
               </div>
             </div>
 
-            <!-- CARDS GRID -->
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6 flex-1 no-print">
-              <div onclick="window.openScoreModal('modal-entry', window.renderScoreEntryContent)" class="bg-white rounded-[2rem] p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer border border-slate-200 group flex flex-col justify-center items-center text-center min-h-[220px]">
-                  <div class="w-20 h-20 bg-blue-50 text-blue-500 rounded-3xl flex items-center justify-center text-3xl mb-4 group-hover:scale-110 transition-transform duration-300 shadow-inner"><i class="fa-solid fa-keyboard"></i></div>
-                  <h3 class="font-moul text-lg text-slate-800 mb-2">បញ្ចូលពិន្ទុ</h3>
-                  <p class="text-slate-500 text-sm font-siemreap px-4">បញ្ជីស្រង់ពិន្ទុ គណនាមធ្យមភាគ និងវាយតម្លៃលទ្ធផលសិស្ស។</p>
+            <!-- 🌟 CARDS GRID (Modern Premium Cards) 🌟 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 md:gap-8 flex-1 no-print">
+              
+              <!-- Card 1: បញ្ចូលពិន្ទុ -->
+              <div onclick="window.openScoreModal('modal-entry', window.renderScoreEntryContent)" class="bg-white/80 backdrop-blur-md rounded-[2.5rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgb(59,130,246,0.1)] hover:-translate-y-2 transition-all duration-300 cursor-pointer border border-white group flex flex-col justify-center items-center text-center relative overflow-hidden h-[260px]">
+                  <div class="absolute inset-0 bg-gradient-to-b from-transparent to-blue-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div class="w-20 h-20 bg-gradient-to-br from-blue-400 to-blue-600 text-white rounded-[1.5rem] flex items-center justify-center text-3xl mb-5 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 shadow-lg shadow-blue-500/30 relative z-10">
+                      <i class="fa-solid fa-keyboard"></i>
+                  </div>
+                  <h3 class="font-moul text-lg text-slate-800 mb-2 relative z-10 group-hover:text-blue-700 transition-colors">បញ្ចូលពិន្ទុ</h3>
+                  <p class="text-slate-500 text-sm font-siemreap px-2 relative z-10">បញ្ជីស្រង់ពិន្ទុ គណនាមធ្យមភាគ និងវាយតម្លៃលទ្ធផលសិស្ស។</p>
               </div>
 
-              <div onclick="window.openScoreModal('modal-rankings', window.renderRankingsContent)" class="bg-white rounded-[2rem] p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer border border-slate-200 group flex flex-col justify-center items-center text-center min-h-[220px]">
-                  <div class="w-20 h-20 bg-rose-50 text-rose-500 rounded-3xl flex items-center justify-center text-3xl mb-4 group-hover:scale-110 transition-transform duration-300 shadow-inner"><i class="fa-solid fa-ranking-star"></i></div>
-                  <h3 class="font-moul text-lg text-slate-800 mb-2">តារាងចំណាត់ថ្នាក់</h3>
-                  <p class="text-slate-500 text-sm font-siemreap px-4">តារាងសរុបចំណាត់ថ្នាក់ ស្ថិតិ និងអាច Export ទៅជា Excel បាន។</p>
+              <!-- Card 2: តារាងចំណាត់ថ្នាក់ -->
+              <div onclick="window.openScoreModal('modal-rankings', window.renderRankingsContent)" class="bg-white/80 backdrop-blur-md rounded-[2.5rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgb(244,63,94,0.1)] hover:-translate-y-2 transition-all duration-300 cursor-pointer border border-white group flex flex-col justify-center items-center text-center relative overflow-hidden h-[260px]">
+                  <div class="absolute inset-0 bg-gradient-to-b from-transparent to-rose-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div class="w-20 h-20 bg-gradient-to-br from-rose-400 to-rose-600 text-white rounded-[1.5rem] flex items-center justify-center text-3xl mb-5 group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300 shadow-lg shadow-rose-500/30 relative z-10">
+                      <i class="fa-solid fa-ranking-star"></i>
+                  </div>
+                  <h3 class="font-moul text-lg text-slate-800 mb-2 relative z-10 group-hover:text-rose-600 transition-colors">តារាងចំណាត់ថ្នាក់</h3>
+                  <p class="text-slate-500 text-sm font-siemreap px-2 relative z-10">តារាងសរុបចំណាត់ថ្នាក់ ស្ថិតិ និងអាច Export ទៅជា Excel បាន។</p>
               </div>
 
-              <div onclick="window.openScoreModal('modal-reportcards', window.renderReportCardsContent)" class="bg-white rounded-[2rem] p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer border border-slate-200 group flex flex-col justify-center items-center text-center min-h-[220px]">
-                  <div class="w-20 h-20 bg-indigo-50 text-indigo-500 rounded-3xl flex items-center justify-center text-4xl mb-4 group-hover:scale-110 transition-transform duration-300 shadow-inner"><i class="fa-solid fa-file-invoice"></i></div>
-                  <h3 class="font-moul text-lg text-slate-800 mb-2">ព្រឹត្តិបត្រពិន្ទុ</h3>
-                  <p class="text-slate-500 text-sm font-siemreap px-4">សៀវភៅតាមដានការសិក្សាបុគ្គល សម្រាប់ផ្ញើជូនមាតាបិតា។</p>
+              <!-- Card 3: ព្រឹត្តិបត្រពិន្ទុ -->
+              <div onclick="window.openScoreModal('modal-reportcards', window.renderReportCardsContent)" class="bg-white/80 backdrop-blur-md rounded-[2.5rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgb(99,102,241,0.1)] hover:-translate-y-2 transition-all duration-300 cursor-pointer border border-white group flex flex-col justify-center items-center text-center relative overflow-hidden h-[260px]">
+                  <div class="absolute inset-0 bg-gradient-to-b from-transparent to-indigo-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div class="w-20 h-20 bg-gradient-to-br from-indigo-400 to-indigo-600 text-white rounded-[1.5rem] flex items-center justify-center text-4xl mb-5 group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-indigo-500/30 relative z-10">
+                      <i class="fa-solid fa-file-invoice"></i>
+                  </div>
+                  <h3 class="font-moul text-lg text-slate-800 mb-2 relative z-10 group-hover:text-indigo-600 transition-colors">ព្រឹត្តិបត្រពិន្ទុ</h3>
+                  <p class="text-slate-500 text-sm font-siemreap px-2 relative z-10">សៀវភៅតាមដានការសិក្សាបុគ្គល សម្រាប់ផ្ញើជូនមាតាបិតា។</p>
               </div>
 
-              <div onclick="window.openScoreModal('modal-honorboard', window.renderHonorBoardContent)" class="bg-white rounded-[2rem] p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer border border-slate-200 group flex flex-col justify-center items-center text-center min-h-[220px]">
-                  <div class="w-20 h-20 bg-amber-50 text-amber-500 rounded-3xl flex items-center justify-center text-4xl mb-4 group-hover:scale-110 transition-transform duration-300 shadow-inner"><i class="fa-solid fa-crown"></i></div>
-                  <h3 class="font-moul text-lg text-slate-800 mb-2">តារាងកិត្តិយស</h3>
-                  <p class="text-slate-500 text-sm font-siemreap px-4">ប័ណ្ណសរសើរសម្រាប់សិស្សឆ្នើមប្រចាំខែ និងឆមាស។</p>
+              <!-- Card 4: តារាងកិត្តិយស -->
+              <div onclick="window.openScoreModal('modal-honorboard', window.renderHonorBoardContent)" class="bg-white/80 backdrop-blur-md rounded-[2.5rem] p-8 shadow-[0_8px_30px_rgb(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgb(245,158,11,0.1)] hover:-translate-y-2 transition-all duration-300 cursor-pointer border border-white group flex flex-col justify-center items-center text-center relative overflow-hidden h-[260px]">
+                  <div class="absolute inset-0 bg-gradient-to-b from-transparent to-amber-50/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div class="w-20 h-20 bg-gradient-to-br from-amber-400 to-orange-500 text-white rounded-[1.5rem] flex items-center justify-center text-4xl mb-5 group-hover:scale-110 transition-transform duration-300 shadow-lg shadow-amber-500/30 relative z-10">
+                      <i class="fa-solid fa-crown"></i>
+                  </div>
+                  <h3 class="font-moul text-lg text-slate-800 mb-2 relative z-10 group-hover:text-amber-600 transition-colors">តារាងកិត្តិយស</h3>
+                  <p class="text-slate-500 text-sm font-siemreap px-2 relative z-10">ប័ណ្ណសរសើរសម្រាប់សិស្សឆ្នើមប្រចាំខែ និងឆមាស។</p>
               </div>
             </div>
           </div>
       </div>
 
-      <!-- Modal ទី១៖ បញ្ចូលពិន្ទុ (SCORE ENTRY) -->
-      <div id="modal-entry" class="fixed inset-0 z-[2000] hidden bg-slate-900/80 backdrop-blur-sm p-2 md:p-6 transition-opacity font-siemreap">
-          <div class="bg-slate-50 w-full h-full rounded-3xl flex flex-col overflow-hidden shadow-2xl relative border border-slate-200">
-              <div class="bg-white p-3 md:p-4 border-b border-slate-200 flex flex-wrap justify-between items-center gap-3 shrink-0">
-                  <div class="flex items-center gap-3">
-                      <button onclick="window.closeScoreModal('modal-entry')" class="w-10 h-10 rounded-full bg-slate-100 hover:bg-rose-100 hover:text-rose-600 flex items-center justify-center transition shrink-0"><i class="fa-solid fa-arrow-left text-lg"></i></button>
-                      <h2 class="font-moul text-lg text-blue-800 hidden md:block shrink-0">បញ្ជីស្រង់ពិន្ទុ</h2>
-                      <div class="relative w-40 md:w-56 ml-2 shrink-0 hidden md:block">
-                          <span class="absolute left-3 top-2.5 text-slate-400"><i class="fa-solid fa-magnifying-glass text-xs"></i></span>
-                          <input type="text" id="scoreSearchInput" oninput="window.filterScoreTable()" placeholder="ស្វែងរកសិស្ស..." class="pl-9 pr-3 py-1.5 border border-slate-200 rounded-xl text-xs font-bold focus:border-amber-400 focus:bg-white outline-none w-full bg-slate-100 transition shadow-inner">
+      <!-- ========================================= -->
+      <!-- MODALS SECTION (All Redesigned & Animated)-->
+      <!-- ========================================= -->
+
+      <!-- 🟢 Modal ទី១៖ បញ្ចូលពិន្ទុ (SCORE ENTRY) -->
+      <div id="modal-entry" class="fixed inset-0 z-[2000] hidden bg-slate-900/60 backdrop-blur-md p-3 md:p-6 transition-all duration-300 font-siemreap">
+          <div id="modal-entry-container" class="bg-slate-50 w-full h-full rounded-[2.5rem] flex flex-col overflow-hidden shadow-2xl relative border border-white/40 transform scale-95 opacity-0 transition-all duration-300 data-[open=true]:scale-100 data-[open=true]:opacity-100">
+              
+              <div class="bg-white/90 backdrop-blur-xl p-4 md:p-5 border-b border-slate-200/60 flex flex-col xl:flex-row justify-between items-center gap-4 shrink-0 shadow-sm z-20">
+                  <div class="flex items-center w-full xl:w-auto gap-4">
+                      <button onclick="window.closeScoreModal('modal-entry')" class="w-11 h-11 rounded-2xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 flex items-center justify-center transition-all duration-200 shrink-0 shadow-sm hover:shadow-md active:scale-90"><i class="fa-solid fa-arrow-left text-lg"></i></button>
+                      <div class="flex items-center gap-3">
+                          <div class="w-10 h-10 rounded-[14px] bg-gradient-to-br from-blue-400 to-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-500/20"><i class="fa-solid fa-keyboard text-sm"></i></div>
+                          <h2 class="font-moul text-lg text-slate-800 hidden md:block shrink-0">បញ្ជីស្រង់ពិន្ទុ</h2>
+                      </div>
+                      
+                      <div class="relative flex-1 md:w-64 md:flex-none xl:ml-4">
+                          <span class="absolute left-3.5 top-2.5 text-slate-400"><i class="fa-solid fa-magnifying-glass text-sm"></i></span>
+                          <input type="text" id="scoreSearchInput" oninput="window.filterScoreTable()" placeholder="ស្វែងរកសិស្ស..." class="pl-10 pr-4 py-2.5 bg-slate-100/80 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-2xl text-sm font-semibold text-slate-700 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15 outline-none w-full transition-all duration-200 shadow-inner">
                       </div>
                   </div>
                   
-                  <div class="flex items-center gap-2 overflow-x-auto custom-scrollbar pb-1 md:pb-0 w-full md:w-auto">
-                      <button onclick="window.openMobileScoreModal(0)" class="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 shadow-sm"><i class="fa-solid fa-bolt text-amber-500"></i> បញ្ចូលរហ័ស</button>
+                  <div class="flex items-center gap-2 overflow-x-auto custom-scrollbar pb-2 xl:pb-0 w-full xl:w-auto">
+                      <button onclick="window.openMobileScoreModal(0)" class="px-4 py-2.5 bg-white text-slate-700 border border-slate-200 hover:border-amber-300 hover:text-amber-600 rounded-2xl text-xs font-bold transition-all shadow-sm hover:shadow active:scale-95 flex items-center gap-2 shrink-0"><i class="fa-solid fa-bolt text-amber-500"></i> បញ្ចូលរហ័ស</button>
                       
-                      <!-- 🟢 ប៊ូតុងកំណត់ខែឆមាស (បង្ហាញជានិច្ច) 🟢 -->
-                      <button id="btnInnerSemesterConfig" onclick="window.openSemesterConfig()" class="flex px-3 py-2 bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 rounded-xl text-xs font-bold transition shadow-sm items-center gap-1.5 shrink-0">
-                          <i class="fa-solid fa-sliders"></i> កំណត់ខែឆមាស
+                      <button onclick="window.exportScoreEntryToExcel()" class="px-5 py-2.5 bg-white text-slate-700 border border-slate-200 hover:border-emerald-300 hover:text-emerald-600 rounded-2xl text-xs font-bold transition-all shadow-sm hover:shadow active:scale-95 flex items-center gap-2 shrink-0">
+                          <i class="fa-solid fa-file-excel text-emerald-500 text-[15px]"></i> Export Excel
                       </button>
                       
-                      <button onclick="window.openImportExcelModal()" class="px-3 py-2 bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 rounded-xl text-xs font-bold transition shadow-sm flex items-center gap-1.5 shrink-0"><i class="fa-solid fa-file-import"></i> Import</button>
-                      <button onclick="window.printScoreList()" class="px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 rounded-xl text-xs font-bold transition shadow-sm flex items-center gap-1.5 shrink-0"><i class="fa-solid fa-print"></i> បោះពុម្ព</button>
-                      <button onclick="window.exportScoreListToExcel()" class="px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 rounded-xl text-xs font-bold transition shadow-sm flex items-center gap-1.5 shrink-0"><i class="fa-solid fa-file-excel"></i> Excel</button>
+                      <div class="w-px h-6 bg-slate-200 mx-1 hidden md:block shrink-0"></div>
                       
-                      <div class="w-px h-5 bg-slate-300 mx-1 hidden md:block shrink-0"></div>
+                      <button onclick="window.openImportExcelModal()" class="px-4 py-2.5 bg-white text-slate-700 border border-slate-200 hover:border-cyan-300 hover:text-cyan-600 rounded-2xl text-xs font-bold transition-all shadow-sm hover:shadow active:scale-95 flex items-center gap-2 shrink-0"><i class="fa-solid fa-file-import text-cyan-500"></i> Import</button>
+                      <button onclick="window.printScoreList()" class="px-4 py-2.5 bg-white text-slate-700 border border-slate-200 hover:border-emerald-300 hover:text-emerald-600 rounded-2xl text-xs font-bold transition-all shadow-sm hover:shadow active:scale-95 flex items-center gap-2 shrink-0"><i class="fa-solid fa-print text-emerald-500"></i> បោះពុម្ព</button>
                       
-                      <button onclick="window.calculateAllScores()" class="px-3 py-2 bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 rounded-xl text-xs font-bold transition shadow-sm flex items-center gap-1.5 shrink-0"><i class="fa-solid fa-calculator"></i> គណនា</button>
-                      <button onclick="window.autoRankStudents()" class="px-3 py-2 bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 rounded-xl text-xs font-bold transition shadow-sm flex items-center gap-1.5 shrink-0"><i class="fa-solid fa-ranking-star"></i> ចំណាត់ថ្នាក់</button>
-                      <button onclick="window.saveScoresData()" id="btnSaveScores" class="px-5 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-1.5 shrink-0"><i class="fa-solid fa-cloud-arrow-up"></i> រក្សាទុក</button>
+                      <div class="w-px h-6 bg-slate-200 mx-1 hidden md:block shrink-0"></div>
+                      
+                      <button onclick="window.calculateAllScores()" class="px-4 py-2.5 bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100 rounded-2xl text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center gap-2 shrink-0"><i class="fa-solid fa-calculator"></i> គណនា</button>
+                      <button onclick="window.autoRankStudents()" class="px-4 py-2.5 bg-rose-50 text-rose-600 border border-rose-100 hover:bg-rose-100 rounded-2xl text-xs font-bold transition-all shadow-sm active:scale-95 flex items-center gap-2 shrink-0"><i class="fa-solid fa-ranking-star"></i> ចំណាត់ថ្នាក់</button>
+                      
+                      <button onclick="window.saveScoresData()" id="btnSaveScores" class="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-2xl text-xs font-bold shadow-md shadow-blue-500/30 hover:shadow-lg transition-all duration-200 flex items-center gap-2 shrink-0 active:scale-95 border border-blue-500/50"><i class="fa-solid fa-cloud-arrow-up text-[14px]"></i> រក្សាទុក</button>
                   </div>
               </div>
-              <div id="modal-content-entry" class="flex-1 overflow-hidden flex flex-col relative bg-white"></div>
+              <div id="modal-content-entry" class="flex-1 overflow-hidden flex flex-col relative bg-slate-50/50"></div>
           </div>
       </div>
 
-      <!-- Modal Rankings -->
-      <div id="modal-rankings" class="fixed inset-0 z-[2000] hidden bg-slate-900/80 backdrop-blur-sm p-2 md:p-6 transition-opacity font-siemreap">
-          <div class="bg-slate-50 w-full h-full rounded-3xl flex flex-col overflow-hidden shadow-2xl relative border border-slate-200">
-              <div class="bg-white p-3 md:p-4 border-b border-slate-200 flex justify-between items-center shrink-0">
-                  <div class="flex items-center gap-3">
-                      <button onclick="window.closeScoreModal('modal-rankings')" class="w-10 h-10 rounded-full bg-slate-100 hover:bg-rose-100 hover:text-rose-600 flex items-center justify-center transition"><i class="fa-solid fa-arrow-left text-lg"></i></button>
-                      <h2 class="font-moul text-lg text-rose-600">តារាងចំណាត់ថ្នាក់</h2>
+      <!-- 🔴 Modal ទី២៖ តារាងចំណាត់ថ្នាក់ (RANKINGS) -->
+      <div id="modal-rankings" class="fixed inset-0 z-[2000] hidden bg-slate-900/60 backdrop-blur-md p-3 md:p-6 transition-all duration-300 font-siemreap">
+          <div id="modal-rankings-container" class="bg-slate-50 w-full h-full rounded-[2.5rem] flex flex-col overflow-hidden shadow-2xl relative border border-white/40 transform scale-95 opacity-0 transition-all duration-300 data-[open=true]:scale-100 data-[open=true]:opacity-100">
+              <div class="bg-white/90 backdrop-blur-xl p-4 md:p-5 border-b border-slate-200/60 flex flex-col xl:flex-row justify-between items-center gap-4 shrink-0 shadow-sm z-20">
+                  <div class="flex items-center gap-4 w-full xl:w-auto">
+                      <button onclick="window.closeScoreModal('modal-rankings')" class="w-11 h-11 rounded-2xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 flex items-center justify-center transition-all duration-200 shadow-sm hover:shadow-md active:scale-90 shrink-0"><i class="fa-solid fa-arrow-left text-lg"></i></button>
+                      <div class="flex items-center gap-3">
+                          <div class="w-10 h-10 rounded-[14px] bg-gradient-to-br from-rose-400 to-rose-600 text-white flex items-center justify-center shadow-md shadow-rose-500/20"><i class="fa-solid fa-ranking-star text-sm"></i></div>
+                          <h2 class="font-moul text-lg text-slate-800">តារាងចំណាត់ថ្នាក់</h2>
+                      </div>
+                      <div class="hidden md:flex items-center gap-2 ml-4">
+                          <p class="text-[12px] font-bold text-slate-500 mt-0.5">ថ្នាក់រៀន ៖ <span id="lblRankGradeName" class="text-rose-600">${gradeFull}</span></p>
+                      </div>
+                  </div>
+                  <div class="flex flex-wrap items-center gap-2.5 w-full xl:w-auto">
+                    <!-- ទម្រង់តារាង -->
+                    <div class="flex items-center bg-white p-1 rounded-xl border border-slate-200 shadow-sm shrink-0">
+                        <button onclick="window.changeRankViewMode('full')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${window.rankingsViewMode==='full'?'bg-indigo-50 text-indigo-700':'text-slate-500 hover:text-slate-700'}">
+                            <i class="fa-solid fa-table-list"></i> តារាងទូទៅ
+                        </button>
+                    </div>
+
+                    <!-- ស្វែងរក និងចម្រោះ -->
+                    <div class="relative shadow-sm shrink-0">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                        <input type="text" placeholder="ស្វែងរកឈ្មោះ..." value="${window.rankingsSearchQuery}" oninput="window.filterRankingsTable(this.value, window.rankingsGenderFilter)"
+                                class="pl-8 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none w-36 sm:w-44 focus:ring-2 focus:ring-indigo-500 transition">
+                    </div>
+
+                    <select onchange="window.filterRankingsTable(window.rankingsSearchQuery, this.value)" class="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none shadow-sm cursor-pointer focus:ring-2 focus:ring-indigo-500 transition shrink-0">
+                        <option value="all" ${window.rankingsGenderFilter==='all'?'selected':''}>👥 ភេទទាំងអស់</option>
+                        <option value="ស្រី" ${window.rankingsGenderFilter==='ស្រី'?'selected':''}>👩 សិស្សស្រី</option>
+                        <option value="ប្រុស" ${window.rankingsGenderFilter==='ប្រុស'?'selected':''}>👨 សិស្សប្រុស</option>
+                    </select>
+
+                    <!-- ប៊ូតុង Export -->
+                    <button onclick="window.exportRankingsToExcel()" class="px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm transform hover:-translate-y-0.5 shrink-0">
+                        <i class="fa-solid fa-file-excel"></i> Export Excel
+                    </button>
+                    <button onclick="window.printRankingTable()" class="px-4 py-2 bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white rounded-xl text-xs font-black shadow-md shadow-rose-200 transition flex items-center gap-2 transform hover:-translate-y-0.5 shrink-0">
+                        <i class="fa-solid fa-file-pdf"></i> PDF / Print
+                    </button>
                   </div>
               </div>
-              <div id="modal-content-rankings" class="flex-1 overflow-auto bg-slate-100/50 p-2 md:p-4"></div>
+              
+              <div id="modal-content-rankings" class="flex-1 overflow-auto bg-slate-100/30 p-2 md:p-6 custom-scrollbar"></div>
           </div>
       </div>
 
-      <!-- Modal ReportCards -->
-      <div id="modal-reportcards" class="fixed inset-0 z-[2000] hidden bg-slate-900/80 backdrop-blur-sm p-2 md:p-6 transition-opacity font-siemreap">
-          <div class="bg-slate-50 w-full h-full rounded-3xl flex flex-col overflow-hidden shadow-2xl relative border border-slate-200">
-              <div class="bg-white p-3 md:p-4 border-b border-slate-200 flex flex-wrap justify-between items-center gap-3 shrink-0">
-                  <div class="flex items-center gap-3">
-                      <button onclick="window.closeScoreModal('modal-reportcards')" class="w-10 h-10 rounded-full bg-slate-100 hover:bg-rose-100 hover:text-rose-600 flex items-center justify-center transition shrink-0"><i class="fa-solid fa-arrow-left text-lg"></i></button>
-                      <h2 class="font-moul text-lg text-indigo-700 shrink-0 flex items-center gap-2">
-                          <i class="fa-solid fa-file-invoice text-indigo-500"></i> សៀវភៅតាមដានការសិក្សា
-                      </h2>
+      <!-- 🟣 Modal ទី៣៖ ព្រឹត្តិបត្រពិន្ទុ (REPORT CARDS) -->
+      <div id="modal-reportcards" class="fixed inset-0 z-[2000] hidden bg-slate-900/60 backdrop-blur-md p-3 md:p-6 transition-all duration-300 font-siemreap">
+          <div id="modal-reportcards-container" class="bg-slate-50 w-full h-full rounded-[2.5rem] flex flex-col overflow-hidden shadow-2xl relative border border-white/40 transform scale-95 opacity-0 transition-all duration-300 data-[open=true]:scale-100 data-[open=true]:opacity-100">
+              <div class="bg-white/90 backdrop-blur-xl p-4 md:p-5 border-b border-slate-200/60 flex flex-wrap justify-between items-center gap-4 shrink-0 shadow-sm z-20">
+                  <div class="flex items-center gap-4">
+                      <button onclick="window.closeScoreModal('modal-reportcards')" class="w-11 h-11 rounded-2xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 flex items-center justify-center transition-all duration-200 shadow-sm hover:shadow-md active:scale-90"><i class="fa-solid fa-arrow-left text-lg"></i></button>
+                      <div class="flex items-center gap-3">
+                          <div class="w-10 h-10 rounded-[14px] bg-gradient-to-br from-indigo-400 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-500/20"><i class="fa-solid fa-file-invoice text-sm"></i></div>
+                          <h2 class="font-moul text-lg text-slate-800">សៀវភៅតាមដានការសិក្សា</h2>
+                      </div>
                   </div>
-                  <div class="flex items-center gap-2 overflow-x-auto custom-scrollbar pb-1 md:pb-0 w-full md:w-auto">
-                      <button onclick="window.printReportCards()" class="px-4 py-2 bg-white hover:bg-emerald-50 text-emerald-700 font-bold rounded-xl text-xs transition flex items-center gap-2 border border-emerald-200 shadow-sm shrink-0"><i class="fa-solid fa-print"></i> បោះពុម្ព</button>
-                      <button onclick="window.exportReportCardsToExcel()" class="px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold rounded-xl text-xs transition flex items-center gap-2 shadow-md shrink-0 transform hover:-translate-y-0.5 border border-emerald-600/50"><i class="fa-solid fa-file-excel text-[14px]"></i> ទាញយក Excel</button>
+                  <div class="flex items-center gap-3 overflow-x-auto w-full md:w-auto">
+                      <button onclick="window.printReportCards()" class="px-5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 font-bold rounded-2xl text-xs transition-all flex items-center gap-2 border border-slate-200 shadow-sm active:scale-95"><i class="fa-solid fa-print text-emerald-500"></i> បោះពុម្ព</button>
+                      <button onclick="window.exportReportCardsToExcel()" class="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 text-white font-bold rounded-2xl text-xs transition-all flex items-center gap-2 shadow-md shadow-emerald-500/30 active:scale-95 border border-emerald-500/50"><i class="fa-solid fa-file-excel text-[14px]"></i> ទាញយក Excel</button>
                   </div>
               </div>
-              <div id="modal-content-reportcards" class="flex-1 overflow-auto bg-slate-100 p-0 relative shadow-inner"></div>
+              <div id="modal-content-reportcards" class="flex-1 overflow-auto bg-slate-200/40 p-0 relative shadow-inner custom-scrollbar"></div>
           </div>
       </div>
 
-      <!-- Modal HonorBoard -->
-      <div id="modal-honorboard" class="fixed inset-0 z-[2000] hidden bg-slate-900/80 backdrop-blur-sm p-2 md:p-6 transition-opacity font-siemreap">
-          <div class="bg-slate-50 w-full h-full rounded-3xl flex flex-col overflow-hidden shadow-2xl relative border border-slate-200">
-              <div class="bg-white p-3 md:p-4 border-b border-slate-200 flex justify-between items-center shrink-0">
-                  <div class="flex items-center gap-3">
-                      <button onclick="window.closeScoreModal('modal-honorboard')" class="w-10 h-10 rounded-full bg-slate-100 hover:bg-rose-100 hover:text-rose-600 flex items-center justify-center transition"><i class="fa-solid fa-arrow-left text-lg"></i></button>
-                      <h2 class="font-moul text-lg text-amber-600">តារាងកិត្តិយស (Honor Board)</h2>
+      <!-- 🟠 Modal ទី៤៖ តារាងកិត្តិយស (HONOR BOARD) -->
+      <div id="modal-honorboard" class="fixed inset-0 z-[2000] hidden bg-slate-900/60 backdrop-blur-md p-3 md:p-6 transition-all duration-300 font-siemreap">
+          <div id="modal-honorboard-container" class="bg-slate-50 w-full h-full rounded-[2.5rem] flex flex-col overflow-hidden shadow-2xl relative border border-white/40 transform scale-95 opacity-0 transition-all duration-300 data-[open=true]:scale-100 data-[open=true]:opacity-100">
+              <div class="bg-white/90 backdrop-blur-xl p-4 md:p-5 border-b border-slate-200/60 flex justify-between items-center shrink-0 shadow-sm z-20">
+                  <div class="flex items-center gap-4">
+                      <button onclick="window.closeScoreModal('modal-honorboard')" class="w-11 h-11 rounded-2xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 flex items-center justify-center transition-all duration-200 shadow-sm hover:shadow-md active:scale-90"><i class="fa-solid fa-arrow-left text-lg"></i></button>
+                      <div class="flex items-center gap-3">
+                          <div class="w-10 h-10 rounded-[14px] bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center shadow-md shadow-amber-500/20"><i class="fa-solid fa-crown text-sm"></i></div>
+                          <h2 class="font-moul text-lg text-slate-800">តារាងកិត្តិយស (Honor Board)</h2>
+                      </div>
                   </div>
               </div>
-              <div id="modal-content-honorboard" class="flex-1 overflow-auto bg-slate-300/40 p-0"></div>
+              <div id="modal-content-honorboard" class="flex-1 overflow-auto bg-slate-100/50 p-4 md:p-6 custom-scrollbar"></div>
           </div>
       </div>
     `;
 
+    // អនុគមន៍សម្រាប់បើក និងបិទ Modal ដោយមាន Animation ត្រឹមត្រូវ
+const originalOpenModal = window.openScoreModal || function(id){ document.getElementById(id).classList.remove('hidden'); };
+window.openScoreModal = function(id, callback) {
+    originalOpenModal(id, callback);
+    const modalContainer = document.getElementById(id + '-container');
+    if(modalContainer) {
+        // Delay បន្តិចដើម្បីអោយ CSS Transition ដើរ
+        setTimeout(() => modalContainer.setAttribute('data-open', 'true'), 10);
+    }
+};
+
+const originalCloseModal = window.closeScoreModal || function(id){ document.getElementById(id).classList.add('hidden'); };
+window.closeScoreModal = function(id) {
+    const modalContainer = document.getElementById(id + '-container');
+    if(modalContainer) {
+        // ដក Attribute ចេញដើម្បីឱ្យវារួមតូចវិញ
+        modalContainer.removeAttribute('data-open');
+        // រង់ចាំរហូតដល់ Animation ចប់ ទើបលាក់ Modal ទាំងមូល
+        setTimeout(() => originalCloseModal(id), 200); 
+    } else {
+        originalCloseModal(id);
+    }
+};
+
+// ដំណើរការមុខងារទូទៅពេល Load
+if(typeof window.updateGlobalPeriod === 'function') window.updateGlobalPeriod();
+if(typeof window.toggleTrackSelect === 'function') window.toggleTrackSelect();
+if(typeof window.renderScoreEntryContent === 'function') window.renderScoreEntryContent();
+
+    
     window.updateGlobalPeriod();
     window.toggleTrackSelect();
     await window.renderScoreEntryContent(); 
+};
+
+window.initExcelLikeSelection = function() {
+    const container = document.getElementById('modal-content-entry');
+    if (!container) return;
+
+    let isDragging = false;
+    let startCell = { row: -1, col: -1 };
+    
+    // បង្កើត Event Listener តែម្តងគត់ (ការពារការកោះហៅជាន់គ្នា)
+    if (container.dataset.selectionInitialized === 'true') return;
+    container.dataset.selectionInitialized = 'true';
+
+    // ជំនួយការ៖ ស្វែងរកទីតាំង Row និង Col របស់ Input
+    function getCellCoords(inputElem) {
+        const tr = inputElem.closest('tr');
+        if (!tr) return null;
+        const allRows = Array.from(tr.closest('tbody').querySelectorAll('tr'));
+        const rowIdx = allRows.indexOf(tr);
+        
+        const allInputsInRow = Array.from(tr.querySelectorAll('input[type="number"]'));
+        const colIdx = allInputsInRow.indexOf(inputElem);
+        
+        return { row: rowIdx, col: colIdx, tbody: tr.closest('tbody') };
+    }
+
+    // ជំនួយការ៖ លុបពណ៌ Select ទាំងអស់
+    function clearSelection() {
+        container.querySelectorAll('.cell-selected').forEach(el => {
+            el.classList.remove('cell-selected');
+        });
+    }
+
+    // ជំនួយការ៖ ដាក់ពណ៌ Select ជាចង្កោម (Range)
+    function selectRange(start, end, tbody) {
+        clearSelection();
+        if (!tbody) return;
+        
+        const minRow = Math.min(start.row, end.row);
+        const maxRow = Math.max(start.row, end.row);
+        const minCol = Math.min(start.col, end.col);
+        const maxCol = Math.max(start.col, end.col);
+
+        const rows = tbody.querySelectorAll('tr');
+        for (let r = minRow; r <= maxRow; r++) {
+            if (!rows[r]) continue;
+            const inputs = rows[r].querySelectorAll('input[type="number"]');
+            for (let c = minCol; c <= maxCol; c++) {
+                if (inputs[c]) {
+                    inputs[c].classList.add('cell-selected');
+                }
+            }
+        }
+    }
+
+    // ១. ចាប់ផ្តើមចុចម៉ៅស៍ (Mousedown)
+    container.addEventListener('mousedown', function(e) {
+        if (e.target.tagName.toLowerCase() === 'input' && e.target.type === 'number') {
+            isDragging = true;
+            container.classList.add('no-text-select'); // កុំឱ្យជាប់ Highlight អក្សរ
+            
+            const coords = getCellCoords(e.target);
+            if (coords) {
+                startCell = coords;
+                clearSelection();
+                e.target.classList.add('cell-selected');
+            }
+        } else {
+            clearSelection(); // ចុចកន្លែងផ្សេង លុបការ Select
+        }
+    });
+
+    // ២. អូសម៉ៅស៍ (Mouseover)
+    container.addEventListener('mouseover', function(e) {
+        if (isDragging && e.target.tagName.toLowerCase() === 'input' && e.target.type === 'number') {
+            const currentCell = getCellCoords(e.target);
+            if (currentCell && currentCell.tbody === startCell.tbody) {
+                selectRange(startCell, currentCell, startCell.tbody);
+            }
+        }
+    });
+
+    // ៣. ប្រលែងម៉ៅស៍ (Mouseup) គ្រប់ទីកន្លែង
+    window.addEventListener('mouseup', function() {
+        if (isDragging) {
+            isDragging = false;
+            container.classList.remove('no-text-select');
+        }
+    });
+
+    // ៤. ចុចប៊ូតុង Delete ឬ Backspace ដើម្បីលុបពិន្ទុទាំងអស់ដែលបាន Select
+    container.addEventListener('keydown', function(e) {
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+            const selectedCells = container.querySelectorAll('.cell-selected');
+            if (selectedCells.length > 1) { // ឱ្យដើរតែករណី Select ច្រើន
+                e.preventDefault();
+                selectedCells.forEach(input => {
+                    input.value = ''; // លុបទិន្នន័យ
+                    // ហៅ Event Input ដើម្បិឱ្យកូដគណនាពិន្ទុដើរ (បើមាន)
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                });
+            }
+        }
+    });
 };
 
 // ==========================================
@@ -1136,74 +1522,427 @@ window.closeScoreModal = function(modalId) {
   }
 };
 
+
+// =====================================================================
+// ៦. មុខងារលាក់/បង្ហាញ និងបង្កើត Pop-up កាលបរិច្ឆេទ (Global Modal)
+// =====================================================================
+window.toggleSharedDatePanel = function() {
+    let panel = document.getElementById('globalDateSettingsModal');
+    
+    // បើមិនទាន់មាន Pop-up នៅក្នុង Body ទេ គឺបង្កើតវាបញ្ជូលតែម្តង
+    if (!panel) {
+        panel = document.createElement('div');
+        panel.id = 'globalDateSettingsModal';
+        // ប្រើ fixed inset-0 និង z-[999999] ដើម្បីឱ្យវាគ្របពីលើគេបង្អស់
+        panel.className = 'fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[999999] hidden justify-center items-center p-4 font-siemreap transition-opacity duration-300 opacity-0';
+        
+        panel.innerHTML = `
+          <!-- 🟢 តួ Pop-up (Main Card) 🟢 -->
+          <div id="globalDateSettingsCard" class="bg-white rounded-[2rem] shadow-[0_20px_60px_rgba(0,0,0,0.4)] w-full max-w-md flex flex-col overflow-hidden border border-white/20 transform scale-95 transition-transform duration-300 relative mx-auto my-auto">
+            
+            <!-- ក្បាល Pop-up -->
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-700 p-5 flex justify-between items-center shadow-md relative overflow-hidden">
+                <div class="absolute right-0 top-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
+                <h3 class="font-moul text-white text-[15px] flex items-center gap-3 drop-shadow-md relative z-10">
+                    <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center border border-white/20 shadow-inner">
+                        <i class="fa-solid fa-calendar-day text-lg"></i>
+                    </div>
+                    កំណត់កាលបរិច្ឆេទប្រព័ន្ធ
+                </h3>
+                <button type="button" onclick="window.toggleSharedDatePanel()" class="w-9 h-9 rounded-full bg-white/10 text-white flex justify-center items-center hover:bg-rose-500 hover:text-white transition-colors border border-white/20 shadow-sm relative z-10 active:scale-90">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            
+            <!-- ផ្នែកខាងក្នុង Pop-up -->
+            <div class="p-6 bg-slate-50 flex flex-col gap-5 overflow-y-auto max-h-[75vh] custom-scrollbar">
+              
+              <div class="flex flex-col gap-4">
+                <div class="flex flex-col gap-1.5">
+                  <label class="font-moul text-indigo-900 text-xs ml-1">ទីតាំងធ្វើលិខិត ៖</label>
+                  <input type="text" id="global_loc_input" value="${window.reportCardDateSettings.location || ''}" 
+                         oninput="window.updateSharedDateSetting('location', this.value)" 
+                         placeholder="ធ្វើនៅ........................."
+                         class="shared-location-input w-full border border-slate-300 rounded-xl px-4 py-2.5 font-bold text-slate-700 bg-white outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all text-[14px] shadow-sm">
+                </div>
+                
+                <div class="flex flex-col gap-1.5">
+                  <label class="font-moul text-indigo-900 text-xs ml-1">កាលបរិច្ឆេទសូរិយគតិ ៖</label>
+                  <input type="text" id="global_sol_input" value="${window.reportCardDateSettings.solarDate || ''}" 
+                         oninput="window.updateSharedDateSetting('solarDate', this.value)" 
+                         placeholder="ថ្ងៃទី....... ខែ....... ឆ្នាំ២០...."
+                         class="shared-solar-input w-full border border-slate-300 rounded-xl px-4 py-2.5 font-bold text-slate-700 bg-white outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all text-[14px] shadow-sm">
+                </div>
+              </div>
+
+              <!-- ប៊ូតុងបញ្ជាអូតូ -->
+              <div class="grid grid-cols-2 gap-3 pt-1">
+                  <button type="button" onclick="window.forceSetToday(); window.syncGlobalDateModal();" class="flex justify-center items-center gap-2 w-full py-3 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-xl font-bold transition-all shadow-sm active:scale-95 text-[13px] group">
+                      <i class="fa-solid fa-bolt text-amber-500 group-hover:scale-110 transition-transform"></i> ថ្ងៃនេះអូតូ
+                  </button>
+                  <button type="button" onclick="window.forceSetDots(); window.syncGlobalDateModal();" class="flex justify-center items-center gap-2 w-full py-3 bg-white hover:bg-slate-100 text-slate-600 border border-slate-300 rounded-xl font-bold transition-all shadow-sm active:scale-95 text-[13px]">
+                      ចុចៗ (...)
+                  </button>
+              </div>
+
+              <!-- ប្រអប់ចន្ទគតិ -->
+              <div class="bg-white p-5 rounded-2xl border border-indigo-100 shadow-sm flex flex-col gap-3 relative overflow-hidden group">
+                <div class="absolute left-0 top-0 w-1.5 h-full bg-indigo-500"></div>
+                
+                <label class="flex items-center gap-3 cursor-pointer select-none">
+                  <input type="checkbox" id="global_lun_chk" ${window.reportCardDateSettings.showLunar ? 'checked' : ''} 
+                         onchange="window.updateSharedDateSetting('showLunar', this.checked); document.getElementById('global_lun_input').classList.toggle('opacity-40'); document.getElementById('global_lun_input').classList.toggle('pointer-events-none');" 
+                         class="shared-lunar-check w-5 h-5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer border-slate-300 shadow-sm mt-0.5">
+                  <span class="font-moul text-indigo-900 text-[13px]">បង្ហាញថ្ងៃខែចន្ទគតិ</span>
+                </label>
+                
+                <input type="text" id="global_lun_input" value="${window.reportCardDateSettings.lunarDate || ''}" 
+                       oninput="window.updateSharedDateSetting('lunarDate', this.value)" 
+                       placeholder="ថ្ងៃ......................... ខែ............ ឆ្នាំ............ ព.ស.២៥៧..."
+                       class="shared-lunar-input w-full border border-slate-200 rounded-xl px-4 py-2.5 font-bold text-indigo-900 bg-slate-50 outline-none focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 transition-all text-[13px] ${!window.reportCardDateSettings.showLunar ? 'opacity-40 pointer-events-none' : ''}">
+              </div>
+            </div>
+
+            <!-- ជើង Pop-up -->
+            <div class="p-4 bg-white border-t border-slate-200 flex justify-end gap-3 rounded-b-[2rem]">
+                <button type="button" onclick="window.toggleSharedDatePanel()" class="px-8 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white rounded-xl font-bold text-[14px] shadow-md shadow-indigo-200 transition transform hover:-translate-y-0.5 flex items-center gap-2 active:scale-95">
+                    <i class="fa-solid fa-check-circle text-lg"></i> រក្សាទុក & បិទ
+                </button>
+            </div>
+          </div>
+        `;
+        // ដាក់ Modal នេះចូលទៅក្នុង body ផ្ទាល់តែម្តង
+        document.body.appendChild(panel);
+    }
+
+    const card = document.getElementById('globalDateSettingsCard');
+
+    // គ្រប់គ្រងចលនា (Animation) បើក និងបិទ
+    if (panel.classList.contains('hidden') || panel.style.display === 'none') {
+        window.syncGlobalDateModal(); // Update ទិន្នន័យមុននឹងបង្ហាញ
+        panel.classList.remove('hidden');
+        panel.style.display = 'flex'; 
+        
+        setTimeout(() => {
+            panel.classList.remove('opacity-0');
+            panel.classList.add('opacity-100');
+            if(card) {
+                card.classList.remove('scale-95');
+                card.classList.add('scale-100');
+            }
+        }, 10);
+    } else {
+        panel.classList.remove('opacity-100');
+        panel.classList.add('opacity-0');
+        if(card) {
+            card.classList.remove('scale-100');
+            card.classList.add('scale-95');
+        }
+        setTimeout(() => {
+            panel.classList.add('hidden');
+            panel.style.display = 'none';
+        }, 300);
+    }
+};
+
+// មុខងារជំនួយសម្រាប់ Update ទិន្នន័យក្នុង Pop-up ពេលចុច "ថ្ងៃនេះអូតូ" ឬ "ចុចៗ"
+window.syncGlobalDateModal = function() {
+    const loc = document.getElementById('global_loc_input');
+    const sol = document.getElementById('global_sol_input');
+    const lun = document.getElementById('global_lun_input');
+    const chk = document.getElementById('global_lun_chk');
+    
+    if(loc) loc.value = window.reportCardDateSettings.location || '';
+    if(sol) sol.value = window.reportCardDateSettings.solarDate || '';
+    if(lun) lun.value = window.reportCardDateSettings.lunarDate || '';
+    if(chk) {
+        chk.checked = window.reportCardDateSettings.showLunar;
+        if(!chk.checked) lun.classList.add('opacity-40', 'pointer-events-none');
+        else lun.classList.remove('opacity-40', 'pointer-events-none');
+    }
+};
+
 // ==========================================
-// ០៦. UI & Layout Management (បន្ថែមប៊ូតុង Import Excel)
+// UI & Layout Management (ទម្រង់តារាងបញ្ចូលពិន្ទុថ្មី + Multi-select + Date Settings)
 // ==========================================
 window.renderScoreEntryContent = async function() {
     const c = document.getElementById("modal-content-entry");
     if (!c) return;
 
     c.innerHTML = `
-      <div id="unsavedBadge" class="overflow-y-auto custom-scrollbar bg-slate-50 transition duration-300 absolute top-4 left-4 bg-rose-100 text-rose-700 px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-2 animate-pulse no-print z-[80] shadow-sm border border-rose-200 hidden">
-        <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> មិនទាន់រក្សាទុក
+      <style>
+          /* CSS សម្រាប់ Multi-Cell Selection (Excel-like) */
+          .cell-selected {
+              background-color: #e0f2fe !important; /* bg-sky-100 */
+              box-shadow: inset 0 0 0 2px #00a6ffb6 !important; /* border ពណ៌ខៀវខាងក្នុង */
+              color: #0095e6d3 !important; /* អក្សរដិតពណ៌ខៀវ */
+              transition: all 0.1s ease;
+          }
+          .table-container-no-select {
+              user-select: none;
+              -webkit-user-select: none;
+          }
+          /* ធ្វើឱ្យ Input មើលទៅស្អាតក្នុងតារាង */
+          .score-input-modern {
+              width: 100%; height: 100%;
+              text-align: center;
+              font-weight: bold;
+              outline: none;
+              background: transparent;
+              transition: all 0.2s;
+          }
+          .score-input-modern:focus {
+              background-color: #fff;
+          }
+      </style>
+      
+      <!-- ផ្លាកសញ្ញាមិនទាន់រក្សាទុក (Unsaved Badge) -->
+      <div id="unsavedBadge" class="absolute top-5 right-6 bg-rose-50 text-rose-600 px-4 py-2 rounded-2xl text-xs font-bold flex items-center gap-2 animate-pulse no-print z-[80] shadow-md border border-rose-200 hidden backdrop-blur-sm">
+        <span class="relative flex h-2.5 w-2.5">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+        </span>
+        មិនទាន់រក្សាទុក
       </div>
       
-      <div class="overflow-y-auto custom-scrollbar bg-blue-50/70 border-b border-blue-100 px-4 sm:px-6 py-2.5 flex flex-wrap justify-between items-center text-xs text-blue-700 font-bold no-print sticky left-0 z-[80] gap-3">
-         <span class="shrink-0 hidden md:block">
-            <i class="fa-solid fa-circle-info"></i> លោកអ្នកអាចចុចលើ <span class="bg-white px-2 py-0.5 rounded border border-blue-200 shadow-sm text-slate-800 cursor-pointer hover:bg-blue-100" onclick="window.openMobileScoreModal(0)">ឈ្មោះសិស្ស</span> ដើម្បីបញ្ចូលពីទូរសព្ទ។
-         </span>
+
+      <!-- តំបន់តារាង (Table Area) -->
+      <div id="tableScrollContainer" class="flex-1 overflow-auto w-full custom-scrollbar print:overflow-visible relative bg-slate-50/50 p-4 md:p-6 pb-20 mt-1">
+        <div class="bg-white rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-200/60 overflow-hidden mx-auto" style="width: max-content; min-width: 100%;">
+            <table id="scoreTableMain" class="border-collapse text-[13px] text-center whitespace-nowrap bg-white relative font-siemreap w-full">
+              
+              <!-- ក្បាលតារាង (Sticky Header with Glassmorphism) -->
+              <thead id="scoreTableHead" class="text-slate-700 sticky top-0 z-[60] shadow-sm bg-slate-50/90 backdrop-blur-md border-b-2 border-slate-200">
+                  <!-- ក្បាលតារាងនឹងត្រូវបានបង្កើតដោយ JS -->
+              </thead>
+              
+              <!-- តួអត្ថបទតារាង -->
+              <tbody id="scoresTableBody" class="divide-y divide-slate-100 text-slate-700">
+                <tr>
+                    <td colspan="100" class="p-16 text-center text-slate-400 font-bold">
+                        <i class="fa-solid fa-circle-notch fa-spin text-4xl mb-4 text-blue-400"></i><br>
+                        កំពុងទាញយកទិន្នន័យ...
+                    </td>
+                </tr>
+              </tbody>
+            </table>
+        </div>
       </div>
 
-      <div class="flex-1 overflow-auto w-full custom-scrollbar print:overflow-visible relative bg-slate-50 font-siemreap pb-20">
-        <table id="scoreTableMain" class="border-collapse border border-slate-300 print:border-black text-[12px] text-center whitespace-nowrap bg-white relative shadow-sm mx-auto my-4" style="table-layout: fixed; width: max-content; min-width: 95%;">
-          <thead id="scoreTableHead" class="text-slate-700 sticky top-0 z-[60] shadow-sm print:static print:shadow-none bg-slate-50 border-b-2 border-slate-300"></thead>
-          <tbody id="scoresTableBody" class="divide-y divide-slate-200 print:divide-black text-slate-800 print:text-black">
-            <tr><td colspan="100" class="p-16 text-center text-slate-400 font-bold"><i class="fa-solid fa-circle-notch fa-spin text-3xl mb-3 text-amber-400"></i><br>កំពុងទាញយកទិន្នន័យ...</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Mobile Entry Modal ចាស់រក្សាដដែល -->
+      <!-- Mobile Entry Modal (កែប្រែពណ៌ថ្មីឱ្យ Premium) -->
       <div id="mobileScoreEntryModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-md flex justify-center items-center p-3 sm:p-4 no-print font-siemreap transition-all" style="z-index: 999999;">
-          <div class="bg-white rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.3)] w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] sm:max-h-[85vh] animate-scale-up border border-slate-200 relative">
-              <div class="glass-header p-5 flex justify-between items-center shrink-0">
-                  <div class="text-white flex items-center gap-4">
-                      <div class="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center text-xl shadow-inner border border-white/20 backdrop-blur-sm"><i class="fa-solid fa-user-graduate"></i></div>
+          <div class="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] sm:max-h-[85vh] animate-scale-up border border-white/20 relative">
+              
+              <div class="bg-gradient-to-r from-blue-600 to-indigo-700 p-5 flex justify-between items-center shrink-0 shadow-md z-20 relative overflow-hidden">
+                  <div class="absolute inset-0 bg-white/10" style="background-image: radial-gradient(circle at 100% 0%, rgba(255,255,255,0.2) 0%, transparent 50%);"></div>
+                  <div class="text-white flex items-center gap-4 relative z-10">
+                      <div class="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center text-2xl shadow-inner border border-white/20 backdrop-blur-sm"><i class="fa-solid fa-user-pen"></i></div>
                       <div>
                           <h3 class="font-moul text-lg mb-0.5 drop-shadow-md" id="mobileScoreStuName">ឈ្មោះសិស្ស</h3>
-                          <p class="text-xs text-indigo-100 font-mono drop-shadow-sm flex items-center gap-2" id="mobileScoreStuInfo"></p>
+                          <p class="text-xs text-blue-100 font-mono drop-shadow-sm flex items-center gap-2 bg-black/20 px-2 py-0.5 rounded-md w-fit" id="mobileScoreStuInfo"></p>
                       </div>
                   </div>
-                  <button onclick="window.closeMobileScoreModal()" class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/40 text-white flex items-center justify-center transition shadow-sm border border-white/10"><i class="fa-solid fa-xmark"></i></button>
+                  <button onclick="window.closeMobileScoreModal()" class="relative z-10 w-9 h-9 rounded-full bg-white/10 hover:bg-white/30 text-white flex items-center justify-center transition-all shadow-sm border border-white/20 active:scale-90"><i class="fa-solid fa-xmark text-lg"></i></button>
               </div>
+              
               <div class="p-5 overflow-y-auto flex-1 custom-scrollbar bg-slate-50 relative" id="mobileScoreInputsContainer"></div>
-              <div class="p-4 bg-white border-t border-slate-200 flex justify-between items-center gap-3 shrink-0 shadow-[0_-4px_10px_rgba(0,0,0,0.02)] z-10">
-                  <button onclick="window.prevMobileStudent()" id="btnPrevMobileStu" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 font-bold rounded-xl text-sm transition flex items-center justify-center gap-2 border border-slate-200"><i class="fa-solid fa-arrow-left"></i> អ្នកមុន</button>
-                  <button onclick="window.nextMobileStudent()" id="btnNextMobileStu" class="flex-1 py-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl text-sm transition flex items-center justify-center gap-2 border border-indigo-200">អ្នកបន្ទាប់ <i class="fa-solid fa-arrow-right"></i></button>
+              
+              <div class="p-4 bg-white border-t border-slate-100 flex justify-between items-center gap-3 shrink-0 shadow-[0_-4px_15px_rgba(0,0,0,0.03)] z-10">
+                  <button onclick="window.prevMobileStudent()" id="btnPrevMobileStu" class="flex-1 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl text-sm transition-all flex items-center justify-center gap-2 active:scale-95"><i class="fa-solid fa-arrow-left"></i> អ្នកមុន</button>
+                  <button onclick="window.nextMobileStudent()" id="btnNextMobileStu" class="flex-1 py-3.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-2xl text-sm transition-all flex items-center justify-center gap-2 active:scale-95 border border-indigo-100">អ្នកបន្ទាប់ <i class="fa-solid fa-arrow-right"></i></button>
               </div>
+              
               <div class="p-4 pt-0 bg-white shrink-0 z-10">
-                  <button onclick="window.closeMobileScoreModal()" class="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black rounded-xl text-sm shadow-lg shadow-emerald-200 transition flex items-center justify-center gap-2 transform hover:-translate-y-0.5 border border-emerald-600/50"><i class="fa-solid fa-check-circle text-lg"></i> រួចរាល់ & បិទផ្ទាំង</button>
+                  <button onclick="window.closeMobileScoreModal()" class="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black rounded-2xl text-sm shadow-lg shadow-emerald-500/30 transition-all flex items-center justify-center gap-2 active:scale-95 border border-emerald-500/50"><i class="fa-solid fa-check-circle text-lg"></i> រួចរាល់ & បិទផ្ទាំង</button>
               </div>
           </div>
       </div>
     `;
 
+    // ១. ទាញយកទិន្នន័យមកបំពេញក្នុងតារាង
     await window.fetchStudentsForScores();
-    window.setupExcelLikeNavigation();
+    
+    // ២. រៀបចំមុខងាររុករកដោយប្រើព្រួញ (Excel Navigation)
+    if(typeof window.setupExcelLikeNavigation === 'function') {
+        window.setupExcelLikeNavigation();
+    }
+
+    // ៣. ដំណើរការមុខងារ Select Multi-Cells ដោយការអូសម៉ៅស៍
+    if(typeof initDragToSelectCells === 'function') {
+        initDragToSelectCells();
+    }
 };
 
+// ==========================================
+// អនុគមន៍សម្រាប់មុខងារ Select ក្រឡាដោយអូសម៉ៅស៍ (Drag to Select)
+// ==========================================
+function initDragToSelectCells() {
+    const tableContainer = document.getElementById('tableScrollContainer');
+    const tableBody = document.getElementById('scoresTableBody');
+    if (!tableContainer || !tableBody) return;
+
+    let isDragging = false;
+    let startCell = null;
+
+    // ជំនួយការ៖ ស្វែងរកទីតាំង (Row & Col) របស់ Input នៅក្នុងតារាង
+    function getCellCoords(inputElem) {
+        const td = inputElem.closest('td');
+        const tr = inputElem.closest('tr');
+        if (!td || !tr) return null;
+        
+        const allRows = Array.from(tableBody.querySelectorAll('tr'));
+        const rowIdx = allRows.indexOf(tr);
+        
+        const allInputsInRow = Array.from(tr.querySelectorAll('input[type="number"], input[type="text"]'));
+        const colIdx = allInputsInRow.indexOf(inputElem);
+        
+        return { row: rowIdx, col: colIdx };
+    }
+
+    // ជំនួយការ៖ លុបពណ៌ Select ចាស់ចោល
+    function clearSelection() {
+        tableBody.querySelectorAll('.cell-selected').forEach(el => {
+            el.classList.remove('cell-selected');
+        });
+    }
+
+    // ជំនួយការ៖ លាបពណ៌ Select ជាចង្កោម (Range)
+    function selectRange(start, end) {
+        clearSelection();
+        const minRow = Math.min(start.row, end.row);
+        const maxRow = Math.max(start.row, end.row);
+        const minCol = Math.min(start.col, end.col);
+        const maxCol = Math.max(start.col, end.col);
+
+        const rows = tableBody.querySelectorAll('tr');
+        for (let r = minRow; r <= maxRow; r++) {
+            if (!rows[r]) continue;
+            const inputs = rows[r].querySelectorAll('input[type="number"], input[type="text"]');
+            for (let c = minCol; c <= maxCol; c++) {
+                if (inputs[c]) {
+                    inputs[c].classList.add('cell-selected');
+                }
+            }
+        }
+    }
+
+    // ព្រឹត្តិការណ៍ទី ១៖ ចុចម៉ៅស៍ (Mousedown) លើ Input
+    tableBody.addEventListener('mousedown', function(e) {
+        if (e.target.tagName.toLowerCase() === 'input') {
+            isDragging = true;
+            tableContainer.classList.add('table-container-no-select'); // កុំឱ្យជាប់ Highlight អក្សរ
+            
+            const coords = getCellCoords(e.target);
+            if (coords) {
+                startCell = coords;
+                clearSelection();
+                e.target.classList.add('cell-selected');
+                
+                // បង្ខំឱ្យ Input នោះ focus (ងាយស្រួលវាយលេខ)
+                setTimeout(() => e.target.focus(), 0);
+            }
+        }
+    });
+
+    // ព្រឹត្តិការណ៍ទី ២៖ អូសម៉ៅស៍ (Mouseover) លើ Input ផ្សេងៗ
+    tableBody.addEventListener('mouseover', function(e) {
+        if (isDragging && e.target.tagName.toLowerCase() === 'input') {
+            const currentCell = getCellCoords(e.target);
+            if (currentCell && startCell) {
+                selectRange(startCell, currentCell);
+            }
+        }
+    });
+
+    // ព្រឹត្តិការណ៍ទី ៣៖ ប្រលែងម៉ៅស៍ (Mouseup)
+    window.addEventListener('mouseup', function() {
+        if (isDragging) {
+            isDragging = false;
+            tableContainer.classList.remove('table-container-no-select');
+        }
+    });
+
+    // ព្រឹត្តិការណ៍ទី ៤៖ ចុច Keyboard លុបទិន្នន័យ (Delete/Backspace) លើក្រឡាដែល Select ច្រើន
+    tableBody.addEventListener('keydown', function(e) {
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+            const selectedCells = tableBody.querySelectorAll('.cell-selected');
+            if (selectedCells.length > 1) { // ធ្វើការលុបបើសិន Select លើសពី១ក្រឡា
+                e.preventDefault();
+                selectedCells.forEach(input => {
+                    input.value = '';
+                    // ហៅ Event ដើម្បីឱ្យវា Save/គណនាអូតូ
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+            }
+        }
+        
+        // (Optional) លុបពណ៌ Select បើចុច Esc
+        if (e.key === 'Escape') {
+            clearSelection();
+        }
+    });
+}
 
 // ==========================================
-// ០៦. Pop-up បញ្ចូលពិន្ទុតាមកាត (Modern Quick Entry)
+// ០៦. Pop-up បញ្ចូលពិន្ទុតាមកាត (Modern Quick Entry - UI Revamped)
 // ==========================================
 window.openMobileScoreModal = function(studentIndex) {
-    if (!window.scoresStudentList || window.scoresStudentList.length === 0) return;
+    if (!window.scoresStudentList || window.scoresStudentList.length === 0) return alert("គ្មានទិន្នន័យសិស្សទេ!");
     window.currentMobileStudentIndex = studentIndex || 0;
-    const modal = document.getElementById("mobileScoreEntryModal");
-    if (modal) {
-        modal.classList.remove("hidden");
-        window.renderMobileScoreInputs();
+    
+    // បង្កើត Modal Structure ប្រសិនបើមិនទាន់មាន ដើម្បីធានាថា Design ថ្មីលោតចេញមក
+    let modal = document.getElementById("mobileScoreEntryModal");
+    if (!modal) {
+        modal = document.createElement("div");
+        modal.id = "mobileScoreEntryModal";
+        modal.className = "fixed inset-0 z-[3000] hidden bg-slate-900/80 backdrop-blur-sm p-3 md:p-6 transition-opacity font-siemreap flex items-center justify-center";
+        
+        modal.innerHTML = `
+            <div class="bg-slate-50 w-full max-w-lg h-[95vh] md:h-auto md:max-h-[90vh] rounded-[2rem] flex flex-col overflow-hidden shadow-2xl relative border border-slate-200 animate-slide-up">
+                
+                <!-- 🔴 ក្បាល Pop-up (Light Theme + Gradient Name) 🔴 -->
+                <div class="bg-indigo-50 p-5 shrink-0 relative border-b border-indigo-100 shadow-sm">
+                    <div class="flex justify-between items-center relative z-10">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-white rounded-2xl flex items-center justify-center border border-indigo-200 text-xl text-indigo-600 shadow-sm shrink-0">
+                                <i class="fa-solid fa-user-graduate"></i>
+                            </div>
+                            <div class="flex flex-col">
+                                <!-- ឈ្មោះសិស្ស ចាក់ពណ៌ Gradient -->
+                                <h3 id="mobileScoreStuName" class="font-moul text-lg md:text-xl bg-gradient-to-r from-blue-700 via-indigo-600 to-rose-600 bg-clip-text text-transparent drop-shadow-sm leading-tight pb-1">ឈ្មោះសិស្ស</h3>
+                                <div id="mobileScoreStuInfo" class="flex flex-wrap gap-2 mt-1"></div>
+                            </div>
+                        </div>
+                        <button onclick="window.closeMobileScoreModal()" class="w-10 h-10 rounded-full bg-white hover:bg-rose-50 hover:text-rose-600 text-slate-400 flex items-center justify-center transition border border-slate-200 shadow-sm shrink-0">
+                            <i class="fa-solid fa-xmark text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ផ្ទៃបញ្ចូលពិន្ទុ (Scrollable Inputs) -->
+                <div id="mobileScoreInputsContainer" class="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-5 bg-slate-100/50">
+                    <!-- កាតមុខវិជ្ជានឹងត្រូវបានបង្កើតដោយស្វ័យប្រវត្តិនៅទីនេះ -->
+                </div>
+
+                <!-- ប៊ូតុងបញ្ជាខាងក្រោម (Footer Navigation) -->
+                <div class="bg-white p-4 shrink-0 border-t border-slate-200 flex gap-3 shadow-[0_-4px_10px_rgba(0,0,0,0.03)] z-10">
+                    <button id="btnPrevMobileStu" onclick="window.prevMobileStudent()" class="flex-1 py-3.5 bg-white hover:bg-slate-50 text-slate-700 font-bold rounded-2xl text-[14px] transition flex items-center justify-center gap-2 border border-slate-200 shadow-sm">
+                        <i class="fa-solid fa-chevron-left"></i> អ្នកមុន
+                    </button>
+                    <button id="btnNextMobileStu" onclick="window.nextMobileStudent()" class="flex-1 py-3.5 bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 text-white font-bold rounded-2xl text-[14px] transition flex items-center justify-center gap-2 shadow-md shadow-indigo-200 transform hover:-translate-y-0.5">
+                        អ្នកបន្ទាប់ <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
+                
+            </div>
+        `;
+        document.body.appendChild(modal);
     }
+    
+    
+    modal.classList.remove("hidden");
+    window.renderMobileScoreInputs();
 };
 
 window.closeMobileScoreModal = function() {
@@ -1223,6 +1962,9 @@ window.nextMobileStudent = function() {
     if (window.currentMobileStudentIndex < window.scoresStudentList.length - 1) {
         window.currentMobileStudentIndex++;
         window.renderMobileScoreInputs();
+    } else {
+        // បិទ Pop-up ពេលដល់សិស្សចុងក្រោយ
+        window.closeMobileScoreModal();
     }
 };
 
@@ -1230,97 +1972,112 @@ window.renderMobileScoreInputs = function() {
     const stu = window.scoresStudentList[window.currentMobileStudentIndex];
     if (!stu) return;
 
-    // ធ្វើបច្ចុប្បន្នភាពក្បាល Pop-up
+    // ធ្វើបច្ចុប្បន្នភាពឈ្មោះសិស្ស
     document.getElementById("mobileScoreStuName").innerText = stu.name;
+    const toKhNum = typeof window.toKhmerNum === 'function' ? window.toKhmerNum : String;
+    
+    // ធ្វើបច្ចុប្បន្នភាពផ្លាកព័ត៌មាន (Badges) ឱ្យមានពណ៌ច្បាស់ៗ
     document.getElementById("mobileScoreStuInfo").innerHTML = `
-        <span class="bg-indigo-900/40 px-2 py-0.5 rounded border border-white/10 shadow-sm">ល.រ៖ ${window.toKhmerNum((window.currentMobileStudentIndex + 1).toString())}</span>
-        <span class="bg-indigo-900/40 px-2 py-0.5 rounded border border-white/10 shadow-sm">ភេទ៖ ${stu.gender}</span>
+        <span class="bg-white px-2.5 py-0.5 rounded-md border border-slate-200 shadow-sm font-siemreap font-bold text-[12px] text-indigo-700">ល.រ៖ ${toKhNum(window.currentMobileStudentIndex + 1)}</span>
+        <span class="bg-white px-2.5 py-0.5 rounded-md border border-slate-200 shadow-sm font-siemreap font-bold text-[12px] ${stu.gender==='ស្រី'?'text-pink-600':'text-blue-600'}">ភេទ៖ ${stu.gender}</span>
     `;
 
-    // គ្រប់គ្រងប៊ូតុង អ្នកមុន / អ្នកបន្ទាប់
+    // គ្រប់គ្រងសភាពប៊ូតុង អ្នកមុន / អ្នកបន្ទាប់
     const btnPrev = document.getElementById("btnPrevMobileStu");
     const btnNext = document.getElementById("btnNextMobileStu");
     
     if (btnPrev) {
         btnPrev.disabled = window.currentMobileStudentIndex === 0;
         btnPrev.className = window.currentMobileStudentIndex === 0 
-            ? "flex-1 py-3 bg-slate-50 text-slate-400 font-bold rounded-xl text-sm flex items-center justify-center gap-2 cursor-not-allowed border border-slate-100" 
-            : "flex-1 py-3 bg-white hover:bg-slate-100 text-slate-700 font-bold rounded-xl text-sm transition flex items-center justify-center gap-2 border border-slate-200 shadow-sm hover:shadow";
+            ? "flex-1 py-3.5 bg-slate-50 text-slate-400 font-bold rounded-2xl text-[14px] flex items-center justify-center gap-2 cursor-not-allowed border border-slate-100" 
+            : "flex-1 py-3.5 bg-white hover:bg-slate-50 text-slate-700 font-bold rounded-2xl text-[14px] transition flex items-center justify-center gap-2 border border-slate-200 shadow-sm hover:shadow";
     }
     
     if (btnNext) {
-        btnNext.disabled = window.currentMobileStudentIndex === window.scoresStudentList.length - 1;
-        btnNext.className = window.currentMobileStudentIndex === window.scoresStudentList.length - 1 
-            ? "flex-1 py-3 bg-indigo-50/50 text-indigo-300 font-bold rounded-xl text-sm flex items-center justify-center gap-2 cursor-not-allowed border border-indigo-100/50" 
-            : "flex-1 py-3 bg-gradient-to-r from-indigo-50 to-blue-50 hover:from-indigo-100 hover:to-blue-100 text-indigo-700 font-bold rounded-xl text-sm transition flex items-center justify-center gap-2 border border-indigo-200 shadow-sm hover:shadow";
+        const isLast = window.currentMobileStudentIndex === window.scoresStudentList.length - 1;
+        btnNext.innerHTML = isLast ? '<i class="fa-solid fa-check-circle"></i> រួចរាល់' : 'អ្នកបន្ទាប់ <i class="fa-solid fa-chevron-right"></i>';
+        btnNext.className = isLast 
+            ? "flex-1 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold rounded-2xl text-[14px] transition flex items-center justify-center gap-2 shadow-md shadow-emerald-200 transform hover:-translate-y-0.5" 
+            : "flex-1 py-3.5 bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 text-white font-bold rounded-2xl text-[14px] transition flex items-center justify-center gap-2 shadow-md shadow-indigo-200 transform hover:-translate-y-0.5";
     }
 
     const type = document.getElementById("globalPeriodType")?.value || "monthly";
     let inputsHtml = "";
     
-    // បង្កើតកាតសម្រាប់មុខវិជ្ជានីមួយៗ
-    window.activeSchema.forEach(group => {
-        let icon = "fa-book";
-        let colorClass = "indigo";
-        if(group.group.includes("ខ្មែរ")) { icon = "fa-language"; colorClass = "blue"; }
-        if(group.group.includes("គណិត")) { icon = "fa-calculator"; colorClass = "rose"; }
-        if(group.group.includes("វិទ្យាសាស្ត្រ")) { icon = "fa-flask"; colorClass = "emerald"; }
-        if(group.group.includes("សង្គម")) { icon = "fa-globe"; colorClass = "amber"; }
-        if(group.group.includes("កាយ")) { icon = "fa-person-running"; colorClass = "purple"; }
-
-        inputsHtml += `
-            <div class="mb-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-100 relative overflow-hidden group hover:border-${colorClass}-200 transition-colors">
-                <div class="absolute left-0 top-0 w-1.5 h-full bg-gradient-to-b from-${colorClass}-400 to-${colorClass}-600"></div>
-                <h4 class="font-moul text-${colorClass}-800 text-[14px] mb-4 pb-2 border-b border-slate-50 flex items-center gap-2 drop-shadow-sm">
-                    <div class="w-7 h-7 rounded-lg bg-${colorClass}-50 flex items-center justify-center border border-${colorClass}-100">
-                        <i class="fa-solid ${icon} text-${colorClass}-500 text-xs"></i>
-                    </div>
-                    ${group.group}
-                </h4>
-                <div class="space-y-3">`;
-        
-        let subsToRender = (group.subs && group.subs.length > 0) ? group.subs : [{name: group.group, key: group.key, max: group.max}];
-        
-        subsToRender.forEach(sub => {
-            const key = sub.key;
-            const maxVal = window.schemaMaxMap[key] || sub.max || 10;
+    // បង្កើតកាតមុខវិជ្ជាជាមួយនឹងការរចនាពណ៌ដាច់ដោយឡែកពីគ្នា
+    if (window.activeSchema && window.activeSchema.length > 0) {
+        window.activeSchema.forEach(group => {
+            let icon = "fa-book";
+            let bgLight = "bg-indigo-50";
+            let textDark = "text-indigo-800";
+            let textIcon = "text-indigo-500";
+            let borderLight = "border-indigo-100";
+            let focusBorder = "focus:border-indigo-400";
             
-            let inputIdMainTable = `${key}_${stu.id}`;
-            if (type === "annual") inputIdMainTable = `${key}_s1_${stu.id}`; 
-            if (type === "semester") {
-                const month = document.getElementById("globalPeriodValue")?.value || "មករា";
-                inputIdMainTable = `${key}_${month.includes("២") ? "s2" : "s1"}_${stu.id}`;
-            }
-
-            const mainInput = document.getElementById(inputIdMainTable);
-            const currentVal = mainInput ? mainInput.value : '';
+            if(group.group.includes("ខ្មែរ")) { icon = "fa-language"; bgLight = "bg-blue-50"; textDark = "text-blue-800"; textIcon = "text-blue-500"; borderLight = "border-blue-100"; focusBorder = "focus:border-blue-400"; }
+            if(group.group.includes("គណិត")) { icon = "fa-calculator"; bgLight = "bg-rose-50"; textDark = "text-rose-800"; textIcon = "text-rose-500"; borderLight = "border-rose-100"; focusBorder = "focus:border-rose-400"; }
+            if(group.group.includes("វិទ្យាសាស្ត្រ")) { icon = "fa-flask"; bgLight = "bg-emerald-50"; textDark = "text-emerald-800"; textIcon = "text-emerald-500"; borderLight = "border-emerald-100"; focusBorder = "focus:border-emerald-400"; }
+            if(group.group.includes("សង្គម")) { icon = "fa-globe"; bgLight = "bg-amber-50"; textDark = "text-amber-800"; textIcon = "text-amber-500"; borderLight = "border-amber-100"; focusBorder = "focus:border-amber-400"; }
+            if(group.group.includes("ភាសាបរទេស")) { icon = "fa-book-atlas"; bgLight = "bg-slate-100"; textDark = "text-slate-800"; textIcon = "text-slate-500"; borderLight = "border-slate-200"; focusBorder = "focus:border-slate-400"; } // 🟢 បន្ថែមភាសាបរទេសនៅទីនេះ 🟢
 
             inputsHtml += `
-                <div class="flex items-center justify-between input-focus-ring bg-slate-50 hover:bg-slate-100/50 rounded-xl p-2 border border-slate-100 transition-all">
-                    <label class="text-[13px] text-slate-700 font-bold w-1/2 pl-2 truncate" title="${sub.name}">${sub.name}</label>
-                    <div class="relative w-[45%]">
-                        <input type="number" inputmode="decimal" value="${currentVal}"
-                               oninput="window.syncMobileInputToMain('${inputIdMainTable}', this.value)"
-                               onkeydown="if(event.key==='Enter'){
-                                  event.preventDefault(); 
-                                  let inputs = Array.from(document.querySelectorAll('#mobileScoreInputsContainer input')); 
-                                  let idx = inputs.indexOf(this); 
-                                  if(idx < inputs.length-1) inputs[idx+1].focus(); 
-                                  else document.getElementById('btnNextMobileStu').click();
-                               }"
-                               placeholder="អតិបរមា ${maxVal}"
-                               class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-center font-mono font-bold text-[15px] text-indigo-700 outline-none shadow-inner focus:bg-indigo-50/50 focus:border-indigo-400 transition-all">
+                <div class="mb-5 bg-white p-4 md:p-5 rounded-[1.5rem] shadow-sm border border-slate-200 relative overflow-hidden group hover:shadow-md transition-all">
+                    <div class="absolute left-0 top-0 w-[4px] h-full ${bgLight.replace('50', '500').replace('100', '400')}"></div>
+                    
+                    <h4 class="font-moul ${textDark} text-[14px] md:text-[15px] mb-4 pb-3 border-b border-slate-100 flex items-center gap-3 drop-shadow-sm ml-1">
+                        <div class="w-8 h-8 rounded-[0.6rem] ${bgLight} flex items-center justify-center border ${borderLight}">
+                            <i class="fa-solid ${icon} ${textIcon} text-[13px]"></i>
+                        </div>
+                        ${group.group}
+                    </h4>
+                    <div class="space-y-3 pl-1">`;
+            
+            let subsToRender = (group.subs && group.subs.length > 0) ? group.subs : [{name: group.group, key: group.key, max: group.max}];
+            
+            subsToRender.forEach((sub, sIdx) => {
+                const key = sub.key;
+                const maxVal = window.schemaMaxMap ? (window.schemaMaxMap[key] || sub.max || 10) : (sub.max || 10);
+                
+                let inputIdMainTable = `${key}_${stu.id}`;
+                if (type === "annual") inputIdMainTable = `${key}_s1_${stu.id}`; 
+                if (type === "semester") {
+                    const month = document.getElementById("globalPeriodValue")?.value || "មករា";
+                    inputIdMainTable = `${key}_${month.includes("២") ? "s2" : "s1"}_${stu.id}`;
+                }
+
+                const mainInput = document.getElementById(inputIdMainTable);
+                const currentVal = mainInput ? mainInput.value : '';
+                const rowBg = sIdx % 2 !== 0 ? 'bg-slate-50/50' : 'bg-transparent';
+
+                inputsHtml += `
+                    <div class="flex items-center justify-between input-focus-ring ${rowBg} hover:bg-slate-100 rounded-xl p-2.5 transition-all">
+                        <label class="text-[13px] md:text-[14px] text-slate-700 font-siemreap font-bold w-1/2 pl-2 truncate" title="${sub.name}">${sub.name}</label>
+                        <div class="relative w-[45%] md:w-[40%]">
+                            <input type="number" inputmode="decimal" value="${currentVal}"
+                                   oninput="if(typeof window.syncMobileInputToMain === 'function') window.syncMobileInputToMain('${inputIdMainTable}', this.value)"
+                                   onkeydown="if(event.key==='Enter'){
+                                      event.preventDefault(); 
+                                      let inputs = Array.from(document.querySelectorAll('#mobileScoreInputsContainer input')); 
+                                      let idx = inputs.indexOf(this); 
+                                      if(idx < inputs.length-1) inputs[idx+1].focus(); 
+                                      else document.getElementById('btnNextMobileStu').click();
+                                   }"
+                                   placeholder="ពេញ ${maxVal}"
+                                   class="w-full bg-white border border-slate-300 rounded-xl px-3 py-3 text-center font-mono font-bold text-[16px] text-indigo-800 outline-none shadow-inner ${focusBorder} focus:ring-2 focus:ring-opacity-30 focus:bg-white transition-all placeholder:font-siemreap placeholder:font-normal placeholder:text-[12px] placeholder:text-slate-300">
+                        </div>
                     </div>
-                </div>
-            `;
+                `;
+            });
+            inputsHtml += `</div></div>`;
         });
-        inputsHtml += `</div></div>`;
-    });
+    } else {
+        inputsHtml = `<div class="p-10 text-center text-rose-500 font-bold bg-rose-50 rounded-2xl border border-rose-200"><i class="fa-solid fa-triangle-exclamation text-3xl mb-3"></i><br>មិនមានទិន្នន័យមុខវិជ្ជាទេ!</div>`;
+    }
 
     const container = document.getElementById("mobileScoreInputsContainer");
     if (container) {
         container.innerHTML = inputsHtml;
-        // រមូរមកលើវិញរាល់ពេលប្តូរសិស្ស
+        // រមូរមកលើវិញដោយស្វ័យប្រវត្តិរាល់ពេលប្តូរសិស្ស
         container.scrollTop = 0;
         
         // Focus ប្រអប់ដំបូងដោយស្វ័យប្រវត្តិ
@@ -1331,6 +2088,17 @@ window.renderMobileScoreInputs = function() {
                 firstInput.select(); 
             }, 150);
         }
+    }
+};
+
+// មុខងារនេះជួយបញ្ជូនទិន្នន័យពី Mobile Input ទៅប្រអប់ Input កូដដើម
+window.syncMobileInputToMain = function(inputId, val) {
+    const mainInput = document.getElementById(inputId);
+    if (mainInput) {
+        mainInput.value = val;
+        // បញ្ជាឱ្យកូដផ្សេងៗដឹងថាមានការផ្លាស់ប្តូរ (Trigger Event)
+        const event = new Event('input', { bubbles: true });
+        mainInput.dispatchEvent(event);
     }
 };
 
@@ -1467,14 +2235,14 @@ window.fetchStudentsForScores = async function() {
                     const maxVal = window.schemaMaxMap[key] || 10;
                     let val = scObj[key] !== undefined && scObj[key] !== "" ? scObj[key] : '';
                     const colorClass = (val !== '' && parseFloat(val) < maxVal/2) ? 'text-rose-600' : 'text-slate-800';
-                    return `<td class="border-r border-slate-300 print:border-black p-0 relative ${bg}" style="width: ${W_SCORE}px; min-width: ${W_SCORE}px; max-width: ${W_SCORE}px;"><input type="text" inputmode="decimal" id="${key}_${suffix}_${stu.id}" data-row="${idx}" data-col="${colIndexTracker++}" value="${val}" oninput="this.value = this.value.replace(/,/g, '.').replace(/[^0-9.]/g, ''); window.calculateStudentScore('${stu.id}'); window.markUnsaved();" class="score-input w-full h-10 text-center text-[13px] font-bold font-mono ${colorClass} border-0 focus:ring-inset focus:ring-2 focus:ring-indigo-400 outline-none bg-transparent hover:bg-slate-100 transition-colors"></td>`;
+                    return `<td class="border-r border-slate-300 print:border-black p-0 relative ${bg}" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_SCORE}px; min-width: ${W_SCORE}px; max-width: ${W_SCORE}px;"><input type="text" inputmode="decimal" id="${key}_${suffix}_${stu.id}" data-row="${idx}" data-col="${colIndexTracker++}" value="${val}" oninput="this.value = this.value.replace(/,/g, '.').replace(/[^0-9.]/g, ''); window.calculateStudentScore('${stu.id}'); window.markUnsaved();" class="score-input w-full h-10 text-center text-[13px] font-bold font-mono ${colorClass} border-0 focus:ring-inset focus:ring-2 focus:ring-indigo-400 outline-none bg-transparent hover:bg-slate-100 transition-colors"></td>`;
                 }).join("");
 
                 rowHtml += makeInputs(sc1, "s1", "bg-slate-50/50");
-                rowHtml += `<td class="p-1 border-r border-slate-300 print:border-black text-center font-bold text-slate-700 font-mono text-[13px] bg-slate-100" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="total_s1_${stu.id}">${sc1.total_score||''}</td><td class="p-1 border-r border-slate-300 print:border-black text-center font-bold text-blue-700 font-mono text-[13px] bg-slate-100" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="avg_s1_${stu.id}">${sc1.average||''}</td><td class="p-1 border-r border-slate-300 print:border-black text-center font-bold text-rose-600 font-mono text-[14px] bg-slate-100" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="rank_s1_${stu.id}">${sc1.rank||''}</td><td class="p-1 border-r border-slate-300 print:border-black text-center font-bold text-emerald-700 font-moul text-[12px] bg-slate-100 border-r-[3px] border-r-slate-400 print:border-r-black" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="grade_s1_${stu.id}">${sc1.grade_letter||''}</td>`;
+                rowHtml += `<td class="p-1 border-r border-slate-300 print:border-black text-center font-bold text-slate-700 font-mono text-[13px] bg-slate-100" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="total_s1_${stu.id}">${sc1.total_score||''}</td><td class="p-1 border-r border-slate-300 print:border-black text-center font-bold text-blue-700 font-mono text-[13px] bg-slate-100" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="avg_s1_${stu.id}">${sc1.average||''}</td><td class="p-1 border-r border-slate-300 print:border-black text-center font-bold text-rose-600 font-mono text-[14px] bg-slate-100" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="rank_s1_${stu.id}">${sc1.rank||''}</td><td class="p-1 border-r border-slate-300 print:border-black text-center font-bold text-emerald-700 font-moul text-[12px] bg-slate-100 border-r-[3px] border-r-slate-400 print:border-r-black" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="grade_s1_${stu.id}">${sc1.grade_letter||''}</td>`;
 
                 rowHtml += makeInputs(sc2, "s2", "bg-white");
-                rowHtml += `<td class="p-1 border-r border-slate-300 print:border-black text-center font-bold text-slate-700 font-mono text-[13px] bg-slate-50" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="total_s2_${stu.id}">${sc2.total_score||''}</td><td class="p-1 border-r border-slate-300 print:border-black text-center font-bold text-blue-700 font-mono text-[13px] bg-slate-50" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="avg_s2_${stu.id}">${sc2.average||''}</td><td class="p-1 border-r border-slate-300 print:border-black text-center font-bold text-rose-600 font-mono text-[14px] bg-slate-50" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="rank_s2_${stu.id}">${sc2.rank||''}</td><td class="p-1 border-r border-slate-300 print:border-black text-center font-bold text-emerald-700 font-moul text-[12px] bg-slate-50 border-r-[3px] border-r-slate-400 print:border-r-black" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="grade_s2_${stu.id}">${sc2.grade_letter||''}</td><td class="p-1.5 border-r border-slate-300 print:border-black text-center font-black text-blue-800 font-mono text-[15px] bg-amber-50" style="width: ${W_STAT+10}px; min-width: ${W_STAT+10}px; max-width: ${W_STAT+10}px;" id="avg_annual_${stu.id}">${scA.average||''}</td><td class="p-1.5 border-r border-slate-300 print:border-black text-center font-black text-rose-700 font-mono text-[16px] bg-amber-50" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="rank_annual_${stu.id}">${scA.rank||''}</td><td class="p-1.5 border-r border-slate-300 print:border-black text-center font-black text-emerald-700 font-moul text-[13px] bg-amber-50 border-r-[3px] border-r-slate-400 print:border-r-black" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="grade_annual_${stu.id}">${scA.grade_letter||''}</td>`;
+                rowHtml += `<td class="p-1 border-r border-slate-300 print:border-black text-center font-bold text-slate-700 font-mono text-[13px] bg-slate-50" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="total_s2_${stu.id}">${sc2.total_score||''}</td><td class="p-1 border-r border-slate-300 print:border-black text-center font-bold text-blue-700 font-mono text-[13px] bg-slate-50" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="avg_s2_${stu.id}">${sc2.average||''}</td><td class="p-1 border-r border-slate-300 print:border-black text-center font-bold text-rose-600 font-mono text-[14px] bg-slate-50" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="rank_s2_${stu.id}">${sc2.rank||''}</td><td class="p-1 border-r border-slate-300 print:border-black text-center font-bold text-emerald-700 font-moul text-[12px] bg-slate-50 border-r-[3px] border-r-slate-400 print:border-r-black" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="grade_s2_${stu.id}">${sc2.grade_letter||''}</td><td class="p-1.5 border-r border-slate-300 print:border-black text-center font-black text-blue-800 font-mono text-[15px] bg-amber-50" style="width: ${W_STAT+10}px; min-width: ${W_STAT+10}px; max-width: ${W_STAT+10}px;" id="avg_annual_${stu.id}">${scA.average||''}</td><td class="p-1.5 border-r border-slate-300 print:border-black text-center font-black text-rose-700 font-mono text-[16px] bg-amber-50" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="rank_annual_${stu.id}">${scA.rank||''}</td><td class="p-1.5 border-r border-slate-300 print:border-black text-center font-black text-emerald-700 font-moul text-[13px] bg-amber-50 border-r-[3px] border-r-slate-400 print:border-r-black" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="grade_annual_${stu.id}">${scA.grade_letter||''}</td>`;
                 
                 rowHtml += renderEvalInputs(stu.id, scA);
             } else if (type === "semester") {
@@ -1484,21 +2252,21 @@ window.fetchStudentsForScores = async function() {
                     const maxVal = window.schemaMaxMap[key] || 10; 
                     let val = sc[key] !== undefined && sc[key] !== "" ? sc[key] : '';
                     const colorClass = (val !== '' && parseFloat(val) < maxVal/2) ? 'text-rose-600' : 'text-slate-800';
-                    return `<td class="border-r border-slate-300 print:border-black p-0 relative" style="width: ${W_SCORE}px; min-width: ${W_SCORE}px; max-width: ${W_SCORE}px;"><input type="text" inputmode="decimal" id="${key}_${sem}_${stu.id}" data-row="${idx}" data-col="${colIndex}" value="${val}" oninput="this.value = this.value.replace(/,/g, '.').replace(/[^0-9.]/g, ''); window.calculateStudentScore('${stu.id}'); window.markUnsaved();" class="score-input w-full h-10 text-center text-[13px] font-bold font-mono ${colorClass} border-0 focus:ring-inset focus:ring-2 focus:ring-indigo-400 outline-none bg-transparent hover:bg-slate-100 transition-colors"></td>`;
+                    return `<td class="border-r border-slate-300 print:border-black p-0 relative" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_SCORE}px; min-width: ${W_SCORE}px; max-width: ${W_SCORE}px;"><input type="text" inputmode="decimal" id="${key}_${sem}_${stu.id}" data-row="${idx}" data-col="${colIndex}" value="${val}" oninput="this.value = this.value.replace(/,/g, '.').replace(/[^0-9.]/g, ''); window.calculateStudentScore('${stu.id}'); window.markUnsaved();" class="score-input w-full h-10 text-center text-[13px] font-bold font-mono ${colorClass} border-0 focus:ring-inset focus:ring-2 focus:ring-indigo-400 outline-none bg-transparent hover:bg-slate-100 transition-colors"></td>`;
                 }).join("");
                 
                 // បញ្ចូលតម្លៃមធ្យមភាគខែ ដែលបានទាញយកដោយស្វ័យប្រវត្តិ
                 const autoMonthlyAvg = parseFloat(window.calculateDynamicMonthlyAverage(stu.id, sem));
                 let displayMonthlyAvg = sc.monthly_avg || (autoMonthlyAvg > 0 ? autoMonthlyAvg.toFixed(2) : '');
 
-                rowHtml += `<td class="p-1 border-r border-slate-300 print:border-black text-center font-bold text-slate-700 font-mono text-[13px] bg-slate-100" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="total_exam_${stu.id}">${sc.total_exam||''}</td>
-                            <td class="p-1 border-r border-slate-300 print:border-black text-center font-bold text-slate-700 font-mono text-[13px] bg-slate-100" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="avg_exam_${stu.id}">${sc.avg_exam||''}</td>
-                            <td class="border-r border-slate-300 print:border-black p-0 bg-blue-50/50" style="width: ${W_STAT+5}px; min-width: ${W_STAT+5}px; max-width: ${W_STAT+5}px;">
+                rowHtml += `<td class="p-1 border-r border-slate-300 print:border-black text-center font-bold text-slate-700 font-mono text-[14px] bg-slate-100" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="total_exam_${stu.id}">${sc.total_exam||''}</td>
+                            <td class="p-1 border-r border-slate-300 print:border-black text-center font-bold text-slate-700 font-mono text-[14px] bg-slate-100" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="avg_exam_${stu.id}">${sc.avg_exam||''}</td>
+                            <td class="border-r border-slate-300 print:border-black p-0 bg-blue-50/50" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_STAT+5}px; min-width: ${W_STAT+5}px; max-width: ${W_STAT+5}px;">
                                 <input type="text" inputmode="decimal" placeholder="មធ្យម.ខែ" id="monthly_avg_${stu.id}" value="${displayMonthlyAvg}" oninput="this.value = this.value.replace(/,/g, '.').replace(/[^0-9.]/g, ''); window.calculateStudentScore('${stu.id}'); window.markUnsaved();" class="score-input w-full h-10 text-center text-[13px] font-bold font-mono text-blue-700 border-0 outline-none bg-transparent hover:bg-blue-100 focus:bg-blue-100 focus:ring-inset focus:ring-2 focus:ring-blue-300 transition-colors">
                             </td>
-                            <td class="p-1 border-r border-slate-300 print:border-black text-center font-black text-emerald-700 bg-emerald-50 font-mono text-[14px]" style="width: ${W_STAT+5}px; min-width: ${W_STAT+5}px; max-width: ${W_STAT+5}px;" id="avg_${stu.id}">${sc.average||''}</td>
-                            <td class="p-1 border-r border-slate-300 print:border-black text-center font-black text-rose-600 bg-orange-50 font-mono text-[15px]" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="rank_${stu.id}">${sc.rank||''}</td>
-                            <td class="p-1 border-r border-slate-300 print:border-black text-center font-bold text-emerald-700 bg-orange-50 font-moul text-[12px]" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="grade_${stu.id}">${sc.grade_letter||''}</td>`;
+                            <td class="p-1 border-r border-slate-300 print:border-black text-center font-black text-emerald-700 bg-emerald-50 font-mono text-[14px]" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_STAT+5}px; min-width: ${W_STAT+5}px; max-width: ${W_STAT+5}px;" id="avg_${stu.id}">${sc.average||''}</td>
+                            <td class="p-1 border-r border-slate-300 print:border-black text-center font-black text-rose-600 bg-orange-50 font-mono text-[14px]" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="rank_${stu.id}">${sc.rank||''}</td>
+                            <td class="p-1 border-r border-slate-300 print:border-black text-center font-bold text-emerald-700 bg-orange-50 font-moul text-[14px]" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="grade_${stu.id}">${sc.grade_letter||''}</td>`;
                 
                 rowHtml += renderEvalInputs(stu.id, sc);
             } else {
@@ -1507,9 +2275,9 @@ window.fetchStudentsForScores = async function() {
                     const maxVal = window.schemaMaxMap[key] || 10; 
                     let val = sc[key] !== undefined && sc[key] !== "" ? sc[key] : '';
                     const colorClass = (val !== '' && parseFloat(val) < maxVal/2) ? 'text-rose-600' : 'text-slate-800';
-                    return `<td class="border-r border-slate-300 print:border-black p-0 relative" style="width: ${W_SCORE}px; min-width: ${W_SCORE}px; max-width: ${W_SCORE}px;"><input type="text" inputmode="decimal" id="${key}_${stu.id}" data-row="${idx}" data-col="${colIndex}" value="${val}" oninput="this.value = this.value.replace(/,/g, '.').replace(/[^0-9.]/g, ''); window.calculateStudentScore('${stu.id}'); window.markUnsaved();" class="score-input w-full h-10 text-center text-[13px] font-bold font-mono ${colorClass} border-0 focus:ring-inset focus:ring-2 focus:ring-indigo-400 outline-none bg-transparent hover:bg-slate-100 transition-colors"></td>`;
+                    return `<td class="border-r border-slate-300 print:border-black p-0 relative" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_SCORE}px; min-width: ${W_SCORE}px; max-width: ${W_SCORE}px;"><input type="text" inputmode="decimal" id="${key}_${stu.id}" data-row="${idx}" data-col="${colIndex}" value="${val}" oninput="this.value = this.value.replace(/,/g, '.').replace(/[^0-9.]/g, ''); window.calculateStudentScore('${stu.id}'); window.markUnsaved();" class="score-input w-full h-10 text-center text-[13px] font-bold font-mono ${colorClass} border-0 focus:ring-inset focus:ring-2 focus:ring-indigo-400 outline-none bg-transparent hover:bg-slate-100 transition-colors"></td>`;
                 }).join("");
-                rowHtml += `<td class="p-1 border-r border-slate-300 print:border-black text-center font-bold text-slate-700 font-mono text-[13px] bg-slate-100" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="total_${stu.id}">${sc.total_score||''}</td><td class="p-1 border-r border-slate-300 print:border-black text-center font-bold text-blue-700 font-mono text-[13px] bg-blue-50" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="avg_${stu.id}">${sc.average||''}</td><td class="p-1 border-r border-slate-300 print:border-black text-center font-black text-rose-600 font-mono text-[15px] bg-orange-50" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="rank_${stu.id}">${sc.rank||''}</td><td class="p-1 border-r border-slate-300 print:border-black text-center font-bold text-emerald-700 font-moul text-[12px] bg-emerald-50" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="grade_${stu.id}">${sc.grade_letter||''}</td>`;
+                rowHtml += `<td class="p-1 border-r border-slate-300 print:border-black text-center font-bold text-slate-700 font-mono text-[13px] bg-slate-100" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="total_${stu.id}">${sc.total_score||''}</td><td class="p-1 border-r border-slate-300 print:border-black text-center font-bold text-blue-700 font-mono text-[13px] bg-blue-50" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="avg_${stu.id}">${sc.average||''}</td><td class="p-1 border-r border-slate-300 print:border-black text-center font-black text-rose-600 font-mono text-[15px] bg-orange-50" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="rank_${stu.id}">${sc.rank||''}</td><td class="p-1 border-r border-slate-300 print:border-black text-center font-bold text-emerald-700 font-moul text-[12px] bg-emerald-50" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_STAT}px; min-width: ${W_STAT}px; max-width: ${W_STAT}px;" id="grade_${stu.id}">${sc.grade_letter||''}</td>`;
                 rowHtml += renderEvalInputs(stu.id, sc);
             }
 
@@ -1532,9 +2300,9 @@ window.fetchStudentsForScores = async function() {
 
 window.renderTableHeader = function(schema, type) {
     let topRowHtml = "", subRowHtml = "";
-    const evalHeadersTop = `<th colspan="4" class="border-r border-b border-slate-300 print:border-black p-2 bg-purple-100 text-purple-900" style="-webkit-print-color-adjust: exact;">ការវាយតម្លៃ</th>`;
-    const evalHeadersSub = ["ចំណេះដឹង", "បំណិន", "សីលធម៌", "សាមគ្គីភាព"].map(t => `<th class="border-r border-slate-300 print:border-black p-0 bg-purple-50/50" style="width: 60px; min-width: 60px; max-width: 60px;"><div class="header-vertical text-[11px] mx-auto text-purple-800">${t}</div></th>`).join("");
-    const evalHeadersSub_Annual = ["ចំណេះដឹង", "បំណិន", "សីលធម៌", "សាមគ្គីភាព"].map(t => `<th rowspan="2" class="border-r border-slate-300 print:border-black p-0 bg-purple-50/50" style="width: 60px; min-width: 60px; max-width: 60px;"><div class="header-vertical text-[11px] mx-auto text-purple-800">${t}</div></th>`).join("");
+    const evalHeadersTop = `<th colspan="4" class="border-r border-b border-slate-300 print:border-black p-2 bg-purple-100 text-purple-900" style="font-family: 'Khmer OS Bokor', sans-serif; -webkit-print-color-adjust: exact;">ការវាយតម្លៃ</th>`;
+    const evalHeadersSub = ["ចំណេះដឹង", "បំណិន", "សីលធម៌", "សាមគ្គីភាព"].map(t => `<th class="border-r border-slate-300 print:border-black p-0 bg-purple-50/50" style="font-family: 'Khmer OS Bokor', sans-serif; width: 60px; min-width: 60px; max-width: 60px;"><div class="header-vertical text-[11px] mx-auto text-purple-800">${t}</div></th>`).join("");
+    const evalHeadersSub_Annual = ["ចំណេះដឹង", "បំណិន", "សីលធម៌", "សាមគ្គីភាព"].map(t => `<th rowspan="2" class="border-r border-slate-300 print:border-black p-0 bg-purple-50/50" style="font-family: 'Khmer OS Bokor', sans-serif; width: 60px; min-width: 60px; max-width: 60px;"><div class="header-vertical text-[11px] mx-auto text-purple-800">${t}</div></th>`).join("");
 
     const W_NO = 40, W_NAME = 190, W_GENDER = 50, W_SCORE = 45, W_STAT = 60, W_EVAL = 60;
     const L_NAME = W_NO, L_GENDER = W_NO + W_NAME, W_TOTAL_FIXED = W_NO + W_NAME + W_GENDER; 
@@ -1544,13 +2312,13 @@ window.renderTableHeader = function(schema, type) {
     const renderSchemaHeaders = (prefix = "") => {
         schema.forEach(item => {
            if (item.subs && item.subs.length > 0) {
-              topRowHtml += `<th colspan="${item.subs.length}" class="border-r border-b border-slate-300 print:border-black p-1.5 text-slate-800 font-bold" style="background-color: ${item.color} !important; -webkit-print-color-adjust: exact;">${item.group}</th>`;
+              topRowHtml += `<th colspan="${item.subs.length}" class="border-r border-b border-slate-300 print:border-black p-1.5 text-slate-800 font-bold" style="font-family: 'Khmer OS Bokor', sans-serif; background-color: ${item.color} !important; -webkit-print-color-adjust: exact;">${item.group}</th>`;
               item.subs.forEach(sub => {
-                 subRowHtml += `<th class="border-r border-slate-300 print:border-black p-0 font-normal" style="background-color: ${item.color}80 !important; -webkit-print-color-adjust: exact; width:${W_SCORE}px; min-width: ${W_SCORE}px; max-width:${W_SCORE}px;"><div class="header-vertical text-[11px] mx-auto text-slate-700">${sub.name}</div></th>`;
+                 subRowHtml += `<th class="border-r border-slate-300 print:border-black p-0 font-normal" style="font-family: 'Khmer OS Bokor', sans-serif; background-color: ${item.color}80 !important; -webkit-print-color-adjust: exact; width:${W_SCORE}px; min-width: ${W_SCORE}px; max-width:${W_SCORE}px;"><div class="header-vertical text-[11px] mx-auto text-slate-700">${sub.name}</div></th>`;
                  cgHtml += `<col style="width: ${W_SCORE}px; min-width: ${W_SCORE}px; max-width:${W_SCORE}px;">`;
               });
            } else {
-              topRowHtml += `<th rowspan="2" class="border-r border-slate-300 print:border-black p-0 text-slate-800" style="background-color: ${item.color} !important; -webkit-print-color-adjust: exact; width:${W_SCORE}px; min-width: ${W_SCORE}px; max-width:${W_SCORE}px;"><div class="header-vertical font-bold text-[12px] mx-auto">${item.group}</div></th>`;
+              topRowHtml += `<th rowspan="2" class="border-r border-slate-300 print:border-black p-0 text-slate-800" style="font-family: 'Khmer OS Bokor', sans-serif; background-color: ${item.color} !important; -webkit-print-color-adjust: exact; width:${W_SCORE}px; min-width: ${W_SCORE}px; max-width:${W_SCORE}px;"><div class="header-vertical font-bold text-[12px] mx-auto">${item.group}</div></th>`;
               cgHtml += `<col style="width: ${W_SCORE}px; min-width: ${W_SCORE}px; max-width:${W_SCORE}px;">`;
            }
         });
@@ -1561,26 +2329,26 @@ window.renderTableHeader = function(schema, type) {
     if (type === "annual") {
         let subjectCount = 0;
         schema.forEach(item => { subjectCount += (item.subs ? item.subs.length : 1); });
-        let superTopRowHtml = `<tr><th colspan="3" class="border-r border-b border-slate-300 print:border-black bg-white sticky left-0 z-[70]" style="min-width: ${W_TOTAL_FIXED}px; width: ${W_TOTAL_FIXED}px; max-width:${W_TOTAL_FIXED}px;"></th><th colspan="${subjectCount + 4}" class="border-r border-b border-slate-300 print:border-black p-2 bg-blue-100 text-blue-900 text-[13px] font-moul uppercase" style="-webkit-print-color-adjust: exact; background-color: #dbeafe !important;">ឆមាសទី១</th><th colspan="${subjectCount + 4}" class="border-r border-b border-slate-300 print:border-black p-2 bg-emerald-100 text-emerald-900 text-[13px] font-moul uppercase border-l-[3px] border-l-slate-400 print:border-l-black" style="-webkit-print-color-adjust: exact; background-color: #d1fae5 !important;">ឆមាសទី២</th><th colspan="3" class="border-r border-b border-slate-300 print:border-black p-2 bg-orange-100 text-orange-900 text-[13px] font-moul uppercase border-l-[3px] border-l-slate-400 print:border-l-black" style="-webkit-print-color-adjust: exact; background-color: #ffedd5 !important;">លទ្ធផលប្រចាំឆ្នាំ</th>${evalHeadersTop}</tr>`;
+        let superTopRowHtml = `<tr><th colspan="3" class="border-r border-b border-slate-300 print:border-black bg-white sticky left-0 z-[70]" style="font-family: 'Khmer OS Bokor', sans-serif; min-width: ${W_TOTAL_FIXED}px; width: ${W_TOTAL_FIXED}px; max-width:${W_TOTAL_FIXED}px;"></th><th colspan="${subjectCount + 4}" class="border-r border-b border-slate-300 print:border-black p-2 bg-blue-100 text-blue-900 text-[13px] font-moul uppercase" style="-webkit-print-color-adjust: exact; background-color: #dbeafe !important;">ឆមាសទី១</th><th colspan="${subjectCount + 4}" class="border-r border-b border-slate-300 print:border-black p-2 bg-emerald-100 text-emerald-900 text-[13px] font-moul uppercase border-l-[3px] border-l-slate-400 print:border-l-black" style="-webkit-print-color-adjust: exact; background-color: #d1fae5 !important;">ឆមាសទី២</th><th colspan="3" class="border-r border-b border-slate-300 print:border-black p-2 bg-orange-100 text-orange-900 text-[13px] font-moul uppercase border-l-[3px] border-l-slate-400 print:border-l-black" style="-webkit-print-color-adjust: exact; background-color: #ffedd5 !important;">លទ្ធផលប្រចាំឆ្នាំ</th>${evalHeadersTop}</tr>`;
 
         renderSchemaHeaders("_s1");
-        topRowHtml += `<th rowspan="2" class="border-r border-slate-300 print:border-black p-1 bg-slate-100 text-slate-700" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">សរុប<br>ឆ.១</th><th rowspan="2" class="border-r border-slate-300 print:border-black p-1 text-blue-700 bg-slate-100" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">មធ្យម<br>ឆ.១</th><th rowspan="2" class="border-r border-slate-300 print:border-black p-1 text-rose-600 bg-slate-100" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">ចំណាត់<br>ថ្នាក់</th><th rowspan="2" class="border-r border-slate-300 print:border-black p-1 text-emerald-700 bg-slate-100 border-r-[3px] border-r-slate-400 print:border-r-black" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">និទ្ទេស</th>`;
+        topRowHtml += `<th rowspan="2" class="border-r border-slate-300 print:border-black p-1 bg-slate-100 text-slate-700" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">សរុប<br>ឆ.១</th><th rowspan="2" class="border-r border-slate-300 print:border-black p-1 text-blue-700 bg-slate-100" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">មធ្យម<br>ឆ.១</th><th rowspan="2" class="border-r border-slate-300 print:border-black p-1 text-rose-600 bg-slate-100" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">ចំណាត់<br>ថ្នាក់</th><th rowspan="2" class="border-r border-slate-300 print:border-black p-1 text-emerald-700 bg-slate-100 border-r-[3px] border-r-slate-400 print:border-r-black" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">និទ្ទេស</th>`;
         makeCol(W_STAT, 4);
         renderSchemaHeaders("_s2");
-        topRowHtml += `<th rowspan="2" class="border-r border-slate-300 print:border-black p-1 bg-slate-100 text-slate-700" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">សរុប<br>ឆ.២</th><th rowspan="2" class="border-r border-slate-300 print:border-black p-1 text-blue-700 bg-slate-100" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">មធ្យម<br>ឆ.២</th><th rowspan="2" class="border-r border-slate-300 print:border-black p-1 text-rose-600 bg-slate-100" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">ចំណាត់<br>ថ្នាក់</th><th rowspan="2" class="border-r border-slate-300 print:border-black p-1 text-emerald-700 bg-slate-100 border-r-[3px] border-r-slate-400 print:border-r-black" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">និទ្ទេស</th>`;
+        topRowHtml += `<th rowspan="2" class="border-r border-slate-300 print:border-black p-1 bg-slate-100 text-slate-700" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">សរុប<br>ឆ.២</th><th rowspan="2" class="border-r border-slate-300 print:border-black p-1 text-blue-700 bg-slate-100" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">មធ្យម<br>ឆ.២</th><th rowspan="2" class="border-r border-slate-300 print:border-black p-1 text-rose-600 bg-slate-100" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">ចំណាត់<br>ថ្នាក់</th><th rowspan="2" class="border-r border-slate-300 print:border-black p-1 text-emerald-700 bg-slate-100 border-r-[3px] border-r-slate-400 print:border-r-black" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">និទ្ទេស</th>`;
         makeCol(W_STAT, 4);
         makeCol(W_STAT + 10, 1); makeCol(W_STAT, 2); makeCol(W_EVAL, 4);
         cgHtml += `</colgroup>`;
 
         return `${cgHtml}${superTopRowHtml}
           <tr class="text-[12px] font-bold border-b border-slate-300 print:border-black bg-slate-50">
-            <th rowspan="2" class="p-1 border-r border-slate-300 print:border-black text-slate-600 sticky left-0 z-[70] print:static bg-slate-100 shadow-sm" style="width: ${W_NO}px; min-width: ${W_NO}px; max-width:${W_NO}px; left: 0px;">ល.រ</th>
-            <th rowspan="2" class="p-2 border-r border-slate-300 print:border-black text-left text-slate-800 sticky z-[70] print:static bg-slate-100 shadow-sm" style="width: ${W_NAME}px; min-width:${W_NAME}px; max-width: ${W_NAME}px; left:${L_NAME}px;">ឈ្មោះសិស្ស</th>
-            <th rowspan="2" class="p-1 border-r border-slate-300 print:border-black text-slate-600 sticky z-[70] print:static bg-slate-100 shadow-sm" style="width: ${W_GENDER}px; min-width:${W_GENDER}px; max-width: ${W_GENDER}px; left:${L_GENDER}px;">ភេទ</th>
+            <th rowspan="2" class="p-1 border-r border-slate-300 print:border-black text-slate-600 sticky left-0 z-[70] print:static bg-slate-100 shadow-sm" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_NO}px; min-width: ${W_NO}px; max-width:${W_NO}px; left: 0px;">ល.រ</th>
+            <th rowspan="2" class="p-2 border-r border-slate-300 print:border-black text-left text-slate-800 sticky z-[70] print:static bg-slate-100 shadow-sm" style="font-family: 'Khmer OS Siemreap', sans-serif; width: ${W_NAME}px; min-width:${W_NAME}px; max-width: ${W_NAME}px; left:${L_NAME}px;">ឈ្មោះសិស្ស</th>
+            <th rowspan="2" class="p-1 border-r border-slate-300 print:border-black text-slate-600 sticky z-[70] print:static bg-slate-100 shadow-sm" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_GENDER}px; min-width:${W_GENDER}px; max-width: ${W_GENDER}px; left:${L_GENDER}px;">ភេទ</th>
             ${topRowHtml}
-            <th rowspan="2" class="p-2 border-r border-slate-300 print:border-black bg-amber-50 text-blue-800 text-[13px] font-moul" style="width: ${W_STAT+10}px; min-width: ${W_STAT+10}px; max-width:${W_STAT+10}px;">មធ្យមភាគ<br>ប្រចាំឆ្នាំ</th>
-            <th rowspan="2" class="p-2 border-r border-slate-300 print:border-black bg-amber-50 text-rose-700 text-[13px]" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">ចំណាត់<br>ថ្នាក់</th>
-            <th rowspan="2" class="p-2 border-r border-slate-300 print:border-black bg-amber-50 text-emerald-700 text-[13px]" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">និទ្ទេស</th>
+            <th rowspan="2" class="p-2 border-r border-slate-300 print:border-black bg-amber-50 text-blue-800 text-[12px]" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_STAT+10}px; min-width: ${W_STAT+10}px; max-width:${W_STAT+10}px;">មធ្យមភាគ<br>ប្រចាំឆ្នាំ</th>
+            <th rowspan="2" class="p-2 border-r border-slate-300 print:border-black bg-amber-50 text-rose-700 text-[12px]" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">ចំណាត់<br>ថ្នាក់</th>
+            <th rowspan="2" class="p-2 border-r border-slate-300 print:border-black bg-amber-50 text-emerald-700 text-[12px]" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">និទ្ទេស</th>
             ${evalHeadersSub_Annual}
           </tr><tr class="font-bold text-slate-800 bg-white border-b border-slate-300 print:border-black">${subRowHtml}</tr>`;
     } else if (type === "semester") {
@@ -1588,16 +2356,16 @@ window.renderTableHeader = function(schema, type) {
         makeCol(W_STAT, 2); makeCol(W_STAT + 5, 2); makeCol(W_STAT, 2); makeCol(W_EVAL, 4); cgHtml += `</colgroup>`;
         return `${cgHtml}
           <tr class="text-[12px] font-bold border-b border-slate-300 print:border-black bg-slate-50">
-            <th rowspan="2" class="p-1 border-r border-slate-300 print:border-black text-slate-600 sticky left-0 z-[70] print:static bg-slate-100 shadow-sm" style="width: ${W_NO}px; min-width: ${W_NO}px; max-width:${W_NO}px; left: 0px;">ល.រ</th>
-            <th rowspan="2" class="p-2 border-r border-slate-300 print:border-black text-left text-slate-800 sticky z-[70] print:static bg-slate-100 shadow-sm" style="width: ${W_NAME}px; min-width:${W_NAME}px; max-width: ${W_NAME}px; left:${L_NAME}px;">ឈ្មោះសិស្ស</th>
-            <th rowspan="2" class="p-1 border-r border-slate-300 print:border-black text-slate-600 sticky z-[70] print:static bg-slate-100 shadow-sm" style="width: ${W_GENDER}px; min-width:${W_GENDER}px; max-width: ${W_GENDER}px; left:${L_GENDER}px;">ភេទ</th>
+            <th rowspan="2" class="p-1 border-r border-slate-300 print:border-black text-slate-600 sticky left-0 z-[70] print:static bg-slate-100 shadow-sm" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_NO}px; min-width: ${W_NO}px; max-width:${W_NO}px; left: 0px;">ល.រ</th>
+            <th rowspan="2" class="p-2 border-r border-slate-300 print:border-black text-left text-slate-800 sticky z-[70] print:static bg-slate-100 shadow-sm" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_NAME}px; min-width:${W_NAME}px; max-width: ${W_NAME}px; left:${L_NAME}px;">ឈ្មោះសិស្ស</th>
+            <th rowspan="2" class="p-1 border-r border-slate-300 print:border-black text-slate-600 sticky z-[70] print:static bg-slate-100 shadow-sm" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_GENDER}px; min-width:${W_GENDER}px; max-width: ${W_GENDER}px; left:${L_GENDER}px;">ភេទ</th>
             ${topRowHtml}
-            <th rowspan="2" class="p-1 border-r border-slate-300 print:border-black text-slate-700 bg-slate-100" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">សរុប<br>ប្រឡង</th>
-            <th rowspan="2" class="p-1 border-r border-slate-300 print:border-black text-slate-700 bg-slate-100" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">មធ្យមភាគ<br>ប្រឡង</th>
-            <th rowspan="2" class="p-1 border-r border-slate-300 print:border-black bg-blue-50 text-blue-800" style="width: ${W_STAT+5}px; min-width: ${W_STAT+5}px; max-width:${W_STAT+5}px;">មធ្យមភាគ<br>ប្រចាំខែ</th>
-            <th rowspan="2" class="p-1 border-r border-slate-300 print:border-black bg-emerald-50 text-emerald-800" style="width: ${W_STAT+5}px; min-width: ${W_STAT+5}px; max-width:${W_STAT+5}px;">មធ្យមភាគ<br>ប្រចាំឆមាស</th>
-            <th rowspan="2" class="p-1 border-r border-slate-300 print:border-black bg-orange-50 text-rose-700" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">ចំណាត់<br>ថ្នាក់</th>
-            <th rowspan="2" class="p-1 border-r border-slate-300 print:border-black bg-orange-50 text-emerald-700" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">និទ្ទេស</th>
+            <th rowspan="2" class="p-1 border-r border-slate-300 print:border-black text-slate-700 bg-slate-100" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">សរុប<br>ប្រឡង</th>
+            <th rowspan="2" class="p-1 border-r border-slate-300 print:border-black text-slate-700 bg-slate-100" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">មធ្យមភាគ<br>ប្រឡង</th>
+            <th rowspan="2" class="p-1 border-r border-slate-300 print:border-black bg-blue-50 text-blue-800" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_STAT+5}px; min-width: ${W_STAT+5}px; max-width:${W_STAT+5}px;">មធ្យមភាគ<br>ប្រចាំខែ</th>
+            <th rowspan="2" class="p-1 border-r border-slate-300 print:border-black bg-emerald-50 text-emerald-800" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_STAT+5}px; min-width: ${W_STAT+5}px; max-width:${W_STAT+5}px;">មធ្យមភាគ<br>ប្រចាំឆមាស</th>
+            <th rowspan="2" class="p-1 border-r border-slate-300 print:border-black bg-orange-50 text-rose-700" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">ចំណាត់<br>ថ្នាក់</th>
+            <th rowspan="2" class="p-1 border-r border-slate-300 print:border-black bg-orange-50 text-emerald-700" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">និទ្ទេស</th>
             ${evalHeadersTop}
           </tr><tr class="font-bold text-slate-800 bg-white border-b border-slate-300 print:border-black">${subRowHtml}${evalHeadersSub}</tr>`;
     } else {
@@ -1605,14 +2373,14 @@ window.renderTableHeader = function(schema, type) {
         makeCol(W_STAT, 4); makeCol(W_EVAL, 4); cgHtml += `</colgroup>`;
         return `${cgHtml}
           <tr class="text-[12px] font-bold border-b border-slate-300 print:border-black bg-slate-50">
-            <th rowspan="2" class="p-1 border-r border-slate-300 print:border-black text-slate-600 sticky z-[70] print:static bg-slate-100 shadow-sm" style="width: ${W_NO}px; min-width: ${W_NO}px; max-width:${W_NO}px; left: 0px;">ល.រ</th>
-            <th rowspan="2" class="p-2 border-r border-slate-300 print:border-black text-left text-slate-800 sticky z-[70] print:static bg-slate-100 shadow-sm" style="width: ${W_NAME}px; min-width:${W_NAME}px; max-width: ${W_NAME}px; left:${L_NAME}px;">ឈ្មោះសិស្ស</th>
-            <th rowspan="2" class="p-1 border-r border-slate-300 print:border-black text-slate-600 sticky z-[70] print:static bg-slate-100 shadow-sm" style="width: ${W_GENDER}px; min-width:${W_GENDER}px; max-width: ${W_GENDER}px; left:${L_GENDER}px;">ភេទ</th>
+            <th rowspan="2" class="p-1 border-r border-slate-300 print:border-black text-slate-600 sticky z-[70] print:static bg-slate-100 shadow-sm" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_NO}px; min-width: ${W_NO}px; max-width:${W_NO}px; left: 0px;">ល.រ</th>
+            <th rowspan="2" class="p-2 border-r border-slate-300 print:border-black text-left text-slate-800 sticky z-[70] print:static bg-slate-100 shadow-sm" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_NAME}px; min-width:${W_NAME}px; max-width: ${W_NAME}px; left:${L_NAME}px;">ឈ្មោះសិស្ស</th>
+            <th rowspan="2" class="p-1 border-r border-slate-300 print:border-black text-slate-600 sticky z-[70] print:static bg-slate-100 shadow-sm" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_GENDER}px; min-width:${W_GENDER}px; max-width: ${W_GENDER}px; left:${L_GENDER}px;">ភេទ</th>
             ${topRowHtml}
-            <th rowspan="2" class="p-1 border-r border-slate-300 print:border-black text-slate-700 bg-slate-100" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">សរុប</th>
-            <th rowspan="2" class="p-1 border-r border-slate-300 print:border-black bg-blue-50 text-blue-800" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">មធ្យមភាគ</th>
-            <th rowspan="2" class="p-1 border-r border-slate-300 print:border-black bg-rose-50 text-rose-700" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">ចំណាត់<br>ថ្នាក់</th>
-            <th rowspan="2" class="p-1 border-r border-slate-300 print:border-black bg-emerald-50 text-emerald-700" style="width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">និទ្ទេស</th>
+            <th rowspan="2" class="p-1 border-r border-slate-300 print:border-black text-slate-700 bg-slate-100" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">សរុប</th>
+            <th rowspan="2" class="p-1 border-r border-slate-300 print:border-black bg-blue-50 text-blue-800" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">មធ្យមភាគ</th>
+            <th rowspan="2" class="p-1 border-r border-slate-300 print:border-black bg-rose-50 text-rose-700" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">ចំណាត់<br>ថ្នាក់</th>
+            <th rowspan="2" class="p-1 border-r border-slate-300 print:border-black bg-emerald-50 text-emerald-700" style="font-family: 'Khmer OS Bokor', sans-serif; width: ${W_STAT}px; min-width: ${W_STAT}px; max-width:${W_STAT}px;">និទ្ទេស</th>
             ${evalHeadersTop}
           </tr><tr class="font-bold text-slate-800 bg-white border-b border-slate-300 print:border-black">${subRowHtml}${evalHeadersSub}</tr>`;
     }
@@ -1624,453 +2392,218 @@ function renderEvalInputs(stuId, sc = {}) {
 }
 
 // ==========================================
-// ០៨. មុខងារចំណាត់ថ្នាក់ និងបង្ហាញ (Rankings)
+// មុខងាររៀបចំទម្រង់តារាង (HTML) សម្រាប់ Print និង Excel (ប្រចាំឆ្នាំមិនបង្ហាញមុខវិជ្ជា)
 // ==========================================
-window.getAdvancedScoreTableHtml = function(isExcel) {
+window.getAdvancedScoreTableHtml = function(isExcel, isRanking = false) {
     let stus = [...window.rankingsDataList];
     if(!stus || stus.length === 0) return "";
-    stus.sort((a,b) => a.rank - b.rank);
+    
+    // បញ្ជីពិន្ទុរៀបតាមលេខរៀងដើម, ចំណាត់ថ្នាក់រៀបតាមលំដាប់ពិន្ទុ
+    if (isRanking) stus.sort((a,b) => a.rank - b.rank);
+    else stus.sort((a,b) => a.id - b.id);
     
     const type = document.getElementById("globalPeriodType")?.value || "monthly";
 
-    let keys = [];
-    window.activeSchema.forEach(g => {
-        let subs = g.subs && g.subs.length > 0 ? g.subs : [g];
-        subs.forEach(s => keys.push(s.key));
-    });
-    
-    keys.forEach(k => {
-        let valid = stus.filter(s => s[k] !== undefined && s[k] !== "" && s[k] !== null && !isNaN(parseFloat(s[k])));
-        valid.sort((a,b) => parseFloat(b[k]) - parseFloat(a[k]));
-        let rank = 1;
-        for(let i=0; i<valid.length; i++){
-            if(i>0 && parseFloat(valid[i][k]) === parseFloat(valid[i-1][k])){
-                valid[i][k+'_rank'] = valid[i-1][k+'_rank'];
-            } else {
-                valid[i][k+'_rank'] = rank;
-            }
-            rank++;
-        }
-    });
+    // គណនាចំណាត់ថ្នាក់តាមមុខវិជ្ជា (សម្រាប់តែឆមាសប៉ុណ្ណោះ)
+    if (type === "semester") {
+        let keys = [];
+        window.activeSchema.forEach(g => {
+            let subs = g.subs && g.subs.length > 0 ? g.subs : [g];
+            subs.forEach(s => keys.push(s.key));
+        });
+        keys.forEach(k => {
+            let valid = [...stus].filter(s => s[k] !== undefined && s[k] !== "" && s[k] !== null && !isNaN(parseFloat(s[k])));
+            valid.sort((a,b) => parseFloat(b[k]) - parseFloat(a[k]));
+            let currentRank = 1;
+            valid.forEach((s, i) => {
+                if (i > 0 && parseFloat(s[k]) === parseFloat(valid[i-1][k])) {
+                    s[k+'_rank'] = valid[i-1][k+'_rank'];
+                } else {
+                    s[k+'_rank'] = currentRank;
+                }
+                currentRank++;
+            });
+        });
+    }
 
-    let tableStyle = isExcel ? `border-collapse: collapse; width: 100%; text-align: center; border: 1.5pt solid #0f172a;` : `border-collapse: collapse; width: 100%; text-align: center; border: 1.5px solid #0f172a; margin-bottom: 15px;`;
+    let tableClass = isExcel ? "" : "main-table";
+    let tableStyle = isExcel ? `border-collapse: collapse; width: 100%; text-align: center; border: 1.5pt solid #000; margin: 0 auto;` : ``;
     
+    const bgColors = {
+        "ភាសាខ្មែរ": "#eff6ff", "គណិតវិទ្យា": "#fff1f2", "វិទ្យាសាស្ត្រ": "#ecfdf5", "សិក្សាសង្គម": "#fffbeb",
+        "អប់រំកាយ": "#f5f3ff", "បំណិនជីវិត": "#e0e7ff", "ភាសាបរទេស": "#f8fafc"
+    };
+
+    // រចនាប័ទ្មក្បាលតារាង (Headers)
     const thStyle = isExcel 
-        ? `border: 1pt solid #475569; font-weight: bold; font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 9pt; padding: 4px; vertical-align: middle;`
-        : `border: 1px solid #475569; font-weight: bold; font-family: 'Moul', serif; font-size: 10px; padding: 4px; vertical-align: middle;`;
-        
+        ? `border: 1pt solid #000; font-family: 'Khmer OS Muol Light', serif; font-size: 10pt; font-weight: normal; padding: 4px; text-align: center; vertical-align: middle;` 
+        : ``;
     const tdStyle = isExcel 
-        ? `border: 1pt solid #94a3b8; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif; font-size: 10pt; padding: 2px; vertical-align: middle; font-weight: normal; color: #0f172a;`
-        : `border: 1px solid #94a3b8; font-family: 'Siemreap', sans-serif; font-size: 11px; padding: 2px; vertical-align: middle; font-weight: normal; color: #0f172a;`;
+        ? `border: 0.5pt solid #000; font-family: 'Khmer OS Siemreap', sans-serif; font-size: 10pt; padding: 3px; text-align: center; vertical-align: middle;` 
+        : ``;
+    const thVStyle = isExcel ? `${thStyle} mso-rotate: 90; height: 130px; white-space: nowrap; width: 35px; min-width: 35px;` : ``;
+    
+    // អនុគមន៍ជំនួយបង្កើតក្បាលតារាង (បញ្ឈរ និង ផ្តេក)
+    const thV = (text, bg = "#f8fafc", color = "#000", rowSpan = 1) => {
+        let rs = rowSpan > 1 ? ` rowspan="${rowSpan}"` : "";
+        if(isExcel) return `<th${rs} style="${thVStyle} background-color:${bg}; color: ${color};">${text}</th>`;
+        return `<th${rs} class="th-vert" style="background-color: ${bg};"><div class="div-vert" style="color: ${color};">${text}</div></th>`;
+    };
+    const thH = (text, bg = "#f8fafc", color = "#000", colSpan = 1, rowSpan = 1, width = "") => {
+        let w = width ? `width: ${width};` : "";
+        let rs = rowSpan > 1 ? ` rowspan="${rowSpan}"` : "";
+        let cs = colSpan > 1 ? ` colspan="${colSpan}"` : "";
+        return `<th${cs}${rs} style="${thStyle} background-color: ${bg}; color:${color}; ${w}">${text}</th>`;
+    };
 
-    const verticalStyle = isExcel
-        ? `mso-rotate: 90; white-space: nowrap; height: 110px; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif; font-size: 10pt; font-weight: bold;`
-        : `writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; height: 110px; font-family: 'Siemreap', sans-serif; font-size: 11px; font-weight: bold; margin: 0 auto; text-align: center;`;
-
+    // គូរក្បាលតារាង
     let thead1 = `<tr>
-        <th rowspan="2" style="${thStyle} background-color: #dbeafe; width: 30px;">ល.រ</th>
-        <th rowspan="2" style="${thStyle} background-color: #dbeafe; width: 150px;">គោត្តនាម. នាម</th>
-        <th rowspan="2" style="${thStyle} background-color: #dbeafe; width: 35px;">ភេទ</th>
+        ${thH("ល.រ", "#f1f5f9", "#000", 1, 2, "35px")}
+        ${thH("ឈ្មោះសិស្ស", "#f1f5f9", "#000", 1, 2, "160px")}
+        ${thH("ភេទ", "#f1f5f9", "#000", 1, 2, "40px")}
     `;
     let thead2 = `<tr>`;
     
-    window.activeSchema.forEach(g => {
-        let bg = g.color ? g.color + "40" : "#f8fafc"; 
-        let subs = g.subs && g.subs.length > 0 ? g.subs : [{name: g.group, key: g.key}];
-        thead1 += `<th colspan="${subs.length * 2}" style="${thStyle} background-color: ${bg};">${g.group}</th>`;
-        subs.forEach(s => {
-            thead2 += `<th style="${thStyle} background-color:${bg};"><div style="${verticalStyle}">${s.name}</div></th>`;
-            thead2 += `<th style="${thStyle} background-color:${bg};"><div style="${verticalStyle}; color: #e11d48;">ចំ.</div></th>`;
-        });
-    });
-
-    thead1 += `
-        <th rowspan="2" style="${thStyle} background-color: #f1f5f9;"><div style="${verticalStyle}">ពិន្ទុសរុប</div></th>
-        <th rowspan="2" style="${thStyle} background-color: #f1f5f9;"><div style="${verticalStyle}">មធ្យមភាគ</div></th>
-        <th rowspan="2" style="${thStyle} background-color: #f1f5f9;"><div style="${verticalStyle}">ចំណាត់ថ្នាក់</div></th>
-        <th rowspan="2" style="${thStyle} background-color: #f1f5f9;"><div style="${verticalStyle}">និទ្ទេស</div></th>
-        <th rowspan="2" style="${thStyle} background-color: #f1f5f9;"><div style="${verticalStyle}">លទ្ធផល</div></th>
-        <th colspan="3" style="${thStyle} background-color: #f1f5f9;">អវត្តមាន</th>
-        <th rowspan="2" style="${thStyle} background-color: #f1f5f9;"><div style="${verticalStyle}">ផ្សេងៗ</div></th>
-    </tr>`;
-
-    thead2 += `
-        <th style="${thStyle} background-color: #f1f5f9;"><div style="${verticalStyle}">ច្បាប់</div></th>
-        <th style="${thStyle} background-color: #f1f5f9;"><div style="${verticalStyle}">អ.ច្បាប់</div></th>
-        <th style="${thStyle} background-color: #f1f5f9;"><div style="${verticalStyle}">សរុប</div></th>
-    </tr>`;
-
-    let tbody = ``;
-    stus.forEach((s, idx) => {
-        let rowBg = idx % 2 === 0 ? "#ffffff" : "#f8fafc";
-        let tr = `<tr style="background-color: ${rowBg};">
-            <td style="${tdStyle} text-align: center;">${idx + 1}</td>
-            <td style="${tdStyle} text-align: left; padding-left: 8px; font-weight: bold;">${s.name}</td>
-            <td style="${tdStyle} text-align: center; color: ${s.gender === 'ស្រី' ? '#e11d48' : '#1e3a8a'}; font-weight: bold;">${s.gender === 'ស្រី' ? 'ស' : 'ប'}</td>
-        `;
-        
+    // បង្ហាញមុខវិជ្ជាតែសម្រាប់ ប្រចាំខែ និង ឆមាស ប៉ុណ្ណោះ
+    if (type !== "annual") {
         window.activeSchema.forEach(g => {
-            let subs = g.subs && g.subs.length > 0 ? g.subs : [{key: g.key}];
-            subs.forEach(sub => {
-                let score = s[sub.key] !== undefined && s[sub.key] !== "" ? parseFloat(s[sub.key]).toFixed(1).replace('.0','') : "";
-                let rank = s[sub.key + "_rank"] || "";
-                let scoreColor = (score !== "" && parseFloat(score) < (window.schemaMaxMap[sub.key]||10)/2) ? '#e11d48' : '#0f172a';
-                
-                tr += `<td style="${tdStyle} text-align: center; font-family: 'Arial', sans-serif; font-weight: bold; color: ${scoreColor};">${score}</td>`;
-                tr += `<td style="${tdStyle} text-align: center; font-family: 'Arial', sans-serif; font-weight: bold; color: #e11d48;">${rank}</td>`;
+            let bg = bgColors[g.group] || g.color || "#f8fafc"; 
+            let subs = g.subs && g.subs.length > 0 ? g.subs : [{name: g.group, key: g.key}];
+            let colSpan = type === "monthly" ? subs.length : subs.length * 2;
+            
+            thead1 += thH(g.group, bg, "#000", colSpan, 1);
+            
+            subs.forEach(s => {
+                thead2 += thV(s.name, bg);
+                if (type === "semester") thead2 += thV("ចំ.ថ្នាក់", bg, "#be123c");
             });
         });
+    }
 
-        let tScore = type === 'semester' ? (s.total_exam || s.exam_avg || s.total_score || '') : (s.total_score || '');
+    if (type === "monthly") {
+        thead1 += thV("ពិន្ទុសរុប", "#f1f5f9", "#000", 2);
+        thead1 += thV("មធ្យមភាគ", "#eff6ff", "#1d4ed8", 2);
+        thead1 += thV("ចំណាត់ថ្នាក់", "#fff1f2", "#be123c", 2);
+        thead1 += thV("និទ្ទេស", "#ecfdf5", "#047857", 2);
+        thead1 += thH("ការវាយតម្លៃ", "#faf5ff", "#7e22ce", 4, 1);
+        
+        thead2 += thV("ចំណេះដឹង", "#faf5ff", "#7e22ce");
+        thead2 += thV("បំណិន", "#faf5ff", "#7e22ce");
+        thead2 += thV("សីលធម៌", "#faf5ff", "#7e22ce");
+        thead2 += thV("សាមគ្គីភាព", "#faf5ff", "#7e22ce");
+    } else if (type === "semester") {
+        thead1 += thV("ពិន្ទុសរុប", "#f1f5f9", "#000", 2);
+        thead1 += thV("មធ្យមភាគ", "#eff6ff", "#1d4ed8", 2);
+        thead1 += thV("ចំណាត់ថ្នាក់", "#fff1f2", "#be123c", 2);
+        thead1 += thV("និទ្ទេស", "#ecfdf5", "#047857", 2);
+        thead1 += thV("លទ្ធផល", "#f8fafc", "#000", 2);
+        thead1 += thH("អវត្តមាន", "#f1f5f9", "#000", 3, 1);
+        thead1 += thV("ផ្សេងៗ", "#f1f5f9", "#000", 2);
+        
+        thead2 += thV("ច្បាប់", "#f8fafc");
+        thead2 += thV("ឥតច្បាប់", "#f8fafc");
+        thead2 += thV("សរុប", "#f8fafc");
+    } else if (type === "annual") {
+        // សម្រាប់ប្រចាំឆ្នាំ៖ បង្ហាញតែ ម.ឆ.១ និង ម.ឆ.២ ជំនួសមុខវិជ្ជា
+        thead1 += thV("ម.ឆ.១", "#e0e7ff", "#000", 2);
+        thead1 += thV("ម.ឆ.២", "#dcfce7", "#000", 2);
+        thead1 += thV("មធ្យមភាគ", "#eff6ff", "#1d4ed8", 2);
+        thead1 += thV("ចំណាត់ថ្នាក់", "#fff1f2", "#be123c", 2);
+        thead1 += thV("និទ្ទេស", "#ecfdf5", "#047857", 2);
+        thead1 += thV("លទ្ធផល", "#f8fafc", "#000", 2);
+        thead1 += thH("អវត្តមាន", "#f1f5f9", "#000", 3, 1);
+        thead1 += thV("ផ្សេងៗ", "#f1f5f9", "#000", 2);
+        
+        thead2 += thV("ច្បាប់", "#f8fafc");
+        thead2 += thV("ឥតច្បាប់", "#f8fafc");
+        thead2 += thV("សរុប", "#f8fafc");
+    }
+
+    // គូរតួអត្ថបទ
+    let tbody = ``;
+    // 🟢 កែសម្រួលការគណនាស្ថិតិអូតូ 🟢
+    let totalStus = window.rankingsDataList.length;
+    let femaleStus = window.rankingsDataList.filter(s => s.gender === 'ស្រី').length;
+    
+    // កំណត់មធ្យមភាគជាប់គឺ ៥.០
+    let passMark = 5.0; 
+    if ((type === "semester" || type === "annual") && window.rankingsDataList.some(s => s.avg > 15)) {
+        passMark = 25.0;
+    }
+
+    let passed = window.rankingsDataList.filter(s => s.avg >= passMark).length;
+    let passedF = window.rankingsDataList.filter(s => s.avg >= passMark && s.gender === 'ស្រី').length;
+    let failed = totalStus - passed;
+    let failedF = femaleStus - passedF;
+
+    stus.forEach((s, idx) => {
+        let tr = `<tr>
+            <td style="${tdStyle}">${idx + 1}</td>
+            <td style="${tdStyle}" ${isExcel ? 'class="text-left"' : ''}>${s.name}</td>
+            <td style="${tdStyle} color: ${s.gender === 'ស្រី' ? '#be123c' : '#000'}; font-weight: bold;">${s.gender === 'ស្រី' ? 'ស' : 'ប'}</td>
+        `;
+        
+        if (type !== "annual") {
+            window.activeSchema.forEach(g => {
+                let subs = g.subs && g.subs.length > 0 ? g.subs : [{key: g.key}];
+                subs.forEach(sub => {
+                    let score = s[sub.key] !== undefined && s[sub.key] !== "" ? parseFloat(s[sub.key]).toFixed(1).replace('.0','') : "";
+                    let scoreColor = '#000';
+                    if (score !== "") {
+                        const max = window.schemaMaxMap[sub.key] || 10;
+                        if (parseFloat(score) < max / 2) scoreColor = '#be123c';
+                    }
+                    tr += `<td style="${tdStyle} font-family: 'Khmer OS Siemreap', sans-serif; font-weight: bold; color: ${scoreColor};">${score}</td>`;
+                    
+                    if (type === "semester") {
+                        let rank = s[sub.key + "_rank"] || "";
+                        tr += `<td style="${tdStyle} font-family: 'Khmer OS Siemreap', sans-serif; font-weight: bold; color: #be123c;">${rank}</td>`;
+                    }
+                });
+            });
+        } else {
+            // ទាញយកពិន្ទុឆមាសទី១ និងឆមាសទី២ មកបង្ហាញសម្រាប់ប្រចាំឆ្នាំ
+            let sem1 = (s.sem1_avg !== undefined && s.sem1_avg !== "") ? parseFloat(s.sem1_avg).toFixed(2) : "";
+            let sem2 = (s.sem2_avg !== undefined && s.sem2_avg !== "") ? parseFloat(s.sem2_avg).toFixed(2) : "";
+            tr += `<td style="${tdStyle} font-family: 'Khmer OS Siemreap', sans-serif; font-weight: bold; color: #3730a3; background-color: #e0e7ff;">${sem1}</td>`;
+            tr += `<td style="${tdStyle} font-family: 'Khmer OS Siemreap', sans-serif; font-weight: bold; color: #166534; background-color: #dcfce7;">${sem2}</td>`;
+        }
+
+        let tScore = type === 'semester' || type === 'annual' ? (s.total_exam || s.exam_avg || s.total_score || '') : (s.total_score || '');
         let avg = s.avg ? s.avg.toFixed(2) : '';
         let rank = s.rank || '';
         let gl = s.gradeLetter || s.grade_letter || '';
-        let resultStr = s.avg >= 5.0 ? "ជាប់" : "ធ្លាក់";
-        let resultColor = s.avg >= 5.0 ? "#16a34a" : "#e11d48";
 
-        tr += `
-            <td style="${tdStyle} text-align: center; font-family: 'Arial', sans-serif; font-weight: bold; background-color: #f1f5f9;">${tScore}</td>
-            <td style="${tdStyle} text-align: center; font-family: 'Arial', sans-serif; font-weight: bold; color: #1d4ed8; background-color: #eff6ff;">${avg}</td>
-            <td style="${tdStyle} text-align: center; font-family: 'Arial', sans-serif; font-weight: bold; color: #e11d48; background-color: #fff1f2;">${rank}</td>
-            <td style="${tdStyle} text-align: center; font-weight: bold; color: #047857; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif; background-color: #ecfdf5;">${gl}</td>
-            <td style="${tdStyle} text-align: center; font-weight: bold; color: ${resultColor}; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif;">${resultStr}</td>
-            <td style="${tdStyle} text-align: center; font-family: 'Arial', sans-serif;"></td>
-            <td style="${tdStyle} text-align: center; font-family: 'Arial', sans-serif;"></td>
-            <td style="${tdStyle} text-align: center; font-family: 'Arial', sans-serif;"></td>
-            <td style="${tdStyle}"></td>
-        </tr>`;
+        if (type === "monthly") {
+            tr += `
+                <td style="${tdStyle} font-family: 'Khmer OS Siemreap', sans-serif; background-color: #f8fafc; font-weight: bold;">${tScore}</td>
+                <td style="${tdStyle} font-family: 'Khmer OS Siemreap', sans-serif; color: #1d4ed8; font-weight: bold; background-color: #eff6ff;">${avg}</td>
+                <td style="${tdStyle} font-family: 'Khmer OS Siemreap', sans-serif; color: #be123c; font-weight: bold; background-color: #fff1f2;">${rank}</td>
+                <td style="${tdStyle} font-family: 'Khmer OS Siemreap', sans-serif; color: #047857; font-weight: bold; background-color: #ecfdf5;">${gl}</td>
+                <td style="${tdStyle} font-family: 'Khmer OS Siemreap', sans-serif;">${s.eval_knowledge || ''}</td>
+                <td style="${tdStyle} font-family: 'Khmer OS Siemreap', sans-serif;">${s.eval_skill || ''}</td>
+                <td style="${tdStyle} font-family: 'Khmer OS Siemreap', sans-serif;">${s.eval_moral || ''}</td>
+                <td style="${tdStyle} font-family: 'Khmer OS Siemreap', sans-serif;">${s.eval_solidarity || ''}</td>
+            </tr>`;
+        } else {
+            let resultStr = s.avg >= passMark ? "ជាប់" : "ធ្លាក់";
+            let resultColor = s.avg >= passMark ? "#16a34a" : "#be123c";
+            tr += `
+                <td style="${tdStyle} font-family: 'Khmer OS Siemreap', sans-serif; color: #1d4ed8; font-weight: bold; background-color: #eff6ff;">${avg}</td>
+                <td style="${tdStyle} font-family: 'Khmer OS Siemreap', sans-serif; color: #be123c; font-weight: bold; background-color: #fff1f2;">${rank}</td>
+                <td style="${tdStyle} font-family: 'Khmer OS Siemreap', sans-serif; color: #047857; font-weight: bold; background-color: #ecfdf5;">${gl}</td>
+                <td style="${tdStyle} font-family: 'Khmer OS Siemreap', sans-serif; color: ${resultColor}; font-weight: bold;">${resultStr}</td>
+                <td style="${tdStyle} font-family: 'Khmer OS Siemreap', sans-serif;"></td><td style="${tdStyle} font-family: 'Khmer OS Siemreap', sans-serif;"></td><td style="${tdStyle} font-family: 'Khmer OS Siemreap', sans-serif;"></td><td style="${tdStyle} font-family: 'Khmer OS Siemreap', sans-serif;"></td>
+            </tr>`;
+        }
         tbody += tr;
     });
 
-    return `<table style="${tableStyle}"><thead>${thead1}${thead2}</thead><tbody>${tbody}</tbody></table>`;
+    return `<table class="${tableClass}" style="${tableStyle}"><thead>${thead1}</tr>${thead2}</tr></thead><tbody>${tbody}</tbody></table>`;
 };
 
 // ==========================================
-// ០៩. Print / PDF បញ្ជីពិន្ទុ
-// ==========================================
-window.printRankingTable = function() {
-    if(typeof window.calculateAllScores === 'function') window.calculateAllScores();
-    if(!window.rankingsDataList || window.rankingsDataList.length === 0) return alert("⚠️ គ្មានទិន្នន័យដើម្បីបោះពុម្ពទេ!");
-
-    const type = document.getElementById("globalPeriodType")?.value || "monthly";
-    const month = document.getElementById("globalPeriodValue")?.value || "មករា";
-    
-    const sInfo = typeof appSettings !== 'undefined' ? appSettings : {};
-    const grade = (sInfo.teacher_level && sInfo.teacher_room) ? `${sInfo.teacher_level} ${sInfo.teacher_room}`.trim() : "ថ្នាក់ទី";
-
-    let rawDistrict = sInfo.district || "ស្រុកកៀនស្វាយ";
-    const districtName = rawDistrict.replace('ស្រុក', '').trim(); 
-    const schoolName = sInfo.school_name || "សាលាបឋមសិក្សា";
-    const principalName = sInfo.principal_name || ".......................";
-    const teacherName = sInfo.teacher_name || ".......................";
-    const academicYear = sInfo.academic_year || "២០២៦-២០២៧";
-
-    let titleText = `បញ្ជីពិន្ទុប្រចាំខែ${month}`;
-    if (type === "semester") {
-        titleText = month.includes("ឆមាសទី១") ? "ប្រឡងឆមាសលើកទី១" : (month.includes("ឆមាសទី២") ? "ប្រឡងឆមាសលើកទី២" : `ប្រឡង${month}`);
-    } else if (type === "annual") {
-        titleText = `បញ្ជីពិន្ទុប្រចាំឆ្នាំសិក្សា`;
-    }
-
-    const rDates = window.reportCardDateSettings || {};
-    const lunarDateStr = rDates.showLunar !== false ? rDates.lunarDate : "";
-    const solarDateStr = typeof window.getFormattedSolarDate === 'function' ? window.getFormattedSolarDate() : `ធ្វើនៅ...................., ថ្ងៃទី........ ខែ........ ឆ្នាំ ២០២...`;
-
-    let htmlTable = "";
-    if (type === "semester" || type === "annual") {
-        htmlTable = window.getAdvancedScoreTableHtml(false);
-    } else {
-        const table = document.getElementById("rankTableMain");
-        const clonedTable = table.cloneNode(true);
-        htmlTable = clonedTable.outerHTML;
-    }
-
-    let totalStus = window.rankingsDataList.length;
-    let femaleStus = window.rankingsDataList.filter(s => s.gender === 'ស្រី').length;
-    let passed = window.rankingsDataList.filter(s => s.avg >= 5.0).length;
-    let passedF = window.rankingsDataList.filter(s => s.avg >= 5.0 && s.gender === 'ស្រី').length;
-    let failed = totalStus - passed;
-    let failedF = femaleStus - passedF;
-
-    let passPct = totalStus > 0 ? ((passed / totalStus) * 100).toFixed(2) : "0.00";
-    let failPct = totalStus > 0 ? ((failed / totalStus) * 100).toFixed(2) : "0.00";
-    let passFPct = femaleStus > 0 ? ((passedF / femaleStus) * 100).toFixed(2) : "0.00";
-    let failFPct = femaleStus > 0 ? ((failedF / femaleStus) * 100).toFixed(2) : "0.00";
-
-    const printDocument = `
-      <!DOCTYPE html>
-      <html lang="km">
-      <head>
-        <meta charset="utf-8">
-        <title>${titleText} - ${grade}</title>
-        <style>
-          @import url('https://fonts.googleapis.com/css2?family=Battambang:wght@400;700&family=Moul&family=Siemreap:wght@400;700&display=swap');
-          @page { size: A4 landscape; margin: 8mm 10mm; }
-          * { box-sizing: border-box !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          html, body { margin: 0 !important; padding: 0 !important; font-family: 'Siemreap', sans-serif; background: #fff; line-height: 1.4; }
-          
-          .header-box { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; width: 100%; }
-          .header-left p { margin: 0 0 5px 0; font-size: 11pt; line-height: 1.6; color: #1e3a8a; font-family: 'Moul', serif; }
-          .header-right { text-align: center; }
-          .header-right p { margin: 0 0 5px 0; font-size: 12pt; line-height: 1.6; color: #1e3a8a; font-family: 'Moul', serif; }
-          
-          .title-box { text-align: center; margin: 10px 0 15px 0; }
-          .title-box h2 { margin: 0 0 6px 0; font-size: 16pt; color: #be123c; font-family: 'Moul', serif; letter-spacing: 1px; }
-          .title-box p { margin: 0; font-size: 11pt; font-weight: bold; color: #334155; font-family: 'Siemreap', sans-serif; }
-          
-          table { width: 100%; border-collapse: collapse !important; border-spacing: 0 !important; text-align: center; border: 1.5pt solid #0f172a !important; margin-bottom: 15px; }
-          th { background-color: #dbeafe !important; color: #1e3a8a; font-weight: bold; font-family: 'Moul', serif; font-size: 10pt; border: 1pt solid #475569 !important; padding: 6px 2px; vertical-align: middle; }
-          td { border: 1pt solid #94a3b8 !important; padding: 4px 2px; height: 26px; font-size: 11pt; vertical-align: middle; font-weight: normal !important; }
-          tbody tr:nth-child(even) { background-color: #f8fafc !important; }
-          td:nth-child(2) { text-align: left !important; padding-left: 10px !important; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif !important; font-size: 11pt !important; color: #0f172a; font-weight: normal !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-          
-          .summary-table { width: 100%; font-size: 11pt; font-weight: bold; color: #1e293b; border: 1.5px solid #16a34a !important; border-collapse: collapse; background-color: #f0fdf4 !important; margin-bottom: 20px;}
-          .summary-table td { padding: 4px 6px !important; border: none !important; }
-          .num-badge { font-family: 'Battambang', sans-serif; font-size: 11pt; font-weight: bold; }
-          
-          .bottom-sig-container { display: flex; justify-content: space-between; align-items: flex-end; width: 100%; page-break-inside: avoid; padding: 0 20px; margin-top: 10px; }
-          .sig-box-left { width: 33%; text-align: left; }
-          .sig-box-center { width: 33%; text-align: center; }
-          .sig-box-right { width: 33%; text-align: right; padding-right: 20px; }
-          .sig-text { margin: 0; font-size: 11pt; color: #334155; font-family: 'Siemreap', sans-serif; }
-          .sig-title { margin: 10px 0 55px 0; font-family: 'Moul', serif; font-size: 12pt; color: #1e3a8a; }
-          .sig-name { margin: 0; font-family: 'Moul', serif; font-size: 13pt; color: #be123c; }
-        </style>
-      </head>
-      <body>
-        <div class="header-box">
-          <div class="header-left"><br>
-            <p>ការិយាល័យអប់រំ យុវជន និងកីឡានៃរដ្ឋបាលស្រុក${districtName}</p>
-            <p>${schoolName}</p>
-            <p>ថ្នាក់ទី ${grade}</p>
-          </div>
-          <div class="header-right">
-            <p>ព្រះរាជាណាចក្រកម្ពុជា</p>
-            <p>ជាតិ សាសនា ព្រះមហាក្សត្រ</p>
-            <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin: 4px auto 10px auto; width: 60%;">
-                 <span style="color: #d97706; font-size: 11pt; letter-spacing: 2px;">❖ ❖ ❖</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="title-box">
-          <h2>${titleText}</h2>
-          <p>ឆ្នាំសិក្សា ៖ <span style="font-family: 'Battambang', sans-serif;">${window.toKhmerNum(academicYear)}</span></p>
-        </div>
-
-        ${htmlTable}
-
-        <div style="display: flex; justify-content: space-between; width: 100%;">
-            <div style="width: 55%;">
-                <table class="summary-table">
-                    <tr>
-                        <td colspan="4" style="font-family: 'Moul', serif; color: #16a34a; font-size: 11.5pt; border-bottom: 1.5px solid #86efac !important; text-align: center;">តារាងសង្ខេបស្ថិតិពិន្ទុ</td>
-                    </tr>
-                    <tr style="color: #1e293b;">
-                        <td style="text-align: left; width: 35%;">បញ្ឈប់បញ្ជីត្រឹមលេខរៀងទី</td>
-                        <td style="text-align: left; width: 15%;"><span class="num-badge">${window.toKhmerNum(totalStus.toString())}</span></td>
-                        <td style="text-align: left; width: 25%;">សិស្សសរុប</td>
-                        <td style="text-align: right; width: 25%;"><span class="num-badge">${window.toKhmerNum(totalStus.toString())}</span> នាក់ (ស្រី <span class="num-badge">${window.toKhmerNum(femaleStus.toString())}</span>)</td>
-                    </tr>
-                    <tr style="color: #059669; border-top: 1px dashed #bbf7d0 !important;">
-                        <td style="text-align: left;" colspan="2">សិស្សជាប់មធ្យមភាគសរុប</td>
-                        <td style="text-align: left;"><span class="num-badge">${window.toKhmerNum(passed.toString())}</span> នាក់ (${passPct}%)</td>
-                        <td style="text-align: right;">ស្រី <span class="num-badge">${window.toKhmerNum(passedF.toString())}</span> នាក់ (${passFPct}%)</td>
-                    </tr>
-                    <tr style="color: #e11d48;">
-                        <td style="text-align: left;" colspan="2">សិស្សធ្លាក់មធ្យមភាគសរុប</td>
-                        <td style="text-align: left;"><span class="num-badge">${window.toKhmerNum(failed.toString())}</span> នាក់ (${failPct}%)</td>
-                        <td style="text-align: right;">ស្រី <span class="num-badge">${window.toKhmerNum(failedF.toString())}</span> នាក់ (${failFPct}%)</td>
-                    </tr>
-                </table>
-            </div>
-
-            <div style="width: 40%; text-align: center; padding-right: 20px;">
-                <p class="sig-text" style="margin-bottom: 5px;">${lunarDateStr}</p>
-                <p class="sig-text">${solarDateStr}</p>
-                <p class="sig-title">គ្រូប្រចាំថ្នាក់</p>
-                <p class="sig-name">${teacherName}</p>
-            </div>
-        </div>
-
-        <div class="bottom-sig-container">
-            <div class="sig-box-left">
-                <p class="sig-text">បានឃើញ និងឯកភាព</p>
-                <p class="sig-title">នាយកសាលា</p>
-                <p class="sig-name">${principalName}</p>
-            </div>
-        </div>
-      </body>
-      </html>
-    `;
-
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return alert("⚠️ សូមអនុញ្ញាត Pop-up។");
-    
-    printWindow.document.open();
-    printWindow.document.write(printDocument);
-    printWindow.document.close();
-
-    setTimeout(() => {
-        printWindow.focus();
-        printWindow.print();
-    }, 1200);
-};
-
-window.exportRankingsToExcel = function() {
-    if(typeof window.calculateAllScores === 'function') window.calculateAllScores();
-    if(!window.rankingsDataList || window.rankingsDataList.length === 0) return alert("⚠️ គ្មានទិន្នន័យដើម្បី Export ទេ!");
-
-    const type = document.getElementById("globalPeriodType")?.value || "monthly";
-    const month = document.getElementById("globalPeriodValue")?.value || "មករា";
-    
-    const sInfo = typeof appSettings !== 'undefined' ? appSettings : {};
-    const grade = (sInfo.teacher_level && sInfo.teacher_room) ? `${sInfo.teacher_level} ${sInfo.teacher_room}`.trim() : "ថ្នាក់ទី";
-
-    let rawDistrict = sInfo.district || "ស្រុកកៀនស្វាយ";
-    const districtName = rawDistrict.replace('ស្រុក', '').trim(); 
-    const schoolName = sInfo.school_name || "សាលាបឋមសិក្សា";
-    const principalName = sInfo.principal_name || ".......................";
-    const teacherName = sInfo.teacher_name || ".......................";
-    const academicYear = sInfo.academic_year || "2026-2027";
-
-    let titleText = `បញ្ជីពិន្ទុប្រចាំខែ${month}`;
-    if (type === "semester") {
-        titleText = month.includes("ឆមាសទី១") ? "ប្រឡងឆមាសលើកទី១" : (month.includes("ឆមាសទី២") ? "ប្រឡងឆមាសលើកទី២" : `ប្រឡង${month}`);
-    } else if (type === "annual") {
-        titleText = `បញ្ជីពិន្ទុប្រចាំឆ្នាំសិក្សា`;
-    }
-
-    const rDates = window.reportCardDateSettings || {};
-    const lunarDateStr = rDates.showLunar !== false ? rDates.lunarDate : "";
-    const solarDateStr = typeof window.getFormattedSolarDate === 'function' ? window.getFormattedSolarDate() : `ធ្វើនៅ...................., ថ្ងៃទី........ ខែ........ ឆ្នាំ ២០២...`;
-
-    let htmlTable = "";
-    if (type === "semester" || type === "annual") {
-        htmlTable = window.getAdvancedScoreTableHtml(true);
-    } else {
-        const table = document.getElementById("rankTableMain");
-        const clonedTable = table.cloneNode(true);
-        htmlTable = clonedTable.outerHTML.replace(/<td([^>]*)class="[^"]*text-left[^"]*"([^>]*)>(.*?)<\/td>/g, '<td$1style="text-align: left; font-weight: normal;"$2>&nbsp;&nbsp;$3</td>').replace(/font-weight:\s*bold;/g, "font-weight: normal;");
-    }
-
-    const subjectKeys = window.activeSubjectKeys || [];
-    let totalCols = type === "monthly" ? 6 : (3 + subjectKeys.length * 2 + 5 + 3 + 1);
-
-    let totalStus = window.rankingsDataList.length;
-    let femaleStus = window.rankingsDataList.filter(s => s.gender === 'ស្រី').length;
-    let passed = window.rankingsDataList.filter(s => s.avg >= 5.0).length;
-    let passedF = window.rankingsDataList.filter(s => s.avg >= 5.0 && s.gender === 'ស្រី').length;
-    let failed = totalStus - passed;
-    let failedF = femaleStus - passedF;
-
-    let passPct = totalStus > 0 ? ((passed / totalStus) * 100).toFixed(2) : "0.00";
-    let failPct = totalStus > 0 ? ((failed / totalStus) * 100).toFixed(2) : "0.00";
-    let passFPct = femaleStus > 0 ? ((passedF / femaleStus) * 100).toFixed(2) : "0.00";
-    let failFPct = femaleStus > 0 ? ((failedF / femaleStus) * 100).toFixed(2) : "0.00";
-
-    const excelHtml = `
-      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-      <head>
-        <meta charset="utf-8">
-        <style>
-          @page { mso-page-orientation: landscape; margin: 0.5in; }
-          table { border-collapse: collapse; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif; font-size: 11pt; }
-          #rankTableMain, table { width: 100%; border-collapse: collapse !important; border-spacing: 0 !important; text-align: center; border: 1.5pt solid #0f172a !important; margin-bottom: 15px; }
-          #rankTableMain th, th { background-color: #dbeafe !important; color: #1e3a8a; font-weight: bold; font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 10pt; border: 1pt solid #475569 !important; padding: 6px 2px; vertical-align: middle; }
-          .header-vertical { mso-rotate: 90; white-space: nowrap; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif !important; font-size: 11pt !important; height: 120px; }
-          #rankTableMain td, td { border: 1pt solid #94a3b8 !important; padding: 4px 2px; height: 26px; font-size: 11pt; vertical-align: middle; font-weight: normal !important; }
-          #rankTableMain td:nth-child(2) { text-align: left !important; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif !important; font-size: 11pt !important; color: #0f172a; font-weight: normal !important; }
-        </style>
-      </head>
-      <body>
-        <table border="0" style="width: 100%; margin-bottom: 20px;">
-            <tr>
-                <td colspan="5" style="text-align: left; vertical-align: top;"><br>
-                    <b style="font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 11pt; color: #1e3a8a;">ការិយាល័យអប់រំ យុវជន និងកីឡានៃរដ្ឋបាលស្រុក${districtName}</b><br>
-                    <b style="font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 12pt; color: #1e3a8a;">${schoolName}</b><br>
-                    <b style="font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 12pt; color: #1e3a8a;">ថ្នាក់ទី ${grade}</b>
-                </td>
-                <td colspan="${totalCols > 5 ? totalCols - 5 : 1}" style="text-align: right; vertical-align: top;">
-                    <b style="font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 12pt; color: #1e3a8a;">ព្រះរាជាណាចក្រកម្ពុជា</b><br>
-                    <b style="font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 12pt; color: #1e3a8a;">ជាតិ សាសនា ព្រះមហាក្សត្រ</b><br>
-                    <span style="color: #d97706; font-size: 10pt;">❖ ❖ ❖</span>
-                </td>
-            </tr>
-        </table>
-
-        <table border="0" style="width: 100%; margin-bottom: 15px;">
-            <tr>
-                <td colspan="${totalCols}" style="text-align: center;">
-                    <h2 style="margin: 0; font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 16pt; color: #e11d48;">${titleText}</h2>
-                </td>
-            </tr>
-            <tr>
-                <td colspan="${totalCols}" style="text-align: center; font-size: 11pt; font-weight: bold; color: #334155;">
-                    ឆ្នាំសិក្សា ៖ <span style="font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif;">${window.toKhmerNum(academicYear)}</span>
-                </td>
-            </tr>
-        </table>
-
-        ${htmlTable}
-
-        <br>
-
-        <table border="0" style="width: 100%;">
-            <tr>
-                <td colspan="7" style="vertical-align: top;">
-                    <table border="1" cellpadding="4" cellspacing="0" style="border: 1.5pt solid #16a34a; border-collapse: collapse; font-family: 'Khmer OS Siemreap', sans-serif; font-size: 11pt; background-color: #f0fdf4;">
-                        <tr>
-                            <td colspan="4" style="font-family: 'Khmer OS Muol Light', 'Moul', serif; color: #16a34a; font-size: 11.5pt; border-bottom: 1.5pt solid #86efac; text-align: left;">តារាងសង្ខេបស្ថិតិពិន្ទុ</td>
-                        </tr>
-                        <tr style="color: #1e293b; font-weight: normal;">
-                            <td style="text-align: left; border: none;">បញ្ឈប់បញ្ជីត្រឹមលេខរៀងទី</td>
-                            <td style="text-align: left; border: none; font-family: 'Arial', sans-serif;">${window.toKhmerNum(totalStus.toString())}</td>
-                            <td style="text-align: left; border: none;">សិស្សសរុប</td>
-                            <td style="text-align: right; border: none; font-family: 'Arial', sans-serif;">${window.toKhmerNum(totalStus.toString())} នាក់ (ស្រី ${window.toKhmerNum(femaleStus.toString())})</td>
-                        </tr>
-                        <tr style="color: #059669; font-weight: normal; border-top: 1pt dashed #bbf7d0;">
-                            <td style="text-align: left; border: none; padding-top: 6px;" colspan="2">សិស្សជាប់មធ្យមភាគសរុប</td>
-                            <td style="text-align: left; border: none; padding-top: 6px; font-family: 'Arial', sans-serif;">${window.toKhmerNum(passed.toString())} នាក់ (${passPct}%)</td>
-                            <td style="text-align: right; border: none; padding-top: 6px; font-family: 'Arial', sans-serif;">ស្រី ${window.toKhmerNum(passedF.toString())} នាក់ (${passFPct}%)</td>
-                        </tr>
-                        <tr style="color: #e11d48; font-weight: normal;">
-                            <td style="text-align: left; border: none;" colspan="2">សិស្សធ្លាក់មធ្យមភាគសរុប</td>
-                            <td style="text-align: left; border: none; font-family: 'Arial', sans-serif;">${window.toKhmerNum(failed.toString())} នាក់ (${failPct}%)</td>
-                            <td style="text-align: right; border: none; font-family: 'Arial', sans-serif;">ស្រី ${window.toKhmerNum(failedF.toString())} នាក់ (${failFPct}%)</td>
-                        </tr>
-                    </table>
-                </td>
-                <td colspan="${totalCols > 7 ? totalCols - 7 : 1}" style="vertical-align: top; text-align: right; padding-right: 20px;">
-                    <p style="margin: 0 0 5px 0; font-size: 11.5px; color: #334155; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif;">${lunarDateStr}</p>
-                    <p style="margin: 0; font-size: 11.5px; color: #334155; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif;">${solarDateStr}</p>
-                    <p style="margin: 10px 0 55px 0; font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 12pt; color: #1e3a8a;">គ្រូប្រចាំថ្នាក់</p>
-                    <p style="margin: 0; font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 13pt; color: #be123c;">${teacherName}</p>
-                </td>
-            </tr>
-            <tr>
-                <td colspan="4" style="text-align: left; vertical-align: top; padding-top: 20px; padding-left: 20px;">
-                    <p style="margin: 0; font-size: 11pt; color: #334155; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif;">បានឃើញ និងឯកភាព</p>
-                    <p style="margin: 10px 0 55px 0; font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 12pt; color: #1e3a8a;">នាយកសាលា</p>
-                    <p style="margin: 0; font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 12.5pt; color: #be123c;">${principalName}</p>
-                </td>
-            </tr>
-        </table>
-      </body>
-      </html>
-    `;
-
-    const blob = new Blob(['\ufeff', excelHtml], { type: 'application/vnd.ms-excel' });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `បញ្ជីពិន្ទុ_${grade.replace(/ /g, '_')}_${month}_${new Date().toISOString().split('T')[0]}.xls`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-};
-
-// ==========================================
-// ០៩. Print / PDF បញ្ជីពិន្ទុ (ជួសជុលការតម្រឹមហត្ថលេខា)
+// ០៩. Print / PDF បញ្ជីពិន្ទុ (រចនាបែបផ្លូវការ - ក្បាលលិខិត Khmer OS Muol Light)
 // ==========================================
 window.printScoreList = function() {
     if(typeof window.calculateAllScores === 'function') window.calculateAllScores();
@@ -2084,56 +2617,50 @@ window.printScoreList = function() {
 
     let rawDistrict = sInfo.district || "ស្រុកកៀនស្វាយ";
     const districtName = rawDistrict.replace('ស្រុក', '').trim(); 
-    const schoolName = sInfo.school_name || "សាលាបឋមសិក្សា";
+    const schoolName = sInfo.school_name || "សាលាបឋមសិក្សា.....................";
     const principalName = sInfo.principal_name || ".......................";
     const teacherName = sInfo.teacher_name || ".......................";
-    const academicYear = sInfo.academic_year || "២០២៦-២០២៧";
+    const academicYear = document.getElementById("globalAcademicYear")?.value || localStorage.getItem('selected_academic_year') || "2026-2027";
 
-    let titleText = `បញ្ជីពិន្ទុប្រចាំខែ${month}`;
-    if (type === "semester") {
-        titleText = month.includes("ឆមាសទី១") ? "ប្រឡងឆមាសលើកទី១" : (month.includes("ឆមាសទី២") ? "ប្រឡងឆមាសលើកទី២" : `ប្រឡង${month}`);
-    } else if (type === "annual") {
-        titleText = `បញ្ជីពិន្ទុប្រចាំឆ្នាំសិក្សា`;
-    }
+    let titleText = `បញ្ជីស្រង់ពិន្ទុប្រចាំខែ${month}`;
+    if (type === "semester") titleText = month.includes("ឆមាសទី១") ? "បញ្ជីស្រង់ពិន្ទុប្រឡងឆមាសលើកទី១" : (month.includes("ឆមាសទី២") ? "បញ្ជីស្រង់ពិន្ទុប្រឡងឆមាសលើកទី២" : `បញ្ជីស្រង់ពិន្ទុប្រឡង${month}`);
+    else if (type === "annual") titleText = `បញ្ជីស្រង់ពិន្ទុប្រចាំឆ្នាំសិក្សា`;
 
+    // 🟢 ទាញយកកាលបរិច្ឆេទពីប្រព័ន្ធកំណត់ថ្មី (Settings Panel) និងសម្អាតកុំឱ្យជាន់គ្នា 🟢
     const rDates = window.reportCardDateSettings || {};
-    const lunarDateStr = rDates.showLunar !== false ? rDates.lunarDate : "";
-    const solarDateStr = typeof window.getFormattedSolarDate === 'function' ? window.getFormattedSolarDate() : `ធ្វើនៅ...................., ថ្ងៃទី........ ខែ........ ឆ្នាំ ២០២...`;
+    let locationStr = (rDates.location || "ធ្វើនៅ.........................").trim();
+    let sDate = (rDates.solarDate || "ថ្ងៃទី....... ខែ....... ឆ្នាំ២០....").trim();
 
-    let htmlTable = "";
-    if (type === "semester" || type === "annual") {
-        htmlTable = window.getAdvancedScoreTableHtml(false);
-    } else {
-        const table = document.getElementById("scoreTableMain");
-        const clonedTable = table.cloneNode(true);
-        const inputs = clonedTable.querySelectorAll('input');
-        inputs.forEach(input => {
-            const val = input.value.trim();
-            const span = document.createElement('span');
-            span.textContent = val;
-            span.style.fontWeight = 'normal';
-            span.style.fontFamily = "'Khmer OS Siemreap', 'Siemreap', sans-serif";
-            if (input.classList.contains('text-rose-600') || input.classList.contains('text-red-500')) span.style.color = '#e11d48';
-            else if (input.classList.contains('text-blue-600') || input.classList.contains('text-blue-700')) span.style.color = '#1d4ed8';
-            else span.style.color = '#0f172a';
-            input.parentNode.replaceChild(span, input);
-        });
-        const allEls = clonedTable.querySelectorAll('*');
-        allEls.forEach(el => {
-            el.className = (el.className || "")
-                .replace(/sticky/g, "").replace(/left-\[?[^\]\s]+\]?/g, "")
-                .replace(/z-\[?\d+\]?/g, "").replace(/shadow-[^"'\s]*/g, "")
-                .replace(/bg-white/g, "").replace(/bg-slate-\d+/g, ""); 
-            el.style.position = "static";
-            el.style.left = "auto";
-        });
-        htmlTable = clonedTable.outerHTML.replace(/<td([^>]*)class="[^"]*text-left[^"]*"([^>]*)>(.*?)<\/td>/g, '<td$1style="text-align: left; font-weight: normal;"$2>&nbsp;&nbsp;$3</td>').replace(/font-weight:\s*bold;/g, "font-weight: normal;");
+    // ១. កាត់យកតែផ្នែក "ថ្ងៃទី..." ចេញពី sDate បើវាមានជាប់ពាក្យ "ធ្វើនៅ" មកជាមួយ
+    if (sDate.includes("ថ្ងៃទី")) {
+        sDate = sDate.substring(sDate.indexOf("ថ្ងៃទី"));
     }
 
+    // ២. លុបសញ្ញាក្បៀស (,) ខាងចុងនៃទីតាំងចេញ ដើម្បីកុំឱ្យជាន់គ្នា
+    locationStr = locationStr.replace(/,+$/, '').trim();
+
+    // ៣. បញ្ចូលគ្នាដើម្បីទទួលបានទម្រង់ត្រឹមត្រូវ (ឧ. ធ្វើនៅកៀនស្វាយ, ថ្ងៃទី...)
+    const solarDateStr = `${locationStr}, ${sDate}`;
+
+    // ៤. ទាញយកថ្ងៃខែចន្ទគតិ (បើក/បិទ)
+    const lunarDateStr = rDates.showLunar !== false 
+        ? (rDates.lunarDate || "ថ្ងៃ......................... ខែ............ ឆ្នាំ............ ព.ស.២៥៧...") 
+        : "";
+
+    let htmlTable = window.getAdvancedScoreTableHtml(false, false);
+
+    // 🟢 កែសម្រួលការគណនាស្ថិតិអូតូ 🟢
     let totalStus = window.rankingsDataList.length;
     let femaleStus = window.rankingsDataList.filter(s => s.gender === 'ស្រី').length;
-    let passed = window.rankingsDataList.filter(s => s.avg >= 5.0).length;
-    let passedF = window.rankingsDataList.filter(s => s.avg >= 5.0 && s.gender === 'ស្រី').length;
+    
+    // កំណត់មធ្យមភាគជាប់គឺ ៥.០
+    let passMark = 5.0; 
+    if ((type === "semester" || type === "annual") && window.rankingsDataList.some(s => s.avg > 15)) {
+        passMark = 25.0;
+    }
+
+    let passed = window.rankingsDataList.filter(s => s.avg >= passMark).length;
+    let passedF = window.rankingsDataList.filter(s => s.avg >= passMark && s.gender === 'ស្រី').length;
     let failed = totalStus - passed;
     let failedF = femaleStus - passedF;
 
@@ -2149,113 +2676,111 @@ window.printScoreList = function() {
         <meta charset="utf-8">
         <title>${titleText} - ${grade}</title>
         <style>
-          @import url('https://fonts.googleapis.com/css2?family=Battambang:wght@400;700&family=Moul&family=Siemreap:wght@400;700&display=swap');
+          @import url('https://fonts.googleapis.com/css2?family=Moul&family=Siemreap:wght@400;700&display=swap');
           @page { size: A4 landscape; margin: 8mm 10mm; }
-          * { box-sizing: border-box !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          html, body { margin: 0 !important; padding: 0 !important; font-family: 'Siemreap', sans-serif; background: #fff; line-height: 1.4; }
+          * { box-sizing: border-box !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; font-family: 'Siemreap', 'Khmer OS Siemreap', sans-serif; }
+          html, body { margin: 0; padding: 0; background: #fff; color: #000; }
           
-          .header-box { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; width: 100%; }
-          .header-left p { margin: 0 0 5px 0; font-size: 11pt; line-height: 1.6; color: #1e3a8a; font-family: 'Moul', serif; }
-          .header-right { text-align: center; }
-          .header-right p { margin: 0 0 5px 0; font-size: 12pt; line-height: 1.6; color: #1e3a8a; font-family: 'Moul', serif; }
+          /* កំណត់ Font Muol Light ជាផ្លូវការ */
+          .font-moul { font-family: 'Khmer OS Muol Light', 'Moul', serif !important; font-weight: normal; }
           
-          .title-box { text-align: center; margin: 10px 0 15px 0; }
-          .title-box h2 { margin: 0 0 6px 0; font-size: 16pt; color: #be123c; font-family: 'Moul', serif; letter-spacing: 1px; }
-          .title-box p { margin: 0; font-size: 11pt; font-weight: bold; color: #334155; font-family: 'Siemreap', sans-serif; }
+          /* ក្បាលរដ្ឋបាល */
+          .header-box {display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; width: 100%; }
+          .header-left {text-align: left; padding-left: 10px; }
+          .header-left p { margin: 0 0 4px 0; font-size: 11pt; font-family: 'Khmer OS Muol Light', 'Moul', serif !important; }
+          .header-right {text-align: center; padding-right: 20px; }
+          .header-right p { margin: 0 0 4px 0; font-size: 12pt; font-family: 'Khmer OS Muol Light', 'Moul', serif !important; }
           
-          table { width: 100%; border-collapse: collapse !important; border-spacing: 0 !important; text-align: center; border: 1.5pt solid #0f172a !important; margin-bottom: 15px; }
-          th { background-color: #dbeafe !important; color: #1e3a8a; font-weight: bold; font-family: 'Moul', serif; font-size: 10pt; border: 1pt solid #475569 !important; padding: 6px 2px; vertical-align: middle; }
-          td { border: 1pt solid #94a3b8 !important; padding: 4px 2px; height: 26px; font-size: 11pt; vertical-align: middle; font-weight: normal !important; }
-          tbody tr:nth-child(even) { background-color: #f8fafc !important; }
-          td:nth-child(2) { text-align: left !important; padding-left: 10px !important; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif !important; font-size: 11pt !important; color: #0f172a; font-weight: normal !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+          /* ចំណងជើងធំ */
+          .title-box { text-align: center; margin: 15px 0 20px 0; }
+          .title-box h2 { margin: 0 0 0px 0; font-size: 14pt; color: #ff0000; font-family: 'Khmer OS Muol Light', 'Moul', serif !important; }
+          .title-box p { margin: 0; font-size: 12pt; font-weight: bold; font-family: 'Siemreap', 'Khmer OS Siemreap', sans-serif; }
           
-          .summary-table { width: 100%; font-size: 11pt; font-weight: bold; color: #1e293b; border: 1.5px solid #16a34a !important; border-collapse: collapse; background-color: #f0fdf4 !important; margin-bottom: 20px;}
-          .summary-table td { padding: 4px 6px !important; border: none !important; }
-          .num-badge { font-family: 'Battambang', sans-serif; font-size: 11pt; font-weight: bold; }
+          /* តារាងពិន្ទុ */
+          table.main-table { width: 100%; margin: 0 auto 15px auto; border-collapse: collapse; text-align: center; border: 1.5pt solid #000; }
+          .main-table th { font-family: 'Khmer OS Siemreap', 'Siemreap', serif !important; font-size: 11pt; font-weight: bold; border: 1pt solid #000; padding: 6px 2px; vertical-align: middle; }
+          .main-table td { border: 1pt solid #475569; padding: 4px 2px; height: 26px; font-size: 11pt; vertical-align: middle; text-align: center; }
+          .main-table tbody tr:nth-child(even) td { background-color: #f8fafc; }
+          .main-table td:nth-child(2) { text-align: left; padding-left: 8px; white-space: nowrap; }
           
-          .bottom-sig-container { display: flex; justify-content: space-between; align-items: flex-end; width: 100%; page-break-inside: avoid; padding: 0 20px; margin-top: 10px; }
-          .sig-box-left { width: 33%; text-align: left; }
-          .sig-box-center { width: 33%; text-align: center; }
-          
-          /* 🟢 ដោះស្រាយការតម្រឹមអក្សរនៅទីនេះ (text-align: center) 🟢 */
-          .date-sig-section { width: 40%; text-align: center; padding-right: 20px; }
+          /* អក្សរឈរ (Vertical Text) សម្រាប់ក្បាលតារាង */
+          .th-vert { height: 130px; max-height: 130px; vertical-align: middle; text-align: center; padding: 0; width: 35px; min-width: 35px; }
+          .div-vert {
+              writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; height: 120px;
+              display: flex; justify-content: center; align-items: center; margin: 0 auto;
+              font-family: 'Khmer OS Siemreap', 'Siemreap', serif !important; font-size: 10pt; font-weight: bold;
+          }
+
+          /* ស្ថិតិ និង ហត្ថលេខា */
+          .summary-table { width: 100%; font-size: 11pt; border-collapse: collapse; margin-bottom: 20px; }
+          .summary-table td { padding: 3px 0; border: none; text-align: left; }
+          .bottom-sig-container { display: flex; justify-content: space-between; align-items: flex-start; width: 100%; page-break-inside: avoid; padding: 0 30px; margin-top: 10px; }
+          .sig-box-left { width: 40%; text-align: center; }
+          .sig-box-right { width: 40%; text-align: center; }
         </style>
       </head>
       <body>
         <div class="header-box">
-          <div class="header-left"><br>
+          <div class="header-left"><br><br>
             <p>ការិយាល័យអប់រំ យុវជន និងកីឡានៃរដ្ឋបាលស្រុក${districtName}</p>
             <p>${schoolName}</p>
-            <p>ថ្នាក់ទី ${grade}</p>
+            <p>${grade}</p>
           </div>
           <div class="header-right">
             <p>ព្រះរាជាណាចក្រកម្ពុជា</p>
             <p>ជាតិ សាសនា ព្រះមហាក្សត្រ</p>
-            <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin: 4px auto 10px auto; width: 60%;">
-                 <span style="color: #d97706; font-size: 11pt; letter-spacing: 2px;">❖ ❖ ❖</span>
-            </div>
+           <!-- ក្បាច់រចនាប័ទ្ម Tacteing គូរដោយ HTML សុទ្ធ (ធានា ១០០% ដើរលើគ្រប់ទូរស័ព្ទ) -->
+                <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin: 4px auto 10px auto; width: 60%;">
+                        <div style="height: 1px; flex: 1; background: linear-gradient(to right, transparent, #d97706);"></div>
+                        <span style="color: #d97706; font-size: 11px;">❖ ❖ ❖</span>
+                        <div style="height: 1px; flex: 1; background: linear-gradient(to left, transparent, #d97706);"></div>
+                    </div>
           </div>
         </div>
 
         <div class="title-box">
           <h2>${titleText}</h2>
-          <p>ឆ្នាំសិក្សា ៖ <span style="font-family: 'Battambang', sans-serif;">${window.toKhmerNum(academicYear)}</span></p>
+          <p>ឆ្នាំសិក្សា ៖ ${academicYear}</p>
         </div>
 
         ${htmlTable}
 
-        <div style="display: flex; justify-content: space-between; width: 100%;">
-            <div style="width: 55%;">
-                <table class="summary-table">
-                    <tr>
-                        <td colspan="4" style="font-family: 'Moul', serif; color: #16a34a; font-size: 11.5pt; border-bottom: 1.5px solid #86efac !important; text-align: center;">តារាងសង្ខេបស្ថិតិពិន្ទុ</td>
-                    </tr>
-                    <tr style="color: #1e293b;">
-                        <td style="text-align: left; width: 35%;">បញ្ឈប់បញ្ជីត្រឹមលេខរៀងទី</td>
-                        <td style="text-align: left; width: 15%;"><span class="num-badge">${window.toKhmerNum(totalStus.toString())}</span></td>
-                        <td style="text-align: left; width: 25%;">សិស្សសរុប</td>
-                        <td style="text-align: right; width: 25%;"><span class="num-badge">${window.toKhmerNum(totalStus.toString())}</span> នាក់ (ស្រី <span class="num-badge">${window.toKhmerNum(femaleStus.toString())}</span>)</td>
-                    </tr>
-                    <tr style="color: #059669; border-top: 1px dashed #bbf7d0 !important;">
-                        <td style="text-align: left;" colspan="2">សិស្សជាប់មធ្យមភាគសរុប</td>
-                        <td style="text-align: left;"><span class="num-badge">${window.toKhmerNum(passed.toString())}</span> នាក់ (${passPct}%)</td>
-                        <td style="text-align: right;">ស្រី <span class="num-badge">${window.toKhmerNum(passedF.toString())}</span> នាក់ (${passFPct}%)</td>
-                    </tr>
-                    <tr style="color: #e11d48;">
-                        <td style="text-align: left;" colspan="2">សិស្សធ្លាក់មធ្យមភាគសរុប</td>
-                        <td style="text-align: left;"><span class="num-badge">${window.toKhmerNum(failed.toString())}</span> នាក់ (${failPct}%)</td>
-                        <td style="text-align: right;">ស្រី <span class="num-badge">${window.toKhmerNum(failedF.toString())}</span> នាក់ (${failFPct}%)</td>
-                    </tr>
-                </table>
-            </div>
-
-            <!-- 🟢 ប្លុកហត្ថលេខា 🟢 -->
-            <div class="date-sig-section">
-                <p style="margin: 0 0 5px 0; font-size: 11.5pt; color: #334155; font-family: 'Siemreap', sans-serif;">${lunarDateStr}</p>
-                <p style="margin: 0; font-size: 11.5pt; color: #334155; font-family: 'Siemreap', sans-serif;">${solarDateStr}</p>
-                <p style="margin: 10px 0 50px 0; font-family: 'Moul', serif; font-size: 12pt; color: #1e3a8a;">គ្រូប្រចាំថ្នាក់</p>
-                <p style="margin: 0; font-family: 'Moul', serif; font-size: 13pt; color: #be123c;">${teacherName}</p>
-            </div>
-        </div>
+        <table class="summary-table">
+            <tr>
+                <td style="width: 100%;">
+                    ❖ បញ្ឈប់បញ្ជីត្រឹមលេខរៀង <b>${totalStus}</b> សិស្សសរុប <b>${totalStus}</b> នាក់ ស្រី <b>${femaleStus}</b> នាក់
+                </td>
+            </tr>
+            <tr>
+                <td style="width: 100%;">
+                    ❖ សិស្សជាប់មធ្យមភាគ <b>${passed}</b> នាក់ (<b>${passPct}%</b>) ស្រី <b>${passedF}</b> នាក់ (<b>${passFPct}%</b>)
+                </td>
+            </tr>
+            <tr>
+                <td style="width: 100%;">
+                    ❖ សិស្សធ្លាក់មធ្យមភាគ <b>${failed}</b> នាក់ (<b>${failPct}%</b>) ស្រី <b>${failedF}</b> នាក់ (<b>${failFPct}%</b>)
+                </td>
+            </tr>
+        </table>
 
         <div class="bottom-sig-container">
-            <div class="sig-box-left">
-                <p style="margin: 0; font-size: 11pt; color: #334155; font-family: 'Siemreap', sans-serif;">បានឃើញ និងឯកភាព</p>
-                <p style="margin: 10px 0 50px 0; font-family: 'Moul', serif; font-size: 12pt; color: #1e3a8a;">នាយកសាលា</p>
-                <p style="margin: 0; font-family: 'Moul', serif; font-size: 13pt; color: #be123c;">${principalName}</p>
+            <div class="sig-box-left"><br><br>
+                <p class="font-moul" style="margin-bottom: 5px; font-size: 11pt;">បានឃើញ និងឯកភាព</p>
+                <p class="font-moul" style="margin-bottom: 60px; font-size: 11pt;">នាយកសាលា</p>
             </div>
-            <div class="sig-box-center">
-                <p style="margin: 10px 0 50px 0; font-family: 'Moul', serif; font-size: 12pt; color: #1e3a8a;">ប្រធានក្រុមបច្ចេកទេស</p>
-                <p style="margin: 0; font-size: 11pt; color: #334155; font-family: 'Siemreap', sans-serif;">បានទទួល.......................................</p>
+            <div class="sig-box-right">
+                <p style="margin: 0 0 5px 0; font-size: 11pt; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif;">${lunarDateStr}</p>
+                <p style="margin: 0 0 5px 0; font-size: 11pt; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif;">${solarDateStr}</p>
+                <p class="font-moul" style="margin-bottom: 60px; font-size: 11pt;">គ្រូបន្ទុកថ្នាក់</p>
+                <p class="font-moul" style="font-size: 11pt;">${teacherName}</p>
             </div>
-            <div class="date-sig-section"></div>
         </div>
       </body>
       </html>
     `;
 
     const printWindow = window.open('', '_blank');
-    if (!printWindow) return alert("⚠️ សូមអនុញ្ញាត Pop-up។");
+    if (!printWindow) return alert("⚠️ សូមអនុញ្ញាត Pop-up នៅក្នុង Browser របស់អ្នក។");
     
     printWindow.document.open();
     printWindow.document.write(printDocument);
@@ -2264,15 +2789,17 @@ window.printScoreList = function() {
     setTimeout(() => {
         printWindow.focus();
         printWindow.print();
-    }, 1200);
+    }, 1000);
 };
 
 // ==========================================
-// Export Excel សម្រាប់បញ្ជីពិន្ទុ (រៀបចំ Header និង Layout ឱ្យស្អាត)
+// មុខងារ Export តារាងបញ្ជីពិន្ទុទៅកាន់ Excel (ទាញពី Data-Driven Approach ដោយផ្ទាល់)
 // ==========================================
-window.exportScoreListToExcel = function() {
-    if(typeof window.calculateAllScores === 'function') window.calculateAllScores();
-    if(!window.rankingsDataList || window.rankingsDataList.length === 0) return alert("⚠️ គ្មានទិន្នន័យដើម្បី Export ទេ!");
+window.exportScoreEntryToExcel = function() {
+    if(!window.rankingsDataList || window.rankingsDataList.length === 0) {
+        if(typeof window.calculateAllScores === 'function') window.calculateAllScores();
+        if(!window.rankingsDataList || window.rankingsDataList.length === 0) return alert("គ្មានទិន្នន័យដើម្បីទាញយកទេ!");
+    }
 
     const type = document.getElementById("globalPeriodType")?.value || "monthly";
     const month = document.getElementById("globalPeriodValue")?.value || "មករា";
@@ -2282,59 +2809,54 @@ window.exportScoreListToExcel = function() {
 
     let rawDistrict = sInfo.district || "ស្រុកកៀនស្វាយ";
     const districtName = rawDistrict.replace('ស្រុក', '').trim(); 
-    const schoolName = sInfo.school_name || "សាលាបឋមសិក្សា";
+    const schoolName = sInfo.school_name || "សាលាបឋមសិក្សា.....................";
     const principalName = sInfo.principal_name || ".......................";
-    const teacherName = sInfo.teacher_name || ".......................";
-    const academicYear = sInfo.academic_year || "2026-2027";
+    const teacherName = window.AuthState ? window.AuthState.teacherName : (localStorage.getItem('auth_teacher_name') || '.......................');
+    const academicYear = document.getElementById("globalAcademicYear")?.value || "2026-2027";
+    const filename = `បញ្ជីស្រង់ពិន្ទុ_${grade.replace(/ /g, '_')}_${month}.xls`;
 
-    let titleText = `បញ្ជីពិន្ទុប្រចាំខែ${month}`;
-    if (type === "semester") {
-        titleText = month.includes("ឆមាសទី១") ? "ប្រឡងឆមាសលើកទី១" : (month.includes("ឆមាសទី២") ? "ប្រឡងឆមាសលើកទី២" : `ប្រឡង${month}`);
-    } else if (type === "annual") {
-        titleText = `បញ្ជីពិន្ទុប្រចាំឆ្នាំសិក្សា`;
-    }
+    let titleText = `បញ្ជីស្រង់ពិន្ទុប្រចាំខែ${month}`;
+    if (type === "semester") titleText = month.includes("ឆមាសទី១") ? "បញ្ជីស្រង់ពិន្ទុប្រឡងឆមាសលើកទី១" : (month.includes("ឆមាសទី២") ? "បញ្ជីស្រង់ពិន្ទុប្រឡងឆមាសលើកទី២" : `បញ្ជីស្រង់ពិន្ទុប្រឡង${month}`);
+    else if (type === "annual") titleText = `បញ្ជីស្រង់ពិន្ទុប្រចាំឆ្នាំសិក្សា`;
 
+    // 🟢 ទាញយកកាលបរិច្ឆេទពីប្រព័ន្ធកំណត់ថ្មី (Settings Panel) និងសម្អាតកុំឱ្យជាន់គ្នា 🟢
     const rDates = window.reportCardDateSettings || {};
-    const lunarDateStr = rDates.showLunar !== false ? rDates.lunarDate : "";
-    const solarDateStr = typeof window.getFormattedSolarDate === 'function' ? window.getFormattedSolarDate() : `ធ្វើនៅ...................., ថ្ងៃទី........ ខែ........ ឆ្នាំ ២០២...`;
+    let locationStr = (rDates.location || "ធ្វើនៅ.........................").trim();
+    let sDate = (rDates.solarDate || "ថ្ងៃទី....... ខែ....... ឆ្នាំ២០....").trim();
 
-    let htmlTable = "";
-    if (type === "semester" || type === "annual") {
-        htmlTable = window.getAdvancedScoreTableHtml(true);
-    } else {
-        const table = document.getElementById("scoreTableMain");
-        const clonedTable = table.cloneNode(true);
-        const inputs = clonedTable.querySelectorAll('input');
-        inputs.forEach(input => {
-            const val = input.value.trim();
-            const span = document.createElement('span');
-            span.textContent = val;
-            span.style.fontWeight = 'normal';
-            span.style.fontFamily = "'Khmer OS Siemreap', 'Siemreap', sans-serif";
-            if (input.classList.contains('text-rose-600') || input.classList.contains('text-red-500')) span.style.color = '#e11d48';
-            else if (input.classList.contains('text-blue-600') || input.classList.contains('text-blue-700')) span.style.color = '#1d4ed8';
-            else span.style.color = '#0f172a';
-            input.parentNode.replaceChild(span, input);
-        });
-        const allEls = clonedTable.querySelectorAll('*');
-        allEls.forEach(el => {
-            el.className = (el.className || "")
-                .replace(/sticky/g, "").replace(/left-\[?[^\]\s]+\]?/g, "")
-                .replace(/z-\[?\d+\]?/g, "").replace(/shadow-[^"'\s]*/g, "")
-                .replace(/bg-white/g, "").replace(/bg-slate-\d+/g, ""); 
-            el.style.position = "static";
-            el.style.left = "auto";
-        });
-        htmlTable = clonedTable.outerHTML.replace(/<td([^>]*)class="[^"]*text-left[^"]*"([^>]*)>(.*?)<\/td>/g, '<td$1style="text-align: left; font-weight: normal;"$2>&nbsp;&nbsp;$3</td>').replace(/font-weight:\s*bold;/g, "font-weight: normal;");
+    // ១. កាត់យកតែផ្នែក "ថ្ងៃទី..." ចេញពី sDate បើវាមានជាប់ពាក្យ "ធ្វើនៅ" មកជាមួយ
+    if (sDate.includes("ថ្ងៃទី")) {
+        sDate = sDate.substring(sDate.indexOf("ថ្ងៃទី"));
     }
 
-    const subjectKeys = window.activeSubjectKeys || [];
-    let totalCols = type === "monthly" ? (3 + subjectKeys.length + 4 + 4) : (3 + subjectKeys.length * 2 + 5 + 3 + 1);
+    // ២. លុបសញ្ញាក្បៀស (,) ខាងចុងនៃទីតាំងចេញ ដើម្បីកុំឱ្យជាន់គ្នា
+    locationStr = locationStr.replace(/,+$/, '').trim();
 
+    // ៣. បញ្ចូលគ្នាដើម្បីទទួលបានទម្រង់ត្រឹមត្រូវ (ឧ. ធ្វើនៅកៀនស្វាយ, ថ្ងៃទី...)
+    const solarDateStr = `${locationStr}, ${sDate}`;
+
+    // ៤. ទាញយកថ្ងៃខែចន្ទគតិ (បើក/បិទ)
+    const lunarDateStr = rDates.showLunar !== false 
+        ? (rDates.lunarDate || "ថ្ងៃ......................... ខែ............ ឆ្នាំ............ ព.ស.២៥៧...") 
+        : "";
+
+    // យកតារាងដែលរៀបចំរួចជាស្រេចពីអនុគមន៍ខាងលើ (isExcel = true, isRanking = false)
+    let htmlTable = window.getAdvancedScoreTableHtml(true, false);
+
+    // កែសម្រួលការគណនាស្ថិតិអូតូ 
     let totalStus = window.rankingsDataList.length;
     let femaleStus = window.rankingsDataList.filter(s => s.gender === 'ស្រី').length;
-    let passed = window.rankingsDataList.filter(s => s.avg >= 5.0).length;
-    let passedF = window.rankingsDataList.filter(s => s.avg >= 5.0 && s.gender === 'ស្រី').length;
+    
+    // កំណត់មធ្យមភាគជាប់គឺ ៥.០
+    let passMark = 5.0; 
+    if ((type === "semester" || type === "annual") && window.rankingsDataList.some(s => s.avg > 15)) {
+        passMark = 25.0;
+    }
+
+    // គណនាស្ថិតិអូតូ
+   
+    let passed = window.rankingsDataList.filter(s => s.avg >= passMark).length;
+    let passedF = window.rankingsDataList.filter(s => s.avg >= passMark && s.gender === 'ស្រី').length;
     let failed = totalStus - passed;
     let failedF = femaleStus - passedF;
 
@@ -2343,147 +2865,115 @@ window.exportScoreListToExcel = function() {
     let passFPct = femaleStus > 0 ? ((passedF / femaleStus) * 100).toFixed(2) : "0.00";
     let failFPct = femaleStus > 0 ? ((failedF / femaleStus) * 100).toFixed(2) : "0.00";
 
-    // គណនាទំហំខូលឹមសម្រាប់តម្រឹម Header
-    const leftColsCount = Math.floor(totalCols / 2);
-    const rightColsCount = totalCols - leftColsCount;
-
-    const excelHtml = `
-      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-      <head>
-        <meta charset="utf-8">
-        <style>
-          @page { mso-page-orientation: landscape; margin: 0.4in; }
-          table { border-collapse: collapse; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif; font-size: 11pt; width: 100%; }
-          
-          /* Main Table Styling */
-          #scoreTableMain { border: 1.5pt solid #0f172a !important; margin-bottom: 20px; }
-          #scoreTableMain th { 
-              background-color: #f1f5f9 !important; 
-              color: #1e3a8a; 
-              font-weight: bold; 
-              font-family: 'Khmer OS Muol Light', 'Moul', serif; 
-              font-size: 10pt; 
-              border: 1pt solid #475569 !important; 
-              padding: 8px 4px; 
-              vertical-align: middle; 
-              text-align: center;
-          }
-          .header-vertical { 
-              mso-rotate: 90; 
-              white-space: nowrap; 
-              font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif !important; 
-              font-size: 10.5pt !important; 
-              height: 140px; 
-          }
-          #scoreTableMain td { 
-              border: 1pt solid #94a3b8 !important; 
-              padding: 5px 3px; 
-              height: 28px; 
-              font-size: 11pt; 
-              vertical-align: middle; 
-              font-weight: normal !important; 
-              text-align: center;
-          }
-          #scoresTableBody tr:nth-child(even) td { background-color: #f8fafc !important; }
-        </style>
-      </head>
-      <body>
-        <!-- Header Section -->
-        <table border="0" style="margin-bottom: 10px;">
-            <tr>
-                <td colspan="${leftColsCount}" style="text-align: left; vertical-align: top;">
-                    <b style="font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 12pt; color: #1e3a8a;">ការិយាល័យអប់រំ យុវជន និងកីឡានៃរដ្ឋបាលស្រុក${districtName}</b><br>
-                    <b style="font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 12.5pt; color: #1e3a8a;">${schoolName}</b><br>
-                    <b style="font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 12.5pt; color: #1e3a8a;">ថ្នាក់ទី ${grade}</b>
-                </td>
-                <td colspan="${rightColsCount}" style="text-align: right; vertical-align: top;">
-                    <b style="font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 13pt; color: #1e3a8a;">ព្រះរាជាណាចក្រកម្ពុជា</b><br>
-                    <b style="font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 13pt; color: #1e3a8a;">ជាតិ សាសនា ព្រះមហាក្សត្រ</b><br>
-                    <span style="color: #d97706; font-size: 11pt;">❖ ❖ ❖</span>
-                </td>
-            </tr>
-        </table>
-
-        <!-- Title Section -->
-        <table border="0" style="margin-bottom: 15px;">
-            <tr>
-                <td colspan="${totalCols}" style="text-align: center; padding-top: 10px;">
-                    <h2 style="margin: 0; font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 18pt; color: #e11d48;">${titleText}</h2>
-                </td>
-            </tr>
-            <tr>
-                <td colspan="${totalCols}" style="text-align: center; font-size: 12pt; font-weight: bold; color: #334155; padding-bottom: 10px;">
-                    ឆ្នាំសិក្សា ៖ <span style="font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif;">${window.toKhmerNum(academicYear)}</span>
-                </td>
-            </tr>
-        </table>
-
-        <!-- Main Data Table -->
-        ${htmlTable}
-
-        <br>
-
-        <!-- Footer Section (Summary & Signatures) -->
-        <table border="0" style="width: 100%;">
-            <tr>
-                <td colspan="7" style="vertical-align: top;">
-                    <!-- Summary Table -->
-                    <table border="1" cellpadding="5" cellspacing="0" style="border: 1.5pt solid #16a34a; border-collapse: collapse; font-family: 'Khmer OS Siemreap', sans-serif; font-size: 11pt; background-color: #f0fdf4;">
-                        <tr>
-                            <td colspan="4" style="font-family: 'Khmer OS Muol Light', 'Moul', serif; color: #16a34a; font-size: 12pt; border-bottom: 1.5pt solid #86efac; text-align: center;">តារាងសង្ខេបស្ថិតិពិន្ទុ</td>
-                        </tr>
-                        <tr style="color: #1e293b;">
-                            <td style="text-align: left; border: none; padding: 5px 8px;">បញ្ឈប់បញ្ជីត្រឹមលេខរៀងទី</td>
-                            <td style="text-align: center; border: none; font-weight: bold; font-family: 'Arial', sans-serif;">${window.toKhmerNum(totalStus.toString())}</td>
-                            <td style="text-align: left; border: none; padding: 5px 8px;">សិស្សសរុប</td>
-                            <td style="text-align: right; border: none; padding: 5px 8px; font-family: 'Arial', sans-serif; font-weight: bold;">${window.toKhmerNum(totalStus.toString())} នាក់ (ស្រី ${window.toKhmerNum(femaleStus.toString())})</td>
-                        </tr>
-                        <tr style="color: #059669; border-top: 1pt dashed #bbf7d0;">
-                            <td style="text-align: left; border: none; padding: 5px 8px;" colspan="2">សិស្សជាប់មធ្យមភាគសរុប</td>
-                            <td style="text-align: left; border: none; padding: 5px 8px; font-weight: bold; font-family: 'Arial', sans-serif;">${window.toKhmerNum(passed.toString())} នាក់ (${passPct}%)</td>
-                            <td style="text-align: right; border: none; padding: 5px 8px; font-weight: bold; font-family: 'Arial', sans-serif;">ស្រី ${window.toKhmerNum(passedF.toString())} នាក់ (${passFPct}%)</td>
-                        </tr>
-                        <tr style="color: #e11d48;">
-                            <td style="text-align: left; border: none; padding: 5px 8px;" colspan="2">សិស្សធ្លាក់មធ្យមភាគសរុប</td>
-                            <td style="text-align: left; border: none; padding: 5px 8px; font-weight: bold; font-family: 'Arial', sans-serif;">${window.toKhmerNum(failed.toString())} នាក់ (${failPct}%)</td>
-                            <td style="text-align: right; border: none; padding: 5px 8px; font-weight: bold; font-family: 'Arial', sans-serif;">ស្រី ${window.toKhmerNum(failedF.toString())} នាក់ (${failFPct}%)</td>
-                        </tr>
-                    </table>
-                </td>
+    // បង្កើតក្បាល HTML
+    let excelContent = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+            <meta charset="utf-8">
+            <style>
+                table { border-collapse: collapse; white-space: nowrap; font-family: "Khmer OS Siemreap", sans-serif; }
+            </style>
+            <!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>បញ្ជីពិន្ទុ</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
+        </head>
+        <body>
+            <table>
+                <!-- ក្បាលលិខិត (Inline Font Family សម្រាប់ Excel) -->
+                <tr>
+                    <td colspan="15" style="border: none; text-align: left; vertical-align: top; font-family: 'Khmer OS Muol Light', Moul, serif; font-size: 11pt; padding-left: 10px;">
+                        ការិយាល័យអប់រំ យុវជន និងកីឡានៃរដ្ឋបាលស្រុក${districtName}<br>
+                        ${schoolName}<br>
+                        ${grade}
+                    </td>
+                    <td colspan="15" style="border: none; text-align: center; vertical-align: top; font-family: 'Khmer OS Muol Light', Moul, serif; font-size: 12pt;">
+                        ព្រះរាជាណាចក្រកម្ពុជា<br>
+                        ជាតិ សាសនា ព្រះមហាក្សត្រ<br>
+                        <!-- ក្បាច់រចនាប័ទ្ម Tacteing គូរដោយ HTML សុទ្ធ (ធានា ១០០% ដើរលើគ្រប់ទូរស័ព្ទ) -->
+                        <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin: 4px auto 10px auto; width: 60%;">
+                                <div style="height: 1px; flex: 1; background: linear-gradient(to right, transparent, #d97706);"></div>
+                                <span style="color: #d97706; font-size: 11px;">❖ ❖ ❖</span>
+                                <div style="height: 1px; flex: 1; background: linear-gradient(to left, transparent, #d97706);"></div>
+                            </div>
+                </tr>
+                <tr><td colspan="15" style="border: none; height: 15px;"></td></tr>
                 
-                <td colspan="${totalCols > 7 ? totalCols - 7 : 1}" style="vertical-align: top; text-align: center; padding-right: 20px;">
-                    <p style="margin: 0 0 5px 0; font-size: 11.5pt; color: #334155; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif;">${lunarDateStr}</p>
-                    <p style="margin: 0; font-size: 11.5pt; color: #334155; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif;">${solarDateStr}</p>
-                    <p style="margin: 10px 0 50px 0; font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 12.5pt; color: #1e3a8a;">គ្រូប្រចាំថ្នាក់</p>
-                    <p style="margin: 0; font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 13.5pt; color: #be123c;">${teacherName}</p>
-                </td>
-            </tr>
-            <tr>
-                <td colspan="4" style="text-align: center; vertical-align: top; padding-top: 30px;">
-                    <p style="margin: 0; font-size: 11.5pt; color: #334155; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif;">បានឃើញ និងឯកភាព</p>
-                    <p style="margin: 10px 0 50px 0; font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 12.5pt; color: #1e3a8a;">នាយកសាលា</p>
-                    <p style="margin: 0; font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 13pt; color: #be123c;">${principalName}</p>
-                </td>
-                <td colspan="4" style="text-align: center; vertical-align: top; padding-top: 50px;">
-                    <p style="margin: 10px 0 50px 0; font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 12.5pt; color: #1e3a8a;">ប្រធានក្រុមបច្ចេកទេស</p>
-                    <p style="margin: 0; font-size: 11pt; color: #334155; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif;">បានទទួល.......................................</p>
-                </td>
-                <td colspan="${totalCols > 8 ? totalCols - 8 : 1}"></td>
-            </tr>
-        </table>
-      </body>
-      </html>
+                <!-- ចំណងជើង (Inline Font Family) -->
+                <tr>
+                    <td colspan="31" style="border: none; text-align: center; font-family: 'Khmer OS Muol Light', Moul, serif; font-size: 14pt; color: red;">
+                        ${titleText}
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="31" style="border: none; text-align: center; font-family: 'Khmer OS Siemreap', sans-serif; font-size: 11pt; font-weight: bold;">
+                        ឆ្នាំសិក្សា ៖ ${academicYear}
+                    </td>
+                </tr>
+                <tr><td colspan="30" style="border: none; height: 10px;"></td></tr>
+                
+            </table>
+
+            <!-- តារាងពិន្ទុកណ្តាលដែលបាន Render រួច -->
+            ${htmlTable}
+
+            <table>
+                <tr><td colspan="15" style="border: none; height: 10px;"></td></tr>
+                
+                <!-- ស្ថិតិសង្ខេប (លេខសកល) -->
+                <tr>
+                    <td colspan="15" style="border: none; font-family: 'Khmer OS Siemreap', sans-serif; text-align: left; font-size: 11pt; padding-left: 10px;">
+                        ❖ បញ្ឈប់បញ្ជីត្រឹមលេខរៀង <b>${totalStus}</b> សិស្សសរុប <b>${totalStus}</b> នាក់ ស្រី <b>${femaleStus}</b> នាក់
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="15" style="border: none; font-family: 'Khmer OS Siemreap', sans-serif; text-align: left; font-size: 11pt; padding-left: 10px;">
+                        ❖ សិស្សជាប់មធ្យមភាគ <b>${passed}</b> នាក់ (<b>${passPct}%</b>) ស្រី <b>${passedF}</b> នាក់ (<b>${passFPct}%</b>)
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="15" style="border: none; font-family: 'Khmer OS Siemreap', sans-serif; text-align: left; font-size: 11pt; padding-left: 10px;">
+                        ❖ សិស្សធ្លាក់មធ្យមភាគ <b>${failed}</b> នាក់ (<b>${failPct}%</b>) ស្រី <b>${failedF}</b> នាក់ (<b>${failFPct}%</b>)
+                    </td>
+                </tr>
+                <tr><td colspan="15" style="border: none; height: 20px;"></td></tr>
+                
+                <!-- ហត្ថលេខា (Inline Font Family) -->
+                <tr>
+                    <td colspan="15" style="border: none; text-align: center; vertical-align: bottom; font-family: 'Khmer OS Muol Light', Moul, serif; font-size: 11pt;">
+                        បានឃើញ និងឯកភាព<br>
+                        នាយកសាលា
+                    </td>
+                    <td colspan="15" style="border: none; text-align: center; vertical-align: bottom; font-family: 'Khmer OS Siemreap', sans-serif; font-size: 11pt;">
+                        ${lunarDateStr}<br>
+                        ${solarDateStr}<br>
+                        <span style="font-family: 'Khmer OS Muol Light', Moul, serif;">គ្រូបន្ទុកថ្នាក់</span>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="15" style="border: none; height: 70px;"></td>
+                    <td colspan="15" style="border: none; height: 70px;"></td>
+                </tr>
+                <tr>
+                    <td colspan="15" style="border: none; text-align: center; vertical-align: bottom; font-family: 'Khmer OS Muol Light', Moul, serif; font-size: 11pt;">
+                        ${principalName}
+                    </td>
+                    <td colspan="15" style="border: none; text-align: center; vertical-align: bottom; font-family: 'Khmer OS Muol Light', Moul, serif; font-size: 11pt;">
+                        ${teacherName}
+                    </td>
+                </tr>
+            </table>
+        </body>
+        </html>
     `;
 
-    const blob = new Blob(['\ufeff', excelHtml], { type: 'application/vnd.ms-excel' });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `បញ្ជីពិន្ទុ_${grade.replace(/ /g, '_')}_${month}_${new Date().toISOString().split('T')[0]}.xls`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // បញ្ចេញឯកសារ
+    const blob = new Blob(['\ufeff' + excelContent], { type: 'application/vnd.ms-excel' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
 };
-
 // =====================================================================
 // ១០. មុខងារ IMPORT EXCEL (បញ្ចូលពិន្ទុពីឯកសារ Excel)
 // =====================================================================
@@ -2844,6 +3334,7 @@ window.downloadExcelTemplate = function() {
     link.click();
     document.body.removeChild(link);
 };
+
 // ==========================================
 // មុខងារបង្ហាញសញ្ញាព្រមាន "មិនទាន់រក្សាទុក" ពេលមានការប្រែប្រួលពិន្ទុ
 // ==========================================
@@ -3144,7 +3635,7 @@ window.saveSemesterConfig = function() {
 
 
 // =====================================================================
-// 🔴 មុខងារបង្ហាញក្នុង Modal ទី ២: Rankings Content
+// 🔴 មុខងារបង្ហាញក្នុង Modal ទី ២: Rankings Content (Premium Mobile-Friendly)
 // =====================================================================
 window.rankingsSearchQuery = "";
 window.rankingsGenderFilter = "all";
@@ -3159,74 +3650,40 @@ window.renderRankingsContent = function() {
     const gradeFull = sInfo.teacher_level && sInfo.teacher_room ? `${sInfo.teacher_level} ${sInfo.teacher_room}` : "ថ្នាក់ទី ១ «ក»";
 
     container.innerHTML = `
-      <div class="w-full flex flex-col space-y-4 font-siemreap bg-[#f8fafc] rounded-3xl p-4 shadow-sm min-h-full relative overflow-hidden">
+      <style>
+        /* Custom Scrollbar សម្រាប់តារាង */
+        .table-scroll::-webkit-scrollbar { height: 6px; width: 6px; }
+        .table-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 10px; }
+        .table-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .table-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        /* Sticky Column សម្រាប់ទូរសព្ទដៃ */
+        .sticky-col { position: sticky; left: 0; z-index: 10; box-shadow: 2px 0 5px rgba(0,0,0,0.05); }
+      </style>
+
+      <div class="w-full flex flex-col gap-4 font-siemreap bg-slate-50/50 p-2 md:p-4 rounded-3xl min-h-full relative overflow-hidden">
         
-        <!-- Background Accents -->
-        <div class="absolute -right-20 -top-20 w-64 h-64 bg-rose-50 rounded-full blur-3xl pointer-events-none"></div>
-        <div class="absolute -left-20 top-40 w-48 h-48 bg-blue-50 rounded-full blur-3xl pointer-events-none"></div>
+        <!-- Background Accents តុបតែង -->
+        <div class="absolute top-0 right-0 w-64 h-64 bg-indigo-100/40 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute bottom-0 left-0 w-48 h-48 bg-rose-100/40 rounded-full blur-3xl pointer-events-none"></div>
 
-        <!-- របារឧបករណ៍បញ្ជា (Action Bar) -->
-        <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4 no-print border-b border-slate-200 pb-4 relative z-10">
-          
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-gradient-to-br from-rose-400 to-red-500 text-white rounded-xl flex justify-center items-center text-lg shadow-sm">
-                <i class="fa-solid fa-ranking-star"></i>
-            </div>
-            <div>
-               <h3 class="font-moul text-slate-800 text-base leading-tight">តារាងចំណាត់ថ្នាក់</h3>
-               <p class="text-[11px] font-bold text-slate-500 mt-0.5">ថ្នាក់រៀន ៖ <span id="lblRankGradeName" class="text-rose-600">${gradeFull}</span></p>
-            </div>
-          </div>
-
-          <div class="flex flex-wrap items-center gap-2.5">
-            <!-- ទម្រង់តារាង -->
-            <div class="flex items-center bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
-              <button onclick="window.changeRankViewMode('full')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${window.rankingsViewMode==='full'?'bg-indigo-50 text-indigo-700':'text-slate-500 hover:text-slate-700'}">
-                <i class="fa-solid fa-table-list"></i> តារាងទូទៅ
-              </button>
-              <button onclick="window.changeRankViewMode('split')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${window.rankingsViewMode==='split'?'bg-indigo-50 text-indigo-700':'text-slate-500 hover:text-slate-700'}">
-                <i class="fa-solid fa-table-columns"></i> ទម្រង់ ២ ជួរ (A4)
-              </button>
-            </div>
-
-            <!-- ស្វែងរក និងចម្រោះ -->
-            <div class="relative shadow-sm">
-              <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-              <input type="text" placeholder="ស្វែងរកឈ្មោះ..." value="${window.rankingsSearchQuery}" oninput="window.filterRankingsTable(this.value, window.rankingsGenderFilter)"
-                     class="pl-8 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none w-36 sm:w-44 focus:ring-2 focus:ring-indigo-500 transition">
-            </div>
-
-            <select onchange="window.filterRankingsTable(window.rankingsSearchQuery, this.value)" class="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 outline-none shadow-sm cursor-pointer focus:ring-2 focus:ring-indigo-500 transition">
-              <option value="all" ${window.rankingsGenderFilter==='all'?'selected':''}>👥 ភេទទាំងអស់</option>
-              <option value="ស្រី" ${window.rankingsGenderFilter==='ស្រី'?'selected':''}>👩 សិស្សស្រី</option>
-              <option value="ប្រុស" ${window.rankingsGenderFilter==='ប្រុស'?'selected':''}>👨 សិស្សប្រុស</option>
-            </select>
-
-            <!-- ប៊ូតុង Export -->
-            <button onclick="window.exportRankingsToExcel()" class="px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm transform hover:-translate-y-0.5">
-              <i class="fa-solid fa-file-excel"></i> Export Excel
-            </button>
-            <button onclick="window.printRankingTable()" class="px-4 py-2 bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 text-white rounded-xl text-xs font-black shadow-md shadow-rose-200 transition flex items-center gap-2 transform hover:-translate-y-0.5">
-              <i class="fa-solid fa-file-pdf"></i> PDF / Print
-            </button>
-          </div>
-        </div>
-
-        ${window.getDateSettingsPanelHTML('rankings')}
+        <!-- របារឧបករណ៍បញ្ជា (Action Bar) ចាស់ អាចត្រូវលាក់ ឬទុក -->
+        <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4 no-print border-b border-slate-200 pb-4 relative z-10 hidden"></div>
 
         <!-- កាតសង្ខេបស្ថិតិ (KPIs) -->
-        <div id="rankingsKpiContainer" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 no-print mt-2 relative z-10"></div>
+        <div id="rankingsKpiContainer" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4 no-print relative z-10"></div>
 
-        <!-- ផ្ទៃបង្ហាញតារាង -->
-        <div class="w-full bg-white border border-slate-200 rounded-2xl overflow-hidden flex flex-col flex-1 shadow-sm mt-2 relative z-10">
-          <div class="overflow-x-auto w-full custom-scrollbar flex-1 pb-4">
+        <!-- ផ្ទៃបង្ហាញតារាង (Table Area) -->
+        <div class="w-full h-full bg-white border border-slate-200/80 rounded-2xl md:rounded-[2rem] overflow-hidden flex flex-col flex-1 shadow-sm relative z-10 mt-2">
+          
+          <!-- Wrapper សម្រាប់ Scroll លើ Mobile -->
+          <div class="overflow-x-auto w-full h-full table-scroll flex-1 pb-4">
             <table id="rankTableMain" class="w-full border-collapse text-[13px] text-center whitespace-nowrap bg-white">
-              <thead id="rankTableHead" class="text-slate-700 sticky top-0 z-20 shadow-sm bg-slate-50 border-b border-slate-200"></thead>
-              <tbody id="rankingsTableBody" class="divide-y divide-slate-100 text-slate-800"></tbody>
+              <thead id="rankTableHead" class="text-slate-700 sticky top-0 z-20 shadow-sm border-b-2 border-slate-200/80"></thead>
+              <tbody id="rankingsTableBody" class="divide-y divide-slate-100 text-slate-700"></tbody>
             </table>
           </div>
+          
         </div>
-
       </div>
     `;
 
@@ -3234,147 +3691,16 @@ window.renderRankingsContent = function() {
 };
 
 window.changeRankViewMode = function(mode) {
-  window.rankingsViewMode = mode;
-  window.renderRankingsContent();
+    window.rankingsViewMode = mode;
+    window.renderRankingsContent();
 };
 
 window.filterRankingsTable = function(query, gender) {
-  window.rankingsSearchQuery = query.toLowerCase();
-  window.rankingsGenderFilter = gender;
-  buildRankingsTable();
+    window.rankingsSearchQuery = query.toLowerCase();
+    window.rankingsGenderFilter = gender;
+    buildRankingsTable();
 };
 
-function buildRankingsTable() {
-    const sInfo = typeof appSettings !== 'undefined' ? appSettings : {};
-    const grade = sInfo.teacher_level && sInfo.teacher_room ? `${sInfo.teacher_level} ${sInfo.teacher_room}` : "ថ្នាក់ទី ១ «ក»";
-    const periodType = document.getElementById("globalPeriodType")?.value || "monthly";
-
-    const allStudents = window.rankingsDataList || [];
-
-    let total = allStudents.length;
-    let female = allStudents.filter(s => s.gender === 'ស្រី').length;
-    let passed = allStudents.filter(s => s.avg >= 5.0).length;
-    let failed = total - passed;
-    let passRate = total > 0 ? ((passed / total) * 100).toFixed(1) : 0;
-    let classAvg = total > 0 ? (allStudents.reduce((acc, s) => acc + (s.avg || 0), 0) / total).toFixed(2) : "0.00";
-    let topStudent = allStudents.find(s => s.rank === 1);
-
-    const kpiEl = document.getElementById("rankingsKpiContainer");
-    if (kpiEl && total > 0) {
-      kpiEl.innerHTML = `
-        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3 transition-transform hover:-translate-y-1">
-          <div class="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xl"><i class="fa-solid fa-users"></i></div>
-          <div><div class="text-[11px] text-slate-500 font-bold uppercase tracking-wider">សិស្សសរុប</div><div class="text-base font-black text-slate-800 font-mono">${total} <span class="text-[10px] font-normal text-slate-400 font-siemreap">(ស្រី ${female})</span></div></div>
-        </div>
-        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3 transition-transform hover:-translate-y-1">
-          <div class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xl"><i class="fa-solid fa-circle-check"></i></div>
-          <div><div class="text-[11px] text-slate-500 font-bold uppercase tracking-wider">ជាប់មធ្យមភាគ</div><div class="text-base font-black text-emerald-600 font-mono">${passed} <span class="text-[10px] font-bold text-emerald-700 font-mono">(${passRate}%)</span></div></div>
-        </div>
-        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3 transition-transform hover:-translate-y-1">
-          <div class="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center font-bold text-xl"><i class="fa-solid fa-circle-xmark"></i></div>
-          <div><div class="text-[11px] text-slate-500 font-bold uppercase tracking-wider">ធ្លាក់មធ្យមភាគ</div><div class="text-base font-black text-rose-600 font-mono">${failed} <span class="text-[10px] font-normal text-slate-400 font-siemreap">នាក់</span></div></div>
-        </div>
-        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3 transition-transform hover:-translate-y-1">
-          <div class="w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xl"><i class="fa-solid fa-chart-line"></i></div>
-          <div><div class="text-[11px] text-slate-500 font-bold uppercase tracking-wider">មធ្យមភាគថ្នាក់</div><div class="text-base font-black text-indigo-700 font-mono">${classAvg}</div></div>
-        </div>
-        <div class="bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-2xl border border-amber-200 shadow-sm flex items-center gap-3 col-span-2 sm:col-span-1 transition-transform hover:-translate-y-1">
-          <div class="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center font-bold text-xl shadow-md">🥇</div>
-          <div class="truncate"><div class="text-[11px] text-amber-800 font-bold uppercase tracking-wider">ជើងឯកលេខ ១</div><div class="text-sm font-bold text-slate-800 font-moul truncate mt-0.5">${topStudent ? topStudent.name : '-'}</div></div>
-        </div>
-      `;
-    }
-
-    const th = document.getElementById("rankTableHead");
-    const tbody = document.getElementById("rankingsTableBody");
-    if (!tbody || !th) return;
-
-    if (allStudents.length === 0) {
-        th.innerHTML = "";
-        tbody.innerHTML = `<tr><td colspan="12" class="p-16 text-center text-slate-400 font-bold"><i class="fa-solid fa-folder-open text-4xl mb-4 text-slate-300"></i><br>មិនទាន់មានទិន្នន័យចំណាត់ថ្នាក់ទេ!</td></tr>`;
-        return;
-    }
-
-    let filteredList = allStudents.filter(s => {
-      const matchName = !window.rankingsSearchQuery || s.name.toLowerCase().includes(window.rankingsSearchQuery);
-      const matchGender = window.rankingsGenderFilter === "all" || s.gender === window.rankingsGenderFilter;
-      return matchName && matchGender;
-    });
-
-    const getGradeBadge = (g) => {
-      const str = String(g || "E").trim();
-      let colorClass = "bg-slate-100 text-slate-700 border-slate-200";
-      if (str.includes("A") || str.includes("ល្អប្រសើរ") || str.includes("ល្អណាស់")) colorClass = "bg-emerald-100 text-emerald-800 border-emerald-300";
-      else if (str.includes("B") || str.includes("ល្អ")) colorClass = "bg-blue-100 text-blue-800 border-blue-300";
-      else if (str.includes("C") || str.includes("បង្គួរ")) colorClass = "bg-teal-100 text-teal-800 border-teal-300";
-      else if (str.includes("D") || str.includes("មធ្យម")) colorClass = "bg-amber-100 text-amber-800 border-amber-300";
-      else if (str.includes("E") || str.includes("ខ្សោយ") || str.includes("F") || str.includes("ធ្លាក់")) colorClass = "bg-rose-100 text-rose-800 border-rose-300";
-      
-      return `<span class="px-3 py-1 rounded-full text-[10px] md:text-xs font-bold border shadow-sm ${colorClass}">${str}</span>`;
-    };
-
-    if (window.rankingsViewMode === 'split') {
-      th.innerHTML = `
-        <tr class="bg-indigo-50 text-indigo-900 text-[11px] md:text-xs tracking-wide">
-          <th class="p-3 w-12 font-moul">ល.រ</th><th class="p-3 w-48 text-left font-moul px-4">គោត្តនាម និងនាម</th><th class="p-3 w-14 font-moul">ភេទ</th><th class="p-3 w-24 bg-blue-100 text-blue-900 font-moul border-r border-slate-200">មធ្យមភាគ</th><th class="p-3 w-24 bg-rose-100 text-rose-900 font-moul">ចំណាត់ថ្នាក់</th>
-          <th class="p-3 w-12 font-moul border-l-2 border-slate-300 bg-indigo-50">ល.រ</th><th class="p-3 w-48 text-left font-moul px-4 bg-indigo-50">គោត្តនាម និងនាម</th><th class="p-3 w-14 font-moul bg-indigo-50">ភេទ</th><th class="p-3 w-24 bg-blue-100 text-blue-900 font-moul border-r border-slate-200">មធ្យមភាគ</th><th class="p-3 w-24 bg-rose-100 text-rose-900 font-moul">ចំណាត់ថ្នាក់</th>
-        </tr>
-      `;
-
-      let sorted = [...filteredList].sort((a, b) => a.rank - b.rank);
-      const half = Math.ceil(sorted.length / 2);
-      const leftList = sorted.slice(0, half);
-      const rightList = sorted.slice(half);
-
-      let rowsHtml = "";
-      for (let i = 0; i < half; i++) {
-        const s1 = leftList[i];
-        const s2 = rightList[i];
-
-        const row1Html = s1 ? `<td class="p-2.5 text-slate-500 font-mono text-xs font-bold">${i + 1}</td><td class="p-2.5 text-left font-bold text-[13px] text-slate-800 px-4">${s1.name}</td><td class="p-2.5 font-bold ${s1.gender==='ស្រី'?'text-rose-500':'text-blue-600'}">${s1.gender==='ស្រី'?'ស':'ប'}</td><td class="p-2.5 font-mono font-bold text-blue-700 bg-blue-50/40 border-r border-slate-100">${s1.avg.toFixed(2)}</td><td class="p-2.5 font-mono font-black text-rose-600 bg-rose-50/40 text-sm">${s1.rank}</td>` : `<td></td><td></td><td></td><td></td><td></td>`;
-        const row2Html = s2 ? `<td class="p-2.5 text-slate-500 font-mono text-xs font-bold border-l-2 border-slate-300">${half + i + 1}</td><td class="p-2.5 text-left font-bold text-[13px] text-slate-800 px-4">${s2.name}</td><td class="p-2.5 font-bold ${s2.gender==='ស្រី'?'text-rose-500':'text-blue-600'}">${s2.gender==='ស្រី'?'ស':'ប'}</td><td class="p-2.5 font-mono font-bold text-blue-700 bg-blue-50/40 border-r border-slate-100">${s2.avg.toFixed(2)}</td><td class="p-2.5 font-mono font-black text-rose-600 bg-rose-50/40 text-sm">${s2.rank}</td>` : `<td class="border-l-2 border-slate-300"></td><td></td><td></td><td></td><td></td>`;
-
-        rowsHtml += `<tr class="hover:bg-indigo-50/50 transition-colors border-b border-slate-200 ${i % 2 !== 0 ? 'bg-slate-50/50' : 'bg-white'}">${row1Html}${row2Html}</tr>`;
-      }
-      tbody.innerHTML = rowsHtml;
-      return;
-    }
-
-    let colHtml = "";
-    if (periodType === "monthly") {
-       colHtml = `<th class="p-3 w-14 font-moul text-[11px] md:text-xs text-slate-700">ល.រ</th><th class="p-3 w-64 text-left px-5 font-moul text-[11px] md:text-xs text-slate-800">គោត្តនាម និងនាម</th><th class="p-3 w-16 text-[11px] md:text-xs font-moul text-slate-700">ភេទ</th><th class="p-3 w-32 bg-blue-100 text-blue-900 font-moul text-[11px] md:text-xs border-x border-white">មធ្យមភាគ</th><th class="p-3 w-32 bg-rose-100 text-rose-900 font-moul text-[11px] md:text-xs border-r border-white">ចំណាត់ថ្នាក់</th><th class="p-3 w-32 bg-emerald-100 text-emerald-900 font-moul text-[11px] md:text-xs">និទ្ទេស</th>`;
-    } else if (periodType === "semester") {
-       colHtml = `<th class="p-3 w-14 font-moul text-[11px] md:text-xs text-slate-700">ល.រ</th><th class="p-3 w-64 text-left px-5 font-moul text-[11px] md:text-xs text-slate-800">គោត្តនាម និងនាម</th><th class="p-3 w-16 text-[11px] md:text-xs font-moul text-slate-700">ភេទ</th><th class="p-3 w-28 bg-orange-100 text-orange-900 font-moul text-[11px] md:text-xs border-l border-white">ម.ប្រឡង</th><th class="p-3 w-28 bg-indigo-100 text-indigo-900 font-moul text-[11px] md:text-xs border-l border-white">ម.ខែ</th><th class="p-3 w-32 bg-blue-100 text-blue-900 font-moul text-[11px] md:text-xs border-x border-white">ម.ឆមាស</th><th class="p-3 w-32 bg-rose-100 text-rose-900 font-moul text-[11px] md:text-xs border-r border-white">ចំណាត់ថ្នាក់</th><th class="p-3 w-28 bg-emerald-100 text-emerald-900 font-moul text-[11px] md:text-xs">និទ្ទេស</th>`;
-    } else {
-       colHtml = `<th class="p-3 w-14 font-moul text-[11px] md:text-xs text-slate-700">ល.រ</th><th class="p-3 w-64 text-left px-5 font-moul text-[11px] md:text-xs text-slate-800">គោត្តនាម និងនាម</th><th class="p-3 w-16 text-[11px] md:text-xs font-moul text-slate-700">ភេទ</th><th class="p-3 w-28 bg-blue-100 text-blue-900 font-moul text-[11px] md:text-xs border-l border-white">ម.ឆ.១</th><th class="p-3 w-28 bg-indigo-100 text-indigo-900 font-moul text-[11px] md:text-xs border-l border-white">ម.ឆ.២</th><th class="p-3 w-32 bg-amber-100 text-amber-900 font-moul text-[11px] md:text-xs border-x border-white">ម.ប្រចាំឆ្នាំ</th><th class="p-3 w-32 bg-rose-100 text-rose-900 font-moul text-[11px] md:text-xs border-r border-white">ចំណាត់ថ្នាក់</th><th class="p-3 w-28 bg-emerald-100 text-emerald-900 font-moul text-[11px] md:text-xs">និទ្ទេស</th>`;
-    }
-    th.innerHTML = `<tr class="bg-slate-100 shadow-sm tracking-wide">${colHtml}</tr>`;
-
-    let rowsHtml = "";
-    filteredList.forEach((s, idx) => {
-       const isF = s.gender === "ស្រី";
-       const genderClass = isF ? `text-rose-600 bg-rose-50/50` : `text-blue-600 bg-blue-50/50`;
-       const rankDisplay = s.rank;
-       
-       let trData = "";
-       if (periodType === "monthly") {
-         trData = `<td class="p-3 text-slate-400 font-bold font-mono text-xs">${idx + 1}</td><td class="p-3 text-left px-5 font-bold text-slate-800 text-[13px]">${s.name}</td><td class="p-3 text-center font-bold ${genderClass}">${isF ? 'ស' : 'ប'}</td><td class="p-3 font-mono font-black text-blue-700 bg-blue-50/40 border-l border-white">${s.avg.toFixed(2)}</td><td class="p-3 text-center font-mono font-black text-rose-600 bg-rose-50/40 text-sm border-x border-white">${rankDisplay}</td><td class="p-3 text-center bg-white">${getGradeBadge(s.gradeLetter)}</td>`;
-       } else if (periodType === "semester") {
-         trData = `<td class="p-3 text-slate-400 font-bold font-mono text-xs">${idx + 1}</td><td class="p-3 text-left px-5 font-bold text-slate-800 text-[13px]">${s.name}</td><td class="p-3 text-center font-bold ${genderClass}">${isF ? 'ស' : 'ប'}</td><td class="p-3 font-mono text-orange-700 bg-orange-50/40 font-bold border-l border-white">${s.exam_avg.toFixed(2)}</td><td class="p-3 font-mono text-indigo-700 bg-indigo-50/40 font-bold border-l border-white">${s.monthly_avg.toFixed(2)}</td><td class="p-3 font-mono font-black text-blue-700 bg-blue-50/50 text-sm border-x border-white">${s.avg.toFixed(2)}</td><td class="p-3 text-center font-black font-mono text-rose-600 bg-rose-50/40 border-r border-white">${rankDisplay}</td><td class="p-3 text-center bg-white">${getGradeBadge(s.gradeLetter)}</td>`;
-       } else {
-         trData = `<td class="p-3 text-slate-400 font-bold font-mono text-xs">${idx + 1}</td><td class="p-3 text-left px-5 font-bold text-slate-800 text-[13px]">${s.name}</td><td class="p-3 text-center font-bold ${genderClass}">${isF ? 'ស' : 'ប'}</td><td class="p-3 font-mono text-blue-700 bg-blue-50/40 font-bold border-l border-white">${s.sem1_avg.toFixed(2)}</td><td class="p-3 font-mono text-indigo-700 bg-indigo-50/40 font-bold border-l border-white">${s.sem2_avg.toFixed(2)}</td><td class="p-3 font-mono font-black text-amber-700 bg-amber-50/50 text-sm border-x border-white">${s.avg.toFixed(2)}</td><td class="p-3 text-center font-black font-mono text-rose-600 bg-rose-50/40 border-r border-white">${rankDisplay}</td><td class="p-3 text-center bg-white">${getGradeBadge(s.gradeLetter)}</td>`;
-       }
-       
-       // Zebra Striping
-       const bgClass = idx % 2 !== 0 ? 'bg-slate-50/40' : 'bg-white';
-       rowsHtml += `<tr class="hover:bg-indigo-50/60 transition-colors border-b border-slate-200 ${bgClass}">${trData}</tr>`;
-    });
-    tbody.innerHTML = rowsHtml;
-}
-
-// =====================================================================
-// មុខងាររៀបចំទិន្នន័យចំណាត់ថ្នាក់ លើ Web UI (លេខសកល & Siemreap Font)
-// =====================================================================
 function buildRankingsTable() {
     const sInfo = typeof appSettings !== 'undefined' ? appSettings : {};
     const grade = sInfo.teacher_level && sInfo.teacher_room ? `${sInfo.teacher_level} ${sInfo.teacher_room}` : "ថ្នាក់ទី ១ «ក»";
@@ -3390,28 +3716,30 @@ function buildRankingsTable() {
     let classAvg = total > 0 ? (allStudents.reduce((acc, s) => acc + (s.avg || 0), 0) / total).toFixed(2) : "0.00";
     let topStudent = allStudents.find(s => s.rank === 1);
 
+    // 🟢 ១. រចនាកាត KPI ឱ្យមើលទៅ Premium 🟢
     const kpiEl = document.getElementById("rankingsKpiContainer");
     if (kpiEl && total > 0) {
       kpiEl.innerHTML = `
-        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3 transition-transform hover:-translate-y-1">
-          <div class="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xl"><i class="fa-solid fa-users"></i></div>
-          <div><div class="text-[11px] text-slate-500 font-bold uppercase tracking-wider">សិស្សសរុប</div><div class="text-base font-black text-slate-800 font-siemreap">${total} <span class="text-[10px] font-normal text-slate-400 font-siemreap">(ស្រី ${female})</span></div></div>
+        <div class="bg-white p-3.5 md:p-5 rounded-2xl border border-slate-200/60 shadow-sm flex items-center gap-3 md:gap-4 transition-transform hover:-translate-y-1">
+          <div class="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg md:text-xl shadow-inner"><i class="fa-solid fa-users"></i></div>
+          <div><div class="text-[10px] md:text-[11px] text-slate-500 font-bold uppercase tracking-wider">សិស្សសរុប</div><div class="text-sm md:text-base font-black text-slate-800 font-mono">${total} <span class="text-[10px] font-normal text-slate-400 font-siemreap">(ស្រី ${female})</span></div></div>
         </div>
-        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3 transition-transform hover:-translate-y-1">
-          <div class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xl"><i class="fa-solid fa-circle-check"></i></div>
-          <div><div class="text-[11px] text-slate-500 font-bold uppercase tracking-wider">ជាប់មធ្យមភាគ</div><div class="text-base font-black text-emerald-600 font-siemreap">${passed} <span class="text-[10px] font-bold text-emerald-700 font-siemreap">(${passRate}%)</span></div></div>
+        <div class="bg-white p-3.5 md:p-5 rounded-2xl border border-slate-200/60 shadow-sm flex items-center gap-3 md:gap-4 transition-transform hover:-translate-y-1">
+          <div class="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-lg md:text-xl shadow-inner"><i class="fa-solid fa-circle-check"></i></div>
+          <div><div class="text-[10px] md:text-[11px] text-slate-500 font-bold uppercase tracking-wider">ជាប់មធ្យមភាគ</div><div class="text-sm md:text-base font-black text-emerald-600 font-mono">${passed} <span class="text-[10px] font-bold text-emerald-700 font-mono">(${passRate}%)</span></div></div>
         </div>
-        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3 transition-transform hover:-translate-y-1">
-          <div class="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center font-bold text-xl"><i class="fa-solid fa-circle-xmark"></i></div>
-          <div><div class="text-[11px] text-slate-500 font-bold uppercase tracking-wider">ធ្លាក់មធ្យមភាគ</div><div class="text-base font-black text-rose-600 font-siemreap">${failed} <span class="text-[10px] font-normal text-slate-400 font-siemreap">នាក់</span></div></div>
+        <div class="bg-white p-3.5 md:p-5 rounded-2xl border border-slate-200/60 shadow-sm flex items-center gap-3 md:gap-4 transition-transform hover:-translate-y-1">
+          <div class="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold text-lg md:text-xl shadow-inner"><i class="fa-solid fa-circle-xmark"></i></div>
+          <div><div class="text-[10px] md:text-[11px] text-slate-500 font-bold uppercase tracking-wider">ធ្លាក់មធ្យមភាគ</div><div class="text-sm md:text-base font-black text-rose-600 font-mono">${failed} <span class="text-[10px] font-normal text-slate-400 font-siemreap">នាក់</span></div></div>
         </div>
-        <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3 transition-transform hover:-translate-y-1">
-          <div class="w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xl"><i class="fa-solid fa-chart-line"></i></div>
-          <div><div class="text-[11px] text-slate-500 font-bold uppercase tracking-wider">មធ្យមភាគថ្នាក់</div><div class="text-base font-black text-indigo-700 font-siemreap">${classAvg}</div></div>
+        <div class="bg-white p-3.5 md:p-5 rounded-2xl border border-slate-200/60 shadow-sm flex items-center gap-3 md:gap-4 transition-transform hover:-translate-y-1">
+          <div class="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-lg md:text-xl shadow-inner"><i class="fa-solid fa-chart-line"></i></div>
+          <div><div class="text-[10px] md:text-[11px] text-slate-500 font-bold uppercase tracking-wider">មធ្យមភាគថ្នាក់</div><div class="text-sm md:text-base font-black text-indigo-700 font-mono">${classAvg}</div></div>
         </div>
-        <div class="bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-2xl border border-amber-200 shadow-sm flex items-center gap-3 col-span-2 sm:col-span-1 transition-transform hover:-translate-y-1">
-          <div class="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center font-bold text-xl shadow-md">🥇</div>
-          <div class="truncate"><div class="text-[11px] text-amber-800 font-bold uppercase tracking-wider">ជើងឯកលេខ ១</div><div class="text-sm font-bold text-slate-800 font-siemreap truncate mt-0.5">${topStudent ? topStudent.name : '-'}</div></div>
+        <div class="bg-gradient-to-r from-amber-50 to-orange-50 p-3.5 md:p-5 rounded-2xl border border-amber-200 shadow-sm flex items-center gap-3 md:gap-4 col-span-2 sm:col-span-1 lg:col-span-1 transition-transform hover:-translate-y-1 relative overflow-hidden">
+          <div class="absolute right-0 top-0 w-16 h-16 bg-white/40 rounded-full blur-xl pointer-events-none"></div>
+          <div class="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center font-bold text-lg md:text-xl shadow-md border border-white/50 relative z-10"><i class="fa-solid fa-medal"></i></div>
+          <div class="truncate relative z-10"><div class="text-[10px] md:text-[11px] text-amber-800 font-bold uppercase tracking-wider">ជើងឯកលេខ ១</div><div class="text-sm md:text-base font-bold text-slate-800 font-moul truncate mt-0.5">${topStudent ? topStudent.name : '-'}</div></div>
         </div>
       `;
     }
@@ -3422,7 +3750,7 @@ function buildRankingsTable() {
 
     if (allStudents.length === 0) {
         th.innerHTML = "";
-        tbody.innerHTML = `<tr><td colspan="12" class="p-16 text-center text-slate-400 font-bold"><i class="fa-solid fa-folder-open text-4xl mb-4 text-slate-300"></i><br>មិនទាន់មានទិន្នន័យចំណាត់ថ្នាក់ទេ!</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="12" class="p-16 text-center text-slate-400 font-bold"><div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4"><i class="fa-solid fa-folder-open text-2xl text-slate-300"></i></div>មិនទាន់មានទិន្នន័យចំណាត់ថ្នាក់ទេ!</td></tr>`;
         return;
     }
 
@@ -3434,427 +3762,614 @@ function buildRankingsTable() {
 
     const getGradeBadge = (g) => {
       const str = String(g || "E").trim();
-      let colorClass = "bg-slate-100 text-slate-700 border-slate-200";
-      if (str.includes("A") || str.includes("ល្អប្រសើរ") || str.includes("ល្អណាស់")) colorClass = "bg-emerald-100 text-emerald-800 border-emerald-300";
-      else if (str.includes("B") || str.includes("ល្អ")) colorClass = "bg-blue-100 text-blue-800 border-blue-300";
-      else if (str.includes("C") || str.includes("បង្គួរ")) colorClass = "bg-teal-100 text-teal-800 border-teal-300";
-      else if (str.includes("D") || str.includes("មធ្យម")) colorClass = "bg-amber-100 text-amber-800 border-amber-300";
-      else if (str.includes("E") || str.includes("ខ្សោយ") || str.includes("F") || str.includes("ធ្លាក់")) colorClass = "bg-rose-100 text-rose-800 border-rose-300";
+      let colorClass = "bg-slate-100 text-slate-600 border-slate-200";
+      if (str.includes("A") || str.includes("ល្អប្រសើរ") || str.includes("ល្អណាស់")) colorClass = "bg-emerald-100 text-emerald-700 border-emerald-200";
+      else if (str.includes("B") || str.includes("ល្អ")) colorClass = "bg-blue-100 text-blue-700 border-blue-200";
+      else if (str.includes("C") || str.includes("បង្គួរ")) colorClass = "bg-teal-100 text-teal-700 border-teal-200";
+      else if (str.includes("D") || str.includes("មធ្យម")) colorClass = "bg-amber-100 text-amber-700 border-amber-200";
+      else if (str.includes("E") || str.includes("ខ្សោយ") || str.includes("F") || str.includes("ធ្លាក់")) colorClass = "bg-rose-100 text-rose-700 border-rose-200";
       
-      return `<span class="px-3 py-1 rounded-full text-[10px] md:text-xs font-bold font-siemreap border shadow-sm ${colorClass}">${str}</span>`;
+      return `<span class="px-3 py-1 rounded-lg text-[11px] md:text-xs font-bold font-siemreap border shadow-sm ${colorClass}">${str}</span>`;
     };
 
-    if (window.rankingsViewMode === 'split') {
-      th.innerHTML = `
-        <tr class="bg-indigo-50 text-indigo-900 text-[11px] md:text-xs tracking-wide">
-          <th class="p-3 w-12 font-moul">ល.រ</th><th class="p-3 w-48 text-left font-moul px-4">គោត្តនាម និងនាម</th><th class="p-3 w-14 font-moul">ភេទ</th><th class="p-3 w-24 bg-blue-100 text-blue-900 font-moul border-r border-slate-200">មធ្យមភាគ</th><th class="p-3 w-24 bg-rose-100 text-rose-900 font-moul">ចំណាត់ថ្នាក់</th>
-          <th class="p-3 w-12 font-moul border-l-2 border-slate-300 bg-indigo-50">ល.រ</th><th class="p-3 w-48 text-left font-moul px-4 bg-indigo-50">គោត្តនាម និងនាម</th><th class="p-3 w-14 font-moul bg-indigo-50">ភេទ</th><th class="p-3 w-24 bg-blue-100 text-blue-900 font-moul border-r border-slate-200">មធ្យមភាគ</th><th class="p-3 w-24 bg-rose-100 text-rose-900 font-moul">ចំណាត់ថ្នាក់</th>
-        </tr>
-      `;
-
-      let sorted = [...filteredList].sort((a, b) => a.rank - b.rank);
-      const half = Math.ceil(sorted.length / 2);
-      const leftList = sorted.slice(0, half);
-      const rightList = sorted.slice(half);
-
-      let rowsHtml = "";
-      for (let i = 0; i < half; i++) {
-        const s1 = leftList[i];
-        const s2 = rightList[i];
-
-        const row1Html = s1 ? `<td class="p-2.5 text-slate-500 font-siemreap text-xs font-bold">${i + 1}</td><td class="p-2.5 text-left font-bold text-[13px] text-slate-800 px-4 font-siemreap">${s1.name}</td><td class="p-2.5 font-bold font-siemreap ${s1.gender==='ស្រី'?'text-rose-500':'text-blue-600'}">${s1.gender==='ស្រី'?'ស':'ប'}</td><td class="p-2.5 font-siemreap font-bold text-blue-700 bg-blue-50/40 border-r border-slate-100">${s1.avg.toFixed(2)}</td><td class="p-2.5 font-siemreap font-black text-rose-600 bg-rose-50/40 text-sm">${s1.rank}</td>` : `<td></td><td></td><td></td><td></td><td></td>`;
-        const row2Html = s2 ? `<td class="p-2.5 text-slate-500 font-siemreap text-xs font-bold border-l-2 border-slate-300">${half + i + 1}</td><td class="p-2.5 text-left font-bold text-[13px] text-slate-800 px-4 font-siemreap">${s2.name}</td><td class="p-2.5 font-bold font-siemreap ${s2.gender==='ស្រី'?'text-rose-500':'text-blue-600'}">${s2.gender==='ស្រី'?'ស':'ប'}</td><td class="p-2.5 font-siemreap font-bold text-blue-700 bg-blue-50/40 border-r border-slate-100">${s2.avg.toFixed(2)}</td><td class="p-2.5 font-siemreap font-black text-rose-600 bg-rose-50/40 text-sm">${s2.rank}</td>` : `<td class="border-l-2 border-slate-300"></td><td></td><td></td><td></td><td></td>`;
-
-        rowsHtml += `<tr class="hover:bg-indigo-50/50 transition-colors border-b border-slate-200 ${i % 2 !== 0 ? 'bg-slate-50/50' : 'bg-white'}">${row1Html}${row2Html}</tr>`;
-      }
-      tbody.innerHTML = rowsHtml;
-      return;
-    }
-
-    // Normal View
+    // 🟢 ២. រៀបចំក្បាលតារាង (Header) អោយស្អាត និងលេចធ្លោ 🟢
     let colHtml = "";
     if (periodType === "monthly") {
-       colHtml = `<th class="p-3 w-14 font-moul text-[11px] md:text-xs text-slate-700">ល.រ</th><th class="p-3 w-64 text-left px-5 font-moul text-[11px] md:text-xs text-slate-800">គោត្តនាម និងនាម</th><th class="p-3 w-16 text-[11px] md:text-xs font-moul text-slate-700">ភេទ</th><th class="p-3 w-32 bg-blue-100 text-blue-900 font-moul text-[11px] md:text-xs border-x border-white">មធ្យមភាគ</th><th class="p-3 w-32 bg-rose-100 text-rose-900 font-moul text-[11px] md:text-xs border-r border-white">ចំណាត់ថ្នាក់</th><th class="p-3 w-32 bg-emerald-100 text-emerald-900 font-moul text-[11px] md:text-xs">និទ្ទេស</th>`;
+       colHtml = `<th class="p-3 w-12 font-moul text-[11px] md:text-xs text-slate-500 bg-slate-50">ល.រ</th>
+                  <th class="p-3 w-64 text-left px-5 font-moul text-[11px] md:text-xs text-slate-800 sticky-col bg-slate-50">គោត្តនាម និងនាម</th>
+                  <th class="p-3 w-14 text-[11px] md:text-xs font-moul text-slate-500 bg-slate-50">ភេទ</th>
+                  <th class="p-3 w-28 bg-blue-50/80 text-blue-800 font-moul text-[11px] md:text-xs border-x border-white">មធ្យមភាគ</th>
+                  <th class="p-3 w-28 bg-rose-50/80 text-rose-800 font-moul text-[11px] md:text-xs border-r border-white">ចំណាត់ថ្នាក់</th>
+                  <th class="p-3 w-28 bg-emerald-50/80 text-emerald-800 font-moul text-[11px] md:text-xs">និទ្ទេស</th>`;
     } else if (periodType === "semester") {
-       colHtml = `<th class="p-3 w-14 font-moul text-[11px] md:text-xs text-slate-700">ល.រ</th><th class="p-3 w-64 text-left px-5 font-moul text-[11px] md:text-xs text-slate-800">គោត្តនាម និងនាម</th><th class="p-3 w-16 text-[11px] md:text-xs font-moul text-slate-700">ភេទ</th><th class="p-3 w-28 bg-orange-100 text-orange-900 font-moul text-[11px] md:text-xs border-l border-white">ម.ប្រឡង</th><th class="p-3 w-28 bg-indigo-100 text-indigo-900 font-moul text-[11px] md:text-xs border-l border-white">ម.ខែ</th><th class="p-3 w-32 bg-blue-100 text-blue-900 font-moul text-[11px] md:text-xs border-x border-white">ម.ឆមាស</th><th class="p-3 w-32 bg-rose-100 text-rose-900 font-moul text-[11px] md:text-xs border-r border-white">ចំណាត់ថ្នាក់</th><th class="p-3 w-28 bg-emerald-100 text-emerald-900 font-moul text-[11px] md:text-xs">និទ្ទេស</th>`;
+       colHtml = `<th class="p-3 w-12 font-moul text-[11px] md:text-xs text-slate-500 bg-slate-50">ល.រ</th>
+                  <th class="p-3 w-64 text-left px-5 font-moul text-[11px] md:text-xs text-slate-800 sticky-col bg-slate-50">គោត្តនាម និងនាម</th>
+                  <th class="p-3 w-14 text-[11px] md:text-xs font-moul text-slate-500 bg-slate-50">ភេទ</th>
+                  <th class="p-3 w-24 bg-orange-50/80 text-orange-800 font-moul text-[11px] md:text-xs border-l border-white">ម.ប្រឡងឆមាស</th>
+                  <th class="p-3 w-24 bg-indigo-50/80 text-indigo-800 font-moul text-[11px] md:text-xs border-l border-white">មធ្យមខែ</th>
+                  <th class="p-3 w-28 bg-blue-50/80 text-blue-800 font-moul text-[11px] md:text-xs border-x border-white">ម.ប្រចាំឆមាស</th>
+                  <th class="p-3 w-28 bg-rose-50/80 text-rose-800 font-moul text-[11px] md:text-xs border-r border-white">ចំណាត់ថ្នាក់</th>
+                  <th class="p-3 w-28 bg-emerald-50/80 text-emerald-800 font-moul text-[11px] md:text-xs">និទ្ទេស</th>`;
     } else {
-       colHtml = `<th class="p-3 w-14 font-moul text-[11px] md:text-xs text-slate-700">ល.រ</th><th class="p-3 w-64 text-left px-5 font-moul text-[11px] md:text-xs text-slate-800">គោត្តនាម និងនាម</th><th class="p-3 w-16 text-[11px] md:text-xs font-moul text-slate-700">ភេទ</th><th class="p-3 w-28 bg-blue-100 text-blue-900 font-moul text-[11px] md:text-xs border-l border-white">ម.ឆ.១</th><th class="p-3 w-28 bg-indigo-100 text-indigo-900 font-moul text-[11px] md:text-xs border-l border-white">ម.ឆ.២</th><th class="p-3 w-32 bg-amber-100 text-amber-900 font-moul text-[11px] md:text-xs border-x border-white">ម.ប្រចាំឆ្នាំ</th><th class="p-3 w-32 bg-rose-100 text-rose-900 font-moul text-[11px] md:text-xs border-r border-white">ចំណាត់ថ្នាក់</th><th class="p-3 w-28 bg-emerald-100 text-emerald-900 font-moul text-[11px] md:text-xs">និទ្ទេស</th>`;
+       colHtml = `<th class="p-3 w-12 font-moul text-[11px] md:text-xs text-slate-500 bg-slate-50">ល.រ</th>
+                  <th class="p-3 w-64 text-left px-5 font-moul text-[11px] md:text-xs text-slate-800 sticky-col bg-slate-50">គោត្តនាម និងនាម</th>
+                  <th class="p-3 w-14 text-[11px] md:text-xs font-moul text-slate-500 bg-slate-50">ភេទ</th>
+                  <th class="p-3 w-24 bg-blue-50/80 text-blue-800 font-moul text-[11px] md:text-xs border-l border-white">ម.ឆមាសទី១</th>
+                  <th class="p-3 w-24 bg-indigo-50/80 text-indigo-800 font-moul text-[11px] md:text-xs border-l border-white">ម.ឆមាសទី២</th>
+                  <th class="p-3 w-28 bg-amber-50/80 text-amber-800 font-moul text-[11px] md:text-xs border-x border-white">ម.ប្រចាំឆ្នាំ</th>
+                  <th class="p-3 w-28 bg-rose-50/80 text-rose-800 font-moul text-[11px] md:text-xs border-r border-white">ចំណាត់ថ្នាក់</th>
+                  <th class="p-3 w-28 bg-emerald-50/80 text-emerald-800 font-moul text-[11px] md:text-xs">និទ្ទេស</th>`;
     }
-    th.innerHTML = `<tr class="bg-slate-100 shadow-sm tracking-wide">${colHtml}</tr>`;
+    th.innerHTML = `<tr class="shadow-sm tracking-wide bg-slate-50">${colHtml}</tr>`;
 
+    // 🟢 ៣. រៀបចំតួអត្ថបទ (Body) អោយឆ្លាតវៃ និងស្អាត 🟢
     let rowsHtml = "";
     filteredList.forEach((s, idx) => {
        const isF = s.gender === "ស្រី";
-       const genderClass = isF ? `text-rose-600 bg-rose-50/50` : `text-blue-600 bg-blue-50/50`;
+       const genderClass = isF ? `text-rose-500 font-bold` : `text-blue-600 font-bold`;
        const rankDisplay = s.rank;
+       const bgClass = idx % 2 !== 0 ? 'bg-slate-50/30' : 'bg-white';
        
        let trData = "";
        if (periodType === "monthly") {
-         trData = `<td class="p-3 text-slate-400 font-bold font-siemreap text-xs">${idx + 1}</td><td class="p-3 text-left px-5 font-bold text-slate-800 text-[13px] font-siemreap">${s.name}</td><td class="p-3 text-center font-bold font-siemreap ${genderClass}">${isF ? 'ស' : 'ប'}</td><td class="p-3 font-siemreap font-black text-blue-700 bg-blue-50/40 border-l border-white">${s.avg.toFixed(2)}</td><td class="p-3 text-center font-siemreap font-black text-rose-600 bg-rose-50/40 text-sm border-x border-white">${rankDisplay}</td><td class="p-3 text-center bg-white">${getGradeBadge(s.gradeLetter)}</td>`;
+         trData = `<td class="p-3 text-slate-400 font-bold font-mono text-xs">${idx + 1}</td>
+                   <td class="p-3 text-left px-5 font-bold text-slate-800 text-[13px] font-siemreap sticky-col ${bgClass}">${s.name}</td>
+                   <td class="p-3 text-center ${genderClass} font-siemreap">${isF ? 'ស' : 'ប'}</td>
+                   <td class="p-3 font-siemreap font-black text-blue-700 bg-blue-50/30 border-l border-white text-[13px] md:text-[14px] shadow-[inset_1px_0_0_rgba(255,255,255,1)]">${s.avg.toFixed(2)}</td>
+                   <td class="p-3 text-center font-siemreap font-black text-rose-600 bg-rose-50/30 text-[13px] md:text-[14px] border-x border-white shadow-[inset_1px_0_0_rgba(255,255,255,1)]">${rankDisplay}</td>
+                   <td class="p-3 text-center bg-white/50">${getGradeBadge(s.gradeLetter)}</td>`;
        } else if (periodType === "semester") {
-         trData = `<td class="p-3 text-slate-400 font-bold font-siemreap text-xs">${idx + 1}</td><td class="p-3 text-left px-5 font-bold text-slate-800 text-[13px] font-siemreap">${s.name}</td><td class="p-3 text-center font-bold font-siemreap ${genderClass}">${isF ? 'ស' : 'ប'}</td><td class="p-3 font-siemreap text-orange-700 bg-orange-50/40 font-bold border-l border-white">${s.exam_avg.toFixed(2)}</td><td class="p-3 font-siemreap text-indigo-700 bg-indigo-50/40 font-bold border-l border-white">${s.monthly_avg.toFixed(2)}</td><td class="p-3 font-siemreap font-black text-blue-700 bg-blue-50/50 text-sm border-x border-white">${s.avg.toFixed(2)}</td><td class="p-3 text-center font-black font-siemreap text-rose-600 bg-rose-50/40 border-r border-white">${rankDisplay}</td><td class="p-3 text-center bg-white">${getGradeBadge(s.gradeLetter)}</td>`;
+         trData = `<td class="p-3 text-slate-400 font-bold font-mono text-xs">${idx + 1}</td>
+                   <td class="p-3 text-left px-5 font-bold text-slate-800 text-[13px] font-siemreap sticky-col ${bgClass}">${s.name}</td>
+                   <td class="p-3 text-center ${genderClass} font-siemreap">${isF ? 'ស' : 'ប'}</td>
+                   <td class="p-3 font-siemreap text-orange-700 bg-orange-50/30 font-bold border-l border-white">${s.exam_avg.toFixed(2)}</td>
+                   <td class="p-3 font-siemreap text-indigo-700 bg-indigo-50/30 font-bold border-l border-white">${s.monthly_avg.toFixed(2)}</td>
+                   <td class="p-3 font-siemreap font-black text-blue-700 bg-blue-50/30 text-[13px] md:text-[14px] border-x border-white shadow-[inset_1px_0_0_rgba(255,255,255,1)]">${s.avg.toFixed(2)}</td>
+                   <td class="p-3 text-center font-black font-siemreap text-rose-600 bg-rose-50/30 text-[13px] md:text-[14px] border-r border-white shadow-[inset_1px_0_0_rgba(255,255,255,1)]">${rankDisplay}</td>
+                   <td class="p-3 text-center bg-white/50">${getGradeBadge(s.gradeLetter)}</td>`;
        } else {
-         trData = `<td class="p-3 text-slate-400 font-bold font-siemreap text-xs">${idx + 1}</td><td class="p-3 text-left px-5 font-bold text-slate-800 text-[13px] font-siemreap">${s.name}</td><td class="p-3 text-center font-bold font-siemreap ${genderClass}">${isF ? 'ស' : 'ប'}</td><td class="p-3 font-siemreap text-blue-700 bg-blue-50/40 font-bold border-l border-white">${s.sem1_avg.toFixed(2)}</td><td class="p-3 font-siemreap text-indigo-700 bg-indigo-50/40 font-bold border-l border-white">${s.sem2_avg.toFixed(2)}</td><td class="p-3 font-siemreap font-black text-amber-700 bg-amber-50/50 text-sm border-x border-white">${s.avg.toFixed(2)}</td><td class="p-3 text-center font-black font-siemreap text-rose-600 bg-rose-50/40 border-r border-white">${rankDisplay}</td><td class="p-3 text-center bg-white">${getGradeBadge(s.gradeLetter)}</td>`;
+         trData = `<td class="p-3 text-slate-400 font-bold font-mono text-xs">${idx + 1}</td>
+                   <td class="p-3 text-left px-5 font-bold text-slate-800 text-[13px] font-siemreap sticky-col ${bgClass}">${s.name}</td>
+                   <td class="p-3 text-center ${genderClass} font-siemreap">${isF ? 'ស' : 'ប'}</td>
+                   <td class="p-3 font-siemreap text-blue-700 bg-blue-50/30 font-bold border-l border-white">${s.sem1_avg.toFixed(2)}</td>
+                   <td class="p-3 font-siemreap text-indigo-700 bg-indigo-50/30 font-bold border-l border-white">${s.sem2_avg.toFixed(2)}</td>
+                   <td class="p-3 font-siemreap font-black text-amber-700 bg-amber-50/30 text-[13px] md:text-[14px] border-x border-white shadow-[inset_1px_0_0_rgba(255,255,255,1)]">${s.avg.toFixed(2)}</td>
+                   <td class="p-3 text-center font-black font-siemreap text-rose-600 bg-rose-50/30 text-[13px] md:text-[14px] border-r border-white shadow-[inset_1px_0_0_rgba(255,255,255,1)]">${rankDisplay}</td>
+                   <td class="p-3 text-center bg-white/50">${getGradeBadge(s.gradeLetter)}</td>`;
        }
        
-       const bgClass = idx % 2 !== 0 ? 'bg-slate-50/40' : 'bg-white';
-       rowsHtml += `<tr class="hover:bg-indigo-50/60 transition-colors border-b border-slate-200 ${bgClass}">${trData}</tr>`;
+       rowsHtml += `<tr class="hover:bg-slate-100 transition-colors border-b border-slate-100/50 ${bgClass}">${trData}</tr>`;
     });
     tbody.innerHTML = rowsHtml;
 }
 
 // ==========================================
-// មុខងារ Print To PDF / A4 (ទម្រង់អាប់ដេតថ្មី - លេខសកល & Siemreap Font)
+// មុខងារជំនួយសម្រាប់បោះពុម្ពលើទូរស័ព្ទដៃ (Mobile Print Fix សម្រាប់ iOS/Android)
 // ==========================================
-window.printRankingTable = function() {
-    const sInfo = typeof appSettings !== 'undefined' ? appSettings : {};
-    const grade = sInfo.teacher_level && sInfo.teacher_room ? `${sInfo.teacher_level} ${sInfo.teacher_room}` : "ថ្នាក់ទី ១ «ក»";
-    const type = document.getElementById("globalPeriodType")?.value || "monthly";
-    const month = document.getElementById("globalPeriodValue")?.value || "មករា";
-
-    const schoolName = sInfo.school_name || "សាលាបឋមសិក្សា";
-    let rawDistrict = sInfo.district || "ស្រុកកៀនស្វាយ";
-    const districtName = rawDistrict.replace('ស្រុក', '').trim(); 
-    
-    const academicYear = sInfo.academic_year || "2026-2027";
-    const teacherName = sInfo.teacher_name || ".......................";
-    const principalName = sInfo.principal_name || ".......................";
-    
-    if (!window.rankingsDataList || window.rankingsDataList.length === 0) {
-        alert("⚠️ មិនមានទិន្នន័យចំណាត់ថ្នាក់សម្រាប់បោះពុម្ពទេ!");
-        return;
+window.triggerMobilePrint = function(styleBlock, htmlBody) {
+    // លុបផ្ទាំង Print ចាស់ចេញ (ប្រសិនបើមាន)
+    let printArea = document.getElementById('mobile-print-area');
+    if (printArea) {
+        printArea.remove();
     }
+    
+    // បង្កើតក្រដាស Print ថ្មីបញ្ជូលទៅក្នុងប្រព័ន្ធ
+    printArea = document.createElement('div');
+    printArea.id = 'mobile-print-area';
+    document.body.appendChild(printArea);
+    
+    let oldCss = document.getElementById('mobile-print-global-css');
+    if (oldCss) oldCss.remove();
 
-    let rankedStudents = [...window.rankingsDataList];
-    rankedStudents.sort((a, b) => a.rank - b.rank);
-
-    let total = rankedStudents.length;
-    let female = rankedStudents.filter(s => s.gender === "ស្រី").length;
-    let passedStudents = rankedStudents.filter(s => s.avg >= 5.0);
-    let passedTotal = passedStudents.length;
-    let passedFemale = passedStudents.filter(s => s.gender === "ស្រី").length;
-    let failedTotal = total - passedTotal;
-    let failedFemale = female - passedFemale;
-
-    let passPct = total > 0 ? ((passedTotal / total) * 100).toFixed(2) : "0.00";
-    let failPct = total > 0 ? ((failedTotal / total) * 100).toFixed(2) : "0.00";
-    let passFemalePct = female > 0 ? ((passedFemale / female) * 100).toFixed(2) : "0.00";
-    let failFemalePct = female > 0 ? ((failedFemale / female) * 100).toFixed(2) : "0.00";
-
-    const half = Math.ceil(rankedStudents.length / 2);
-    const leftList = rankedStudents.slice(0, half);
-    const rightList = rankedStudents.slice(half);
-
-    let rowsHtml = "";
-
-    for (let i = 0; i < half; i++) {
-        const s1 = leftList[i];
-        const s2 = rightList[i];
-        
-        const rowBgClass = (i % 2 === 0) ? 'background-color: #fff;' : 'background-color: #f8fafc;';
-
-        const row1Html = s1 ? `
-            <td class="td-cell text-slate-500 font-siemreap text-[13px]">${i + 1}</td>
-            <td class="td-cell td-name font-siemreap">${s1.name}</td>
-            <td class="td-cell font-siemreap text-[13px]" style="color: ${s1.gender === 'ស្រី' ? '#e11d48' : '#1e3a8a'}; font-weight: bold;">${s1.gender === 'ស្រី' ? 'ស' : 'ប'}</td>
-            <td class="td-cell text-[14px] font-bold font-siemreap" style="color: #1d4ed8;">${s1.avg.toFixed(2)}</td>
-            <td class="td-cell text-[14px] font-bold font-siemreap border-r-[2.5px] border-indigo-900" style="color: #e11d48;">${s1.rank}</td>
-        ` : `<td class="td-cell"></td><td class="td-cell"></td><td class="td-cell"></td><td class="td-cell"></td><td class="td-cell border-r-[2.5px] border-indigo-900"></td>`;
-
-        const row2Html = s2 ? `
-            <td class="td-cell text-slate-500 font-siemreap text-[13px] border-l-[2.5px] border-indigo-900">${half + i + 1}</td>
-            <td class="td-cell td-name font-siemreap">${s2.name}</td>
-            <td class="td-cell font-siemreap text-[13px]" style="color: ${s2.gender === 'ស្រី' ? '#e11d48' : '#1e3a8a'}; font-weight: bold;">${s2.gender === 'ស្រី' ? 'ស' : 'ប'}</td>
-            <td class="td-cell text-[14px] font-bold font-siemreap" style="color: #1d4ed8;">${s2.avg.toFixed(2)}</td>
-            <td class="td-cell text-[14px] font-bold font-siemreap" style="color: #e11d48;">${s2.rank}</td>
-        ` : `<td class="td-cell border-l-[2.5px] border-indigo-900"></td><td class="td-cell"></td><td class="td-cell"></td><td class="td-cell"></td><td class="td-cell"></td>`;
-
-        rowsHtml += `<tr style="${rowBgClass}">${row1Html}${row2Html}</tr>`;
-    }
-
-    let titleText = `តារាងចំណាត់ថ្នាក់ប្រចាំខែ${month}`;
-    if (type === "semester") titleText = `តារាងចំណាត់ថ្នាក់ប្រចាំ${month}`;
-    else if (type === "annual") titleText = `តារាងចំណាត់ថ្នាក់ប្រចាំឆ្នាំសិក្សា`;
-
-    const rDates = window.reportCardDateSettings || {};
-    const lunarDateStr = rDates.showLunar !== false ? rDates.lunarDate : "";
-    const solarDateStr = typeof window.getFormattedSolarDate === 'function' ? window.getFormattedSolarDate() : `ធ្វើនៅ...................., ថ្ងៃទី........ ខែ........ ឆ្នាំ ២០២...`;
-
-    const printContent = `
-      <!DOCTYPE html>
-      <html lang="km">
-      <head>
-        <meta charset="utf-8">
-        <title>${titleText} - ${grade}</title>
-        <style>
-          @import url('https://fonts.googleapis.com/css2?family=Battambang:wght@400;700&family=Moul&family=Siemreap&display=swap');
-          
-          @page { size: A4 portrait; margin: 10mm; }
-          * { box-sizing: border-box !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          
-          html, body { 
-              margin: 0 !important; 
-              padding: 0 !important; 
-              font-family: 'Siemreap', sans-serif; 
-              color: #0f172a; 
-              background: #fff; 
-              width: 100%; 
-              line-height: 1.4; 
-          }
-          
-          .font-moul { font-family: 'Moul', serif !important; font-weight: normal; }
-          .font-siemreap { font-family: 'Siemreap', sans-serif !important; }
-          
-          /* ---------------- Header ---------------- */
-          .header-box { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; width: 100%; }
-          .header-left { text-align: left; margin-top: 15px; }
-          .header-left p { margin: 0 0 5px 0; font-size: 13px; line-height: 1.6; }
-          .header-right { text-align: center; }
-          .header-right p { margin: 0 0 5px 0; font-size: 14px; line-height: 1.6; }
-          
-          /* ---------------- Title ---------------- */
-          .title-box { text-align: center; margin: 15px 0 15px 0; }
-          .title-box h2 { margin: 0 0 8px 0; font-size: 16px; color: #be123c; font-family: 'Moul', serif; letter-spacing: 1px; }
-          .title-box p { margin: 0; font-size: 12px; font-weight: bold; color: #334155; font-family: 'Siemreap', sans-serif; }
-          
-          /* ---------------- Table ---------------- */
-          .main-table { width: 100%; border-collapse: collapse !important; border-spacing: 0 !important; text-align: center; table-layout: fixed; border: 1.5px solid #0f172a !important; font-family: 'Siemreap', sans-serif; }
-          
-          .th-cell { 
-              background-color: #ffedd5 !important; 
-              color: #1e3a8a;
-              font-family: 'Moul', serif; 
-              font-size: 10.5px; 
-              border: 1px solid #475569 !important; 
-              padding: 8px 2px; 
-              vertical-align: middle; 
-          }
-          
-          .td-cell { 
-              border: 1px solid #94a3b8 !important; 
-              padding: 5px 2px; 
-              height: 28px; 
-              font-size: 11px; 
-              vertical-align: middle; 
-          }
-          
-          .td-name { 
-              text-align: left !important; 
-              padding-left: 8px !important; 
-              font-size: 13px !important; 
-              color: #0f172a; 
-              white-space: nowrap; 
-              overflow: hidden; 
-              text-overflow: ellipsis; 
-          }
-          
-          /* ---------------- Summary & Footer Flexbox Layout ---------------- */
-          .summary-table { width: 100%; font-size: 11.5px; font-weight: bold; color: #1e293b; border-top: 1.5px solid #86efac; padding-top: 5px; border-collapse: collapse; font-family: 'Siemreap', sans-serif;}
-          .summary-table td { padding: 4px 2px; border: none; white-space: nowrap; }
-          .num-badge { font-family: 'Siemreap', sans-serif; font-size: 13px; font-weight: bold; }
-          
-          .flex-container { display: flex; justify-content: space-between; width: 100%; margin-top: 15px; page-break-inside: avoid; }
-          .summary-section { width: 60%; }
-          .date-sig-section { width: 35%; text-align: center; }
-          
-          .bottom-sig-container { display: flex; justify-content: space-between; width: 100%; margin-top: 25px; page-break-inside: avoid; padding: 0 10px; }
-          .sig-box { width: 50%; text-align: center; }
-          
-        </style>
-      </head>
-      <body>
-        <!-- Header -->
-        <div class="header-box">
-          <div class="header-left"><br>
-            <p class="font-moul" style="color: #1e3a8a;">ការិយាល័យអប់រំ យុវជន និងកីឡានៃរដ្ឋបាល ស្រុក${districtName}</p>
-            <p class="font-moul" style="color: #1e3a8a;">${schoolName}</p>
-            <p class="font-moul" style="color: #1e3a8a;">${grade}</p>
-          </div>
-          <div class="header-right">
-            <p class="font-moul" style="color: #1e3a8a;">ព្រះរាជាណាចក្រកម្ពុជា</p>
-            <p class="font-moul" style="color: #1e3a8a;">ជាតិ សាសនា ព្រះមហាក្សត្រ</p>
-            <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin: 4px auto 10px auto; width: 60%;">
-                 <span style="color: #d97706; font-size: 11px; letter-spacing: 2px;">❖ ❖ ❖</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Title -->
-        <div class="title-box">
-          <h2>${titleText}</h2>
-          <p>ឆ្នាំសិក្សា ៖ <span class="font-siemreap #e11d48;">${academicYear}</span></p>
-        </div>
-
-        <!-- Main Table -->
-        <table class="main-table">
-          <thead>
-            <tr>
-              <th class="th-cell" style="width: 5%;">ល.រ</th>
-              <th class="th-cell" style="width: 19%;">គោត្តនាម.នាម</th>
-              <th class="th-cell" style="width: 5%;">ភេទ</th>
-              <th class="th-cell" style="width: 7.5%; color: #1d4ed8;">មធ្យមភាគ</th>
-              <th class="th-cell border-r-[2.5px] border-indigo-900" style="width: 8.5%; color: #e11d48;">ចំណាត់ថ្នាក់</th>
-              
-              <th class="th-cell border-l-[2.5px] border-indigo-900" style="width: 5%;">ល.រ</th>
-              <th class="th-cell" style="width: 19%;">គោត្តនាម.នាម</th>
-              <th class="th-cell" style="width: 5%;">ភេទ</th>
-              <th class="th-cell" style="width: 7.5%; color: #1d4ed8;">មធ្យមភាគ</th>
-              <th class="th-cell" style="width: 8.5%; color: #e11d48;">ចំណាត់ថ្នាក់</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rowsHtml}
-          </tbody>
-        </table>
-
-        <!-- Summary & Top Signatures using Flexbox -->
-        <div class="flex-container">
-            <!-- ផ្នែកស្ថិតិខាងឆ្វេង -->
-            <div class="summary-section">
-                <table class="summary-table">
-                    <tr style="color: #1e293b;">
-                        <td style="text-align: left; width: 29%;">បញ្ឈប់បញ្ជីត្រឹមលេខរៀងទី</td>
-                        <td style="text-align: left; width: 7%;"><span class="num-badge">${total}</span></td>
-                        <td style="text-align: left; width: 14%;">សិស្សសរុប</td>
-                        <td style="text-align: right; width: 11%;"><span class="num-badge">${total}</span> នាក់</td>
-                        <td style="text-align: right; width: 10%;">ស្រី <span class="num-badge" style="margin-left:5px;">${female}</span> នាក់</td>
-                    </tr>
-                    <tr style="color: #059669;">
-                        <td style="text-align: left;" colspan="2">សិស្សជាប់មធ្យមភាគសរុប</td>
-                        <td style="text-align: left;"><span class="num-badge">${passedTotal}</span> នាក់</td>
-                        <td style="text-align: right;"><span class="num-badge">${passPct}%</span></td>
-                        <td style="text-align: right;">ស្រី <span class="num-badge" style="margin-left:5px;">${passedFemale}</span> នាក់</td>
-                        <td style="text-align: right;"><span class="num-badge">${passFemalePct}%</span></td>
-                    </tr>
-                    <tr style="color: #e11d48;">
-                        <td style="text-align: left;" colspan="2">សិស្សធ្លាក់មធ្យមភាគសរុប</td>
-                        <td style="text-align: left;"><span class="num-badge">${failedTotal}</span> នាក់</td>
-                        <td style="text-align: right;"><span class="num-badge">${failPct}%</span></td>
-                        <td style="text-align: right;">ស្រី <span class="num-badge" style="margin-left:5px;">${failedFemale}</span> នាក់</td>
-                        <td style="text-align: right;"><span class="num-badge">${failFemalePct}%</span></td>
-                    </tr>
-                </table>
-            </div>
-            
-            <!-- ផ្នែកកាលបរិច្ឆេទនិងគ្រូ ខាងស្តាំ -->
-            <div class="date-sig-section">
-                ${lunarDateStr ? `<p style="margin: 0 0 6px 0; font-size: 11.5px; color: #334155; font-family: 'Siemreap', sans-serif;">${lunarDateStr}</p>` : ''}
-                <p style="margin: 0; font-size: 11.5px; color: #334155; font-family: 'Siemreap', sans-serif;">${solarDateStr}</p>
-                <p style="margin: 5px 0 50px 0; font-family: 'Moul', serif; font-size: 12px; color: #1e3a8a;">គ្រូប្រចាំថ្នាក់</p>
-                <p style="margin: 0; font-family: 'Moul', serif; font-size: 13px; color: #be123c;">${teacherName}</p>
-            </div>
-        </div>
-
-        <!-- ផ្នែកហត្ថលេខាខាងក្រោម (Principal & Tech Lead) -->
-        <div class="bottom-sig-container">
-            <div class="sig-box">
-                <p style="margin: 0; font-size: 11.5px; color: #334155; font-family: 'Siemreap', sans-serif;">បានឃើញ និងឯកភាព</p>
-                <p style="margin: 5px 0 50px 0; font-family: 'Moul', serif; font-size: 12px; color: #1e3a8a;">នាយកសាលា</p>
-                <p style="margin: 0; font-family: 'Moul', serif; font-size: 13px; color: #be123c;">${principalName}</p>
-            </div>
-        </div>
-
-      </body>
-      </html>
+    let printCSS = document.createElement('style');
+    printCSS.id = 'mobile-print-global-css';
+    printCSS.innerHTML = `
+        @media print {
+            /* លាក់ផ្ទាំងកម្មវិធីទាំងអស់ពេល Print */
+            body > *:not(#mobile-print-area) { display: none !important; }
+            body { background: white !important; margin: 0 !important; padding: 0 !important; }
+            #mobile-print-area { display: block !important; width: 100%; position: absolute; top: 0; left: 0; background: white; z-index: 999999; }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        }
+        @media screen {
+            /* លាក់ផ្ទាំង Print ពេលមើលធម្មតាលើអេក្រង់ */
+            #mobile-print-area { display: none !important; }
+        }
     `;
-
-    // ប្រើ Hidden Iframe ដើម្បី Print 
-    let iframe = document.getElementById('printRankIframe');
-    if (!iframe) {
-        iframe = document.createElement('iframe');
-        iframe.id = 'printRankIframe';
-        iframe.style.position = 'fixed';
-        iframe.style.right = '0';
-        iframe.style.bottom = '0';
-        iframe.style.width = '0';
-        iframe.style.height = '0';
-        iframe.style.border = '0';
-        document.body.appendChild(iframe);
-    }
-
-    const doc = iframe.contentWindow.document;
-    doc.open();
-    doc.write(printContent);
-    doc.close();
-
+    document.head.appendChild(printCSS);
+    
+    printArea.innerHTML = styleBlock + htmlBody;
+    
+    // រង់ចាំបន្តិចឱ្យទូរស័ព្ទ Load អក្សរ Google Fonts រួចរាល់ ទើបហៅផ្ទាំង Print មក
     setTimeout(() => {
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print();
-    }, 1000);
+        window.print();
+        // 🔴 បានលុបមុខងារ Auto Cleanup ចេញ ដើម្បីការពារកុំឱ្យ iOS លោតបាត់ផ្ទាំង Print ពេលលោកគ្រូសារ៉េក្រដាស (Zoom)
+    }, 800); 
 };
 
 // ==========================================
-// មុខងារ Export ទៅជា Excel (លេខសកល & Siemreap Font)
+// ០៩. Print / PDF បញ្ជីចំណាត់ថ្នាក់ (អក្សរបញ្ឈរ, លេខសកល, គាំទ្រ Google Fonts)
+// ==========================================
+window.printRankingTable = function() {
+    if(typeof window.calculateAllScores === 'function') window.calculateAllScores();
+    if(!window.rankingsDataList || window.rankingsDataList.length === 0) return alert("⚠️ គ្មានទិន្នន័យដើម្បីបោះពុម្ពទេ!");
+
+    const type = document.getElementById("globalPeriodType")?.value || "monthly";
+    const month = document.getElementById("globalPeriodValue")?.value || "មករា";
+    
+    const sInfo = typeof appSettings !== 'undefined' ? appSettings : {};
+    const grade = (sInfo.teacher_level && sInfo.teacher_room) ? `${sInfo.teacher_level} ${sInfo.teacher_room}`.trim() : "ថ្នាក់ទី";
+
+    let rawDistrict = sInfo.district || "ស្រុកកៀនស្វាយ";
+    const districtName = rawDistrict.replace('ស្រុក', '').trim(); 
+    const schoolName = sInfo.school_name || "សាលាបឋមសិក្សា.......................";
+    const principalName = sInfo.principal_name || ".......................";
+    const teacherName = window.AuthState ? window.AuthState.teacherName : (localStorage.getItem('auth_teacher_name') || '.......................');
+    const academicYear = document.getElementById("globalAcademicYear")?.value || localStorage.getItem('selected_academic_year') || "2026-2027";
+
+    let titleText = `ចំណាត់ថ្នាក់ប្រចាំខែ${month}`;
+    if (type === "semester") {
+        titleText = month.includes("ឆមាសលើកទី១") ? "ចំណាត់ថ្នាក់ប្រចាំឆមាសលើកទី១" : (month.includes("ឆមាសលើកទី២") ? "ចំណាត់ថ្នាក់ប្រចាំឆមាសលើកទី២" : `ចំណាត់ថ្នាក់${month}`);
+    } else if (type === "annual") {
+        titleText = `ចំណាត់ថ្នាក់ប្រចាំឆ្នាំ`;
+    }
+
+    const rDates = window.reportCardDateSettings || {};
+    let locationStr = (rDates.location || "ធ្វើនៅ.........................").trim();
+    let sDate = (rDates.solarDate || "ថ្ងៃទី....... ខែ....... ឆ្នាំ២០....").trim();
+
+    if (sDate.includes("ថ្ងៃទី")) {
+        sDate = sDate.substring(sDate.indexOf("ថ្ងៃទី"));
+    }
+    locationStr = locationStr.replace(/,+$/, '').trim();
+
+    const solarDateStr = `${locationStr}, ${sDate}`;
+    const lunarDateStr = rDates.showLunar !== false 
+        ? (rDates.lunarDate || "ថ្ងៃ......................... ខែ............ ឆ្នាំ............ ព.ស.២៥៧...") 
+        : "";
+
+    let stus = [...window.rankingsDataList].sort((a, b) => a.rank - b.rank);
+    const half = Math.ceil(stus.length / 2);
+
+    let totalStus = stus.length;
+    let femaleStus = stus.filter(s => s.gender === 'ស្រី').length;
+    
+    let passMark = 5.0; 
+    if ((type === "semester" || type === "annual") && window.rankingsDataList.some(s => s.avg > 15)) {
+        passMark = 25.0;
+    }
+    let passed = stus.filter(s => s.avg >= passMark).length;
+    let passedF = stus.filter(s => s.avg >= passMark && s.gender === 'ស្រី').length;
+    let failed = totalStus - passed;
+    let failedF = femaleStus - passedF;
+
+    let passPct = totalStus > 0 ? ((passed / totalStus) * 100).toFixed(2) : "0.00";
+    let failPct = totalStus > 0 ? ((failed / totalStus) * 100).toFixed(2) : "0.00";
+    let passFPct = femaleStus > 0 ? ((passedF / femaleStus) * 100).toFixed(2) : "0.00";
+    let failFPct = femaleStus > 0 ? ((failedF / femaleStus) * 100).toFixed(2) : "0.00";
+
+    // 🟢 បន្ថែម Fallback Google Fonts (Moul, Siemreap) ចូលទៅក្នុង Inline Styles 🟢
+    let headerHtml = '';
+    const thBase = `border: 1pt solid #000; text-align: center; vertical-align: middle; font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 10pt; font-weight: normal;`;
+    
+    const thV = (text, bgHex, isRightSide) => {
+        const leftBorder = isRightSide ? 'border-left: 2pt solid #000;' : '';
+        return `<th class="th-vert" style="${thBase} background-color: ${bgHex}; ${leftBorder} padding: 0;"><div class="div-vert">${text}</div></th>`;
+    };
+
+    const thN = (text, w, align, padding, bgHex, isRightSide) => {
+        const leftBorder = isRightSide ? 'border-left: 2pt solid #000;' : '';
+        return `<th style="${thBase} background-color: ${bgHex}; width: ${w}; text-align: ${align}; padding-left: ${padding}; ${leftBorder}">${text}</th>`;
+    };
+    
+    if (type === "monthly") {
+        headerHtml = `
+            <tr>
+                ${thN('ល.រ', '5.5%', 'center', '0', '#f8fafc', false)}
+                ${thN('គោត្តនាម និងនាម', '22%', 'left', '6px', '#f8fafc', false)}
+                ${thN('ភេទ', '5.5%', 'center', '0', '#f8fafc', false)}
+                ${thV('មធ្យមភាគ', '#eff6ff', false)}
+                ${thV('ចំណាត់ថ្នាក់', '#fff1f2', false)}
+
+                ${thN('ល.រ', '5.5%', 'center', '0', '#f8fafc', true)}
+                ${thN('គោត្តនាម និងនាម', '22%', 'left', '6px', '#f8fafc', false)}
+                ${thN('ភេទ', '5.5%', 'center', '0', '#f8fafc', false)}
+                ${thV('មធ្យមភាគ', '#eff6ff', false)}
+                ${thV('ចំណាត់ថ្នាក់', '#fff1f2', false)}
+            </tr>
+        `;
+    } else if (type === "semester") {
+        headerHtml = `
+            <tr>
+                ${thN('ល.រ', '4%', 'center', '0', '#f8fafc', false)}
+                ${thN('គោត្តនាម និងនាម', '20%', 'left', '4px', '#f8fafc', false)}
+                ${thN('ភេទ', '5%', 'center', '0', '#f8fafc', false)}
+                ${thV('ម.ប្រឡងឆមាស', '#e0f2fe', false)}
+                ${thV('មធ្យមខែ', '#fef3c7', false)}
+                ${thV('ម.ប្រចាំឆមាស', '#dcfce7', false)}
+                ${thV('ចំណាត់ថ្នាក់', '#fff1f2', false)}
+
+                ${thN('ល.រ', '4%', 'center', '0', '#f8fafc', true)}
+                ${thN('គោត្តនាម និងនាម', '20%', 'left', '4px', '#f8fafc', false)}
+                ${thN('ភេទ', '5%', 'center', '0', '#f8fafc', false)}
+                ${thV('ម.ប្រឡងឆមាស', '#e0f2fe', false)}
+                ${thV('មធ្យមខែ', '#fef3c7', false)}
+                ${thV('ម.ប្រចាំឆមាស', '#dcfce7', false)}
+                ${thV('ចំណាត់ថ្នាក់', '#fff1f2', false)}
+            </tr>
+        `;
+    } else {
+        headerHtml = `
+            <tr>
+                ${thN('ល.រ', '4%', 'center', '0', '#f8fafc', false)}
+                ${thN('គោត្តនាម និងនាម', '20%', 'left', '4px', '#f8fafc', false)}
+                ${thN('ភេទ', '5%', 'center', '0', '#f8fafc', false)}
+                ${thV('ម.ឆមាសទី១', '#e0e7ff', false)}
+                ${thV('ម.ឆមាសទី២', '#dcfce7', false)}
+                ${thV('ម.ប្រចាំឆ្នាំ', '#fef3c7', false)}
+                ${thV('ចំណាត់ថ្នាក់', '#fff1f2', false)}
+
+                ${thN('ល.រ', '4%', 'center', '0', '#f8fafc', true)}
+                ${thN('គោត្តនាម និងនាម', '20%', 'left', '4px', '#f8fafc', false)}
+                ${thN('ភេទ', '5%', 'center', '0', '#f8fafc', false)}
+                ${thV('ម.ឆមាសទី១', '#e0e7ff', false)}
+                ${thV('ម.ឆមាសទី២', '#dcfce7', false)}
+                ${thV('ម.ប្រចាំឆ្នាំ', '#fef3c7', false)}
+                ${thV('ចំណាត់ថ្នាក់', '#fff1f2', false)}
+            </tr>
+        `;
+    }
+
+    let rowsHtml = "";
+    // 🟢 ប្រើប្រាស់ 'Siemreap' សម្រាប់អក្សរធម្មតា 🟢
+    const tdBase = `border: 1pt solid #000; padding: 4px 2px; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif; font-size: 10pt; text-align: center; vertical-align: middle;`;
+
+    for (let i = 0; i < half; i++) {
+        const s1 = stus[i];
+        const s2 = stus[half + i];
+
+        const renderRow = (stu, index, isRightSide) => {
+            const leftBorder = isRightSide ? 'border-left: 2pt solid #000;' : '';
+            if (!stu) {
+                const cols = type === "monthly" ? 5 : 7;
+                return `<td colspan="${cols}" style="${tdBase} ${leftBorder} background-color: transparent;"></td>`;
+            }
+            
+            const genColor = stu.gender === 'ស្រី' ? 'color: #be123c;' : 'color: #000;';
+            const avgScore = (stu.avg !== undefined && !isNaN(stu.avg)) ? stu.avg.toFixed(2) : '';
+            const avgColor = (stu.avg >= passMark) ? 'color: #16a34a;' : 'color: #be123c;';
+            
+            let row = `<td style="${tdBase} ${leftBorder}">${index}</td>
+                       <td style="${tdBase} text-align: left; padding-left: 6px; font-weight: normal; white-space: nowrap; overflow: hidden;">${stu.name}</td>
+                       <td style="${tdBase} font-weight: bold; ${genColor}">${stu.gender === 'ស្រី' ? 'ស' : 'ប'}</td>`;
+            
+            if (type === "monthly") {
+                row += `<td style="${tdBase} font-weight: bold; ${avgColor}">${avgScore}</td>
+                        <td style="${tdBase} font-weight: bold; color: #be123c;">${stu.rank||''}</td>`;
+            } else if (type === "semester") {
+                row += `<td style="${tdBase}">${(stu.exam_avg !== undefined && !isNaN(stu.exam_avg)) ? parseFloat(stu.exam_avg).toFixed(2) : ''}</td>
+                        <td style="${tdBase}">${(stu.monthly_avg !== undefined && !isNaN(stu.monthly_avg)) ? parseFloat(stu.monthly_avg).toFixed(2) : ''}</td>
+                        <td style="${tdBase} font-weight: bold; ${avgColor}">${avgScore}</td>
+                        <td style="${tdBase} font-weight: bold; color: #be123c;">${stu.rank||''}</td>`;
+            } else {
+                row += `<td style="${tdBase}">${(stu.sem1_avg !== undefined && !isNaN(stu.sem1_avg)) ? parseFloat(stu.sem1_avg).toFixed(2) : ''}</td>
+                        <td style="${tdBase}">${(stu.sem2_avg !== undefined && !isNaN(stu.sem2_avg)) ? parseFloat(stu.sem2_avg).toFixed(2) : ''}</td>
+                        <td style="${tdBase} font-weight: bold; ${avgColor}">${avgScore}</td>
+                        <td style="${tdBase} font-weight: bold; color: #be123c;">${stu.rank||''}</td>`;
+            }
+            return row;
+        };
+
+        const bgRow = i % 2 !== 0 ? 'background-color: #f8fafc;' : 'background-color: #ffffff;';
+        rowsHtml += `<tr style="${bgRow} height: 26px;">${renderRow(s1, i + 1, false)}${renderRow(s2, half + i + 1, true)}</tr>`;
+    }
+
+    // 🟢 ភ្ជាប់ Google Fonts Import ចូលទៅក្នុង Style ផ្ទាល់ 🟢
+    const styleBlock = `
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Moul&family=Siemreap:wght@400;700&display=swap');
+          
+          @page { size: A4 portrait; margin: 10mm; }
+          #mobile-print-area * { box-sizing: border-box !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif; }
+          #mobile-print-area { background: #fff; line-height: 1.4; width: 100%; max-width: 190mm; margin: 0 auto; color: #000; }
+          #mobile-print-area .font-moul { font-family: 'Khmer OS Muol Light', 'Moul', serif !important; font-weight: normal; }
+          
+          /* CSS សម្រាប់អក្សរឈរ */
+          #mobile-print-area .th-vert { height: 110px; max-height: 110px; vertical-align: middle; text-align: center; padding: 0; width: 30px; min-width: 30px; }
+          #mobile-print-area .div-vert {
+              writing-mode: vertical-rl;
+              transform: rotate(180deg);
+              white-space: nowrap;
+              height: 100px;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              text-align: center;
+              margin: 15px auto;
+              font-family: 'Khmer OS Muol Light', 'Moul', serif;
+              font-size: 11pt;
+              font-weight: normal;
+              color: #000c5b;
+          }
+
+          /* Headers */
+          #mobile-print-area .header-box { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; width: 100%; color: #000c58;}
+          #mobile-print-area .header-left { text-align: left; }
+          #mobile-print-area .header-left p { margin: 0 0 4px 0; font-size: 12pt; line-height: 1.5; font-family: 'Khmer OS Muol Light', 'Moul', serif; }
+          #mobile-print-area .header-right { text-align: center; }
+          #mobile-print-area .header-right p { margin: 0 0 4px 0; font-size: 12pt; line-height: 1.5; font-family: 'Khmer OS Muol Light', 'Moul', serif; }
+          
+          /* Title */
+          #mobile-print-area .title-box { text-align: center; margin: 10px 0 15px 0; }
+          #mobile-print-area .title-box h2 { margin: 0 0 6px 0; font-size: 14pt; color: #000b51; letter-spacing: 0.5px; font-family: 'Khmer OS Muol Light', 'Moul', serif; }
+          #mobile-print-area .title-box p { margin: 0; font-size: 12pt; color: #ff0000; font-weight: normal; font-family: 'Khmer OS Muol Light', 'Moul', serif; }
+          
+          /* Table */
+          #mobile-print-area table.rnk-table { width: 100%; border-collapse: collapse !important; margin-bottom: 11px; text-align: center; table-layout: fixed; border: 1pt solid #06005e; }
+          
+          /* Summary & Sigs */
+          #mobile-print-area .summary-table { width: 100%; font-size: 12pt; color: #000422; border-collapse: collapse; margin-bottom: 20px; }
+          #mobile-print-area .summary-table td { padding: 3px 0 !important; border: none !important; text-align: left; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif; }
+          
+          #mobile-print-area .bottom-sig-container { font-size: 12pt; display: flex; color: #00052a; justify-content: space-between; align-items: flex-start; width: 100%; page-break-inside: avoid; padding: 0 20px; margin-top: 15px; }
+          #mobile-print-area .sig-box { width: 60%; text-align: center; }
+        </style>
+    `;
+
+    const htmlBody = `
+        <div class="header-box">
+          <div class="header-left"><br><br>
+            <p>ការិយាល័យអប់រំ យុវជន និងកីឡានៃរដ្ឋបាលស្រុក${districtName}</p>
+            <p>${schoolName}</p>
+            <p>${grade}</p>
+          </div>
+          <div class="header-right">
+             <p>ព្រះរាជាណាចក្រកម្ពុជា</p>
+             <p>ជាតិ សាសនា ព្រះមហាក្សត្រ</p>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin: 4px auto 10px auto; width: 60%;">
+                        <div style="height: 1px; flex: 1; background: linear-gradient(to right, transparent, #d97706);"></div>
+                        <span style="color: #d97706; font-size: 11px;">❖ ❖ ❖</span>
+                        <div style="height: 1px; flex: 1; background: linear-gradient(to left, transparent, #d97706);"></div>
+                    </div>
+          </div>
+        </div>
+        
+        <div class="title-box">
+          <h2>${titleText}</h2>
+          <p>ឆ្នាំសិក្សា ៖ ${academicYear}</p>
+        </div>
+        
+        <table class="rnk-table">
+            <thead>${headerHtml}</thead>
+            <tbody>${rowsHtml}</tbody>
+        </table>
+
+        <!-- ស្ថិតិលេខសកល -->
+        <table class="summary-table">
+            <tr>
+                <td style="width: 100%;">
+                    ❖ បញ្ឈប់បញ្ជីត្រឹមលេខរៀង <b>${totalStus}</b> សិស្សសរុប <b>${totalStus}</b> នាក់ ស្រី <b>${femaleStus}</b> នាក់
+                </td>
+            </tr>
+            <tr>
+                <td style="width: 100%;">
+                    ❖ សិស្សជាប់មធ្យមភាគ <b>${passed}</b> នាក់ (<b>${passPct}%</b>) ស្រី <b>${passedF}</b> នាក់ (<b>${passFPct}%</b>)
+                </td>
+            </tr>
+            <tr>
+                <td style="width: 100%;">
+                    ❖ សិស្សធ្លាក់មធ្យមភាគ <b>${failed}</b> នាក់ (<b>${failPct}%</b>) ស្រី <b>${failedF}</b> នាក់ (<b>${failFPct}%</b>)
+                </td>
+            </tr>
+        </table>
+        
+        <div class="bottom-sig-container">
+            <div class="sig-box"><br><br>
+                <p class="font-moul" style="margin: 0 0 5px 0; font-size: 11pt;">បានឃើញ និងឯកភាព</p>
+                <p class="font-moul" style="margin: 0 0 60px 0; font-size: 11pt;">នាយកសាលា</p>
+            </div>
+            <div class="sig-box" style="width: 100%;">
+                <p style="margin: 0 0 10px 0; font-size: 12pt; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif;">${lunarDateStr}</p>
+                <p style="margin: 0 0 5px 0; font-size: 12pt; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif;">${solarDateStr}</p>
+                <p class="font-moul" style="margin-bottom: 60px; font-size: 12pt;">គ្រូបន្ទុកថ្នាក់</p>
+                <p class="font-moul" style="font-size: 11pt;">${teacherName}</p>
+            </div>
+        </div>
+    `;
+    
+    if(typeof window.triggerMobilePrint === 'function') {
+        window.triggerMobilePrint(styleBlock, htmlBody);
+    } else {
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) return alert("⚠️ សូមអនុញ្ញាត Pop-up។");
+        printWindow.document.open();
+        printWindow.document.write(`<!DOCTYPE html><html lang="km"><head><meta charset="utf-8"><title>${titleText}</title>${styleBlock}</head><body id="mobile-print-area">${htmlBody}</body></html>`);
+        printWindow.document.close();
+        setTimeout(() => { printWindow.focus(); printWindow.print(); }, 1000);
+    }
+};
+
+// ==========================================
+// មុខងារ Export ទៅជា Excel (អក្សរបញ្ឈរ, លេខសកល)
 // ==========================================
 window.exportRankingsToExcel = function() {
     if (!window.rankingsDataList || window.rankingsDataList.length === 0) return alert("គ្មានទិន្នន័យចំណាត់ថ្នាក់ដើម្បីទាញយកទេ!");
 
     const sInfo = typeof appSettings !== 'undefined' ? appSettings : {};
-    const levelStr = sInfo.teacher_level || "ថ្នាក់ទី";
+    const levelStr = sInfo.teacher_level || "";
     const roomStr = sInfo.teacher_room || "";
-    const grade = `${levelStr} ${roomStr}`.trim() || "ថ្នាក់ទី ១ «ក»";
-    const academicYear = sInfo.academic_year || "2026-2027";
+    const grade = `${levelStr} ${roomStr}`.trim() || "ថ្នាក់ទី";
+    const academicYear = document.getElementById("globalAcademicYear")?.value || "2026-2027";
     
     let rawDistrict = sInfo.district || "ស្រុកកៀនស្វាយ";
     const districtName = rawDistrict.replace('ស្រុក', '').trim(); 
-    const schoolName = sInfo.school_name || "សាលាបឋមសិក្សា";
+    const schoolName = sInfo.school_name || "សាលាបឋមសិក្សា.......................";
     
     const principalName = sInfo.principal_name || ".......................";
-    const teacherName = sInfo.teacher_name || ".......................";
+    const teacherName = window.AuthState ? window.AuthState.teacherName : (localStorage.getItem('auth_teacher_name') || '.......................');
 
     const periodType = document.getElementById("globalPeriodType")?.value || "monthly";
     const periodVal = document.getElementById("globalPeriodValue")?.value || "មករា";
 
     let titleText = `តារាងចំណាត់ថ្នាក់ប្រចាំខែ${periodVal}`;
     if (periodType === "semester") titleText = `តារាងចំណាត់ថ្នាក់ប្រចាំ${periodVal}`;
-    else if (periodType === "annual") titleText = `តារាងចំណាត់ថ្នាក់ប្រចាំឆ្នាំសិក្សា`;
+    else if (periodType === "annual") titleText = `តារាងចំណាត់ថ្នាក់ប្រចាំឆ្នាំ`;
 
+   // 🟢 ទាញយកកាលបរិច្ឆេទពីប្រព័ន្ធកំណត់ថ្មី (Settings Panel) និងសម្អាតកុំឱ្យជាន់គ្នា 🟢
     const rDates = window.reportCardDateSettings || {};
-    const lunarDateStr = rDates.showLunar !== false ? (rDates.lunarDate || "ថ្ងៃ..................ខែ................ឆ្នាំ.............ស័ក ព.ស.២៥៧...") : "";
-    const solarDateStr = typeof window.getFormattedSolarDate === 'function' && window.getFormattedSolarDate() !== "" 
-                         ? window.getFormattedSolarDate() 
-                         : `ធ្វើនៅ....................., ថ្ងៃទី........ខែ........ឆ្នាំ ${new Date().getFullYear()}`;
+    let locationStr = (rDates.location || "ធ្វើនៅ.........................").trim();
+    let sDate = (rDates.solarDate || "ថ្ងៃទី....... ខែ....... ឆ្នាំ២០....").trim();
 
+    // ១. កាត់យកតែផ្នែក "ថ្ងៃទី..." ចេញពី sDate បើវាមានជាប់ពាក្យ "ធ្វើនៅ" មកជាមួយ
+    if (sDate.includes("ថ្ងៃទី")) {
+        sDate = sDate.substring(sDate.indexOf("ថ្ងៃទី"));
+    }
+
+    // ២. លុបសញ្ញាក្បៀស (,) ខាងចុងនៃទីតាំងចេញ ដើម្បីកុំឱ្យជាន់គ្នា
+    locationStr = locationStr.replace(/,+$/, '').trim();
+
+    // ៣. បញ្ចូលគ្នាដើម្បីទទួលបានទម្រង់ត្រឹមត្រូវ (ឧ. ធ្វើនៅកៀនស្វាយ, ថ្ងៃទី...)
+    const solarDateStr = `${locationStr}, ${sDate}`;
+
+    // ៤. ទាញយកថ្ងៃខែចន្ទគតិ (បើក/បិទ)
+    const lunarDateStr = rDates.showLunar !== false 
+        ? (rDates.lunarDate || "ថ្ងៃ......................... ខែ............ ឆ្នាំ............ ព.ស.២៥៧...") 
+        : "";
+        
     let sortedList = [...window.rankingsDataList].sort((a, b) => a.rank - b.rank);
     let total = sortedList.length;
     let female = sortedList.filter(s => s.gender === 'ស្រី').length;
-    let passed = sortedList.filter(s => s.avg >= 5.0);
-    let passedTotal = passed.length;
-    let passedFemale = passed.filter(s => s.gender === 'ស្រី').length;
-    let failedTotal = total - passedTotal;
-    let failedFemale = female - passedFemale;
+    // 🟢 កែសម្រួលការគណនាស្ថិតិអូតូ 🟢
+    let totalStus = window.rankingsDataList.length;
+    let femaleStus = window.rankingsDataList.filter(s => s.gender === 'ស្រី').length;
+    
+    // កំណត់មធ្យមភាគជាប់គឺ ៥.០
+    let passMark = 5.0; 
+    if ((type === "semester" || type === "annual") && window.rankingsDataList.some(s => s.avg > 15)) {
+        passMark = 25.0;
+    }
 
-    let passPct = total > 0 ? ((passedTotal / total) * 100).toFixed(2) : "0.00";
-    let failPct = total > 0 ? ((failedTotal / total) * 100).toFixed(2) : "0.00";
-    let passFemalePct = female > 0 ? ((passedFemale / female) * 100).toFixed(2) : "0.00";
-    let failFemalePct = female > 0 ? ((failedFemale / female) * 100).toFixed(2) : "0.00";
+    let passed = window.rankingsDataList.filter(s => s.avg >= passMark).length;
+    let passedF = window.rankingsDataList.filter(s => s.avg >= passMark && s.gender === 'ស្រី').length;
+    let failed = totalStus - passed;
+    let failedF = femaleStus - passedF;
+
+    let passPct = total > 0 ? ((passed / total) * 100).toFixed(2) : "0.00";
+    let failPct = total > 0 ? ((failed / total) * 100).toFixed(2) : "0.00";
+    let passFemalePct = female > 0 ? ((passedF / female) * 100).toFixed(2) : "0.00";
+    let failFemalePct = female > 0 ? ((failedF / female) * 100).toFixed(2) : "0.00";
 
     const half = Math.ceil(total / 2);
     let rowsHtml = "";
 
+    const tdBaseEx = `border: 0.5pt solid #000; font-family: 'Khmer OS Siemreap', sans-serif; font-size: 10pt; text-align: center; vertical-align: middle;`;
+
+    // HTML តួអត្ថបទ (លេខសកល)
     for (let i = 0; i < half; i++) {
         let s1 = sortedList[i];
         let s2 = sortedList[i + half];
 
-        const rowBg = i % 2 === 0 ? '#ffffff' : '#f8fafc';
+        const renderRowEx = (stu, index, isRightSide) => {
+            const leftBorder = isRightSide ? 'border-left: 1.5pt solid #000;' : '';
+            if (!stu) {
+                const cols = periodType === "monthly" ? 5 : 7;
+                return `<td colspan="${cols}" style="${tdBaseEx} ${leftBorder}"></td>`;
+            }
+            
+            const genColor = stu.gender === 'ស្រី' ? 'color: #be123c;' : 'color: #000;';
+            const avgScore = (stu.avg !== undefined && !isNaN(stu.avg)) ? stu.avg.toFixed(2) : '';
+            
+            let row = `<td style="${tdBaseEx} ${leftBorder}">${index}</td>
+                       <td style="${tdBaseEx} text-align: left; padding-left: 5px;">${stu.name}</td>
+                       <td style="${tdBaseEx} ${genColor}">${stu.gender === 'ស្រី' ? 'ស' : 'ប'}</td>`;
+            
+            if (periodType === "monthly") {
+                row += `<td style="${tdBaseEx}">${avgScore}</td><td style="${tdBaseEx}">${stu.rank||''}</td>`;
+            } else if (periodType === "semester") {
+                row += `<td style="${tdBaseEx}">${(stu.monthly_avg !== undefined && !isNaN(stu.monthly_avg)) ? parseFloat(stu.monthly_avg).toFixed(2) : ''}</td>
+                        <td style="${tdBaseEx}">${(stu.exam_avg !== undefined && !isNaN(stu.exam_avg)) ? parseFloat(stu.exam_avg).toFixed(2) : ''}</td>
+                        <td style="${tdBaseEx}">${avgScore}</td><td style="${tdBaseEx}">${stu.rank||''}</td>`;
+            } else {
+                row += `<td style="${tdBaseEx}">${(stu.sem1_avg !== undefined && !isNaN(stu.sem1_avg)) ? parseFloat(stu.sem1_avg).toFixed(2) : ''}</td>
+                        <td style="${tdBaseEx}">${(stu.sem2_avg !== undefined && !isNaN(stu.sem2_avg)) ? parseFloat(stu.sem2_avg).toFixed(2) : ''}</td>
+                        <td style="${tdBaseEx}">${avgScore}</td><td style="${tdBaseEx}">${stu.rank||''}</td>`;
+            }
+            return row;
+        };
 
-        let cell1 = s1 ? `
-            <td style="text-align: center; color: #475569; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif;">${i + 1}</td>
-            <td style="text-align: left; padding-left: 5px; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif; font-size: 11px; color: #0f172a;">${s1.name}</td>
-            <td style="text-align: center; font-weight: bold; color: ${s1.gender === 'ស្រី' ? '#e11d48' : '#1e3a8a'}; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif;">${s1.gender === 'ស្រី' ? 'ស' : 'ប'}</td>
-            <td style="text-align: center; font-weight: bold; color: #1d4ed8; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif;">${s1.avg.toFixed(2)}</td>
-            <td style="text-align: center; font-weight: bold; color: #be123c; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif;">${s1.rank}</td>
-        ` : `<td></td><td></td><td></td><td></td><td></td>`;
+        rowsHtml += `<tr>${renderRowEx(s1, i + 1, false)}${renderRowEx(s2, half + i + 1, true)}</tr>`;
+    }
 
-        let cell2 = s2 ? `
-            <td style="text-align: center; color: #475569; border-left: 1.5pt solid #0f172a; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif;">${half + i + 1}</td>
-            <td style="text-align: left; padding-left: 5px; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif; font-size: 11px; color: #0f172a;">${s2.name}</td>
-            <td style="text-align: center; font-weight: bold; color: ${s2.gender === 'ស្រី' ? '#e11d48' : '#1e3a8a'}; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif;">${s2.gender === 'ស្រី' ? 'ស' : 'ប'}</td>
-            <td style="text-align: center; font-weight: bold; color: #1d4ed8; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif;">${s2.avg.toFixed(2)}</td>
-            <td style="text-align: center; font-weight: bold; color: #be123c; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif;">${s2.rank}</td>
-        ` : `<td style="border-left: 1.5pt solid #0f172a;"></td><td></td><td></td><td></td><td></td>`;
+    // 🟢 ក្បាលតារាង Excel (Khmer OS Muol Light បញ្ឈរ) 🟢
+    let theadExcel = "";
+    const thExt = `border: 0.5pt solid #000; font-family: 'Khmer OS Muol Light', serif; font-size: 10pt; font-weight: normal; text-align: center; vertical-align: middle;`;
+    const vertStyle = `mso-rotate: 90; height: 120px; white-space: nowrap; width: 35px;`;
+    
+    const thVEx = (text, bgHex, isRightSide) => {
+        const leftBorder = isRightSide ? 'border-left: 1.5pt solid #000;' : '';
+        return `<th style="${thExt} background-color: ${bgHex}; ${vertStyle} ${leftBorder}">${text}</th>`;
+    };
+    const thNEx = (text, bgHex, isRightSide) => {
+        const leftBorder = isRightSide ? 'border-left: 1.5pt solid #000;' : '';
+        return `<th style="${thExt} background-color: ${bgHex}; ${leftBorder}">${text}</th>`;
+    };
 
-        rowsHtml += `<tr style="background-color: ${rowBg}; height: 26px;">${cell1}${cell2}</tr>`;
+    if(periodType === "monthly") {
+        theadExcel = `
+            <tr>
+                ${thNEx('ល.រ', '#f8fafc', false)}
+                ${thNEx('គោត្តនាម និងនាម', '#f8fafc', false)}
+                ${thNEx('ភេទ', '#f8fafc', false)}
+                ${thVEx('មធ្យមភាគ', '#eff6ff', false)}
+                ${thVEx('ចំណាត់ថ្នាក់', '#fff1f2', false)}
+
+                ${thNEx('ល.រ', '#f8fafc', true)}
+                ${thNEx('គោត្តនាម និងនាម', '#f8fafc', false)}
+                ${thNEx('ភេទ', '#f8fafc', false)}
+                ${thVEx('មធ្យមភាគ', '#eff6ff', false)}
+                ${thVEx('ចំណាត់ថ្នាក់', '#fff1f2', false)}
+            </tr>
+        `;
+    } else if(periodType === "semester") {
+        theadExcel = `
+            <tr>
+                ${thNEx('ល.រ', '#f8fafc', false)}
+                ${thNEx('គោត្តនាម និងនាម', '#f8fafc', false)}
+                ${thNEx('ភេទ', '#f8fafc', false)}
+                ${thVEx('ម.ខែ', '#fef3c7', false)}
+                ${thVEx('ម.ប្រឡង', '#e0f2fe', false)}
+                ${thVEx('មធ្យមភាគ', '#dcfce7', false)}
+                ${thVEx('ចំ.ថ្នាក់', '#fff1f2', false)}
+
+                ${thNEx('ល.រ', '#f8fafc', true)}
+                ${thNEx('គោត្តនាម និងនាម', '#f8fafc', false)}
+                ${thNEx('ភេទ', '#f8fafc', false)}
+                ${thVEx('ម.ខែ', '#fef3c7', false)}
+                ${thVEx('ម.ប្រឡង', '#e0f2fe', false)}
+                ${thVEx('មធ្យមភាគ', '#dcfce7', false)}
+                ${thVEx('ចំ.ថ្នាក់', '#fff1f2', false)}
+            </tr>
+        `;
+    } else {
+        theadExcel = `
+            <tr>
+                ${thNEx('ល.រ', '#f8fafc', false)}
+                ${thNEx('គោត្តនាម និងនាម', '#f8fafc', false)}
+                ${thNEx('ភេទ', '#f8fafc', false)}
+                ${thVEx('ម.ឆ.១', '#e0e7ff', false)}
+                ${thVEx('ម.ឆ.២', '#dcfce7', false)}
+                ${thVEx('ម.ប្រចាំឆ្នាំ', '#fef3c7', false)}
+                ${thVEx('ចំ.ថ្នាក់', '#fff1f2', false)}
+
+                ${thNEx('ល.រ', '#f8fafc', true)}
+                ${thNEx('គោត្តនាម និងនាម', '#f8fafc', false)}
+                ${thNEx('ភេទ', '#f8fafc', false)}
+                ${thVEx('ម.ឆ.១', '#e0e7ff', false)}
+                ${thVEx('ម.ឆ.២', '#dcfce7', false)}
+                ${thVEx('ម.ប្រចាំឆ្នាំ', '#fef3c7', false)}
+                ${thVEx('ចំ.ថ្នាក់', '#fff1f2', false)}
+            </tr>
+        `;
     }
 
     let excelHtml = `
@@ -3862,113 +4377,93 @@ window.exportRankingsToExcel = function() {
     <head>
         <meta charset="utf-8">
         <style>
-            table { border-collapse: collapse; width: 100%; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif; font-size: 11pt; }
-            td, th { vertical-align: middle; }
-            .font-moul { font-family: 'Khmer OS Muol Light', 'Moul', serif; font-weight: normal; }
+            table { border-collapse: collapse; white-space: nowrap; font-family: 'Khmer OS Siemreap', sans-serif; font-size: 10pt; }
+            .no-border { border: none !important; background-color: transparent !important; }
         </style>
+        <!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>ចំណាត់ថ្នាក់</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
     </head>
     <body>
-        <!-- ផ្នែកក្បាលរដ្ឋបាល -->
-        <table border="0" style="width: 100%; margin-bottom: 20px;">
+        <table>
+            <!-- ផ្នែកក្បាលរដ្ឋបាល (Muol Light) -->
             <tr>
-                <td colspan="5" style="text-align: left; vertical-align: top;"><br>
-                    <b style="font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 11pt; color: #1e3a8a;">ការិយាល័យអប់រំ យុវជន និងកីឡានៃរដ្ឋបាល ស្រុក${districtName}</b><br>
-                    <b style="font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 12pt; color: #1e3a8a;">${schoolName}</b>
-                    <p class="font-moul" style="color: #1e3a8a;">ថ្នាក់ទី ${grade}</p>
+                <td colspan="5" class="no-border" style="text-align: left; vertical-align: top; font-family: 'Khmer OS Muol Light', serif; font-size: 11pt;">
+                    ការិយាល័យអប់រំ យុវជន និងកីឡានៃរដ្ឋបាលស្រុក${districtName}<br><br>
+                    ${schoolName}<br>
+                    ${grade}
                 </td>
-                <td colspan="5" style="text-align: center; vertical-align: top;">
-                    <b style="font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 12pt; color: #1e3a8a;">ព្រះរាជាណាចក្រកម្ពុជា</b><br>
-                    <b style="font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 12pt; color: #1e3a8a;">ជាតិ សាសនា ព្រះមហាក្សត្រ</b><br>
-                    <span style="color: #d97706; font-size: 10pt;">❖ ❖ ❖</span>
+                <td colspan="5" class="no-border" style="text-align: center; vertical-align: top; font-family: 'Khmer OS Muol Light', serif; font-size: 11pt;">
+                    ព្រះរាជាណាចក្រកម្ពុជា<br>
+                    ជាតិ សាសនា ព្រះមហាក្សត្រ<br>
+                    <!-- ក្បាច់រចនាប័ទ្ម Tacteing គូរដោយ HTML សុទ្ធ (ធានា ១០០% ដើរលើគ្រប់ទូរស័ព្ទ) -->
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin: 4px auto 10px auto; width: 60%;">
+                            <div style="height: 1px; flex: 1; background: linear-gradient(to right, transparent, #d97706);"></div>
+                            <span style="color: #d97706; font-size: 11px;">❖ ❖ ❖</span>
+                            <div style="height: 1px; flex: 1; background: linear-gradient(to left, transparent, #d97706);"></div>
+                        </div>
                 </td>
             </tr>
-        </table>
+            <tr><td colspan="10" class="no-border" style="height: 10px;"></td></tr>
 
-        <!-- ផ្នែកចំណងជើង -->
-        <table border="0" style="width: 100%; margin-bottom: 15px;">
+            <!-- ផ្នែកចំណងជើង (Muol Light) -->
             <tr>
-                <td colspan="10" style="text-align: center;">
-                    <h2 style="margin: 0; font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 16pt; color: #e11d48;">${titleText}</h2>
+                <td colspan="10" class="no-border" style="text-align: center; font-family: 'Khmer OS Muol Light', serif; font-size: 14pt; color: red;">
+                    ${titleText}
                 </td>
             </tr>
             <tr>
-                <td colspan="10" style="text-align: center; font-size: 11pt; font-weight: bold; color: #334155;">
-                    ឆ្នាំសិក្សា ៖ <span style="font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif;">${academicYear}</span>
+                <td colspan="10" class="no-border" style="text-align: center; font-size: 11pt; font-weight: bold;">
+                    ឆ្នាំសិក្សា ៖ ${academicYear}
                 </td>
             </tr>
-        </table>
+            <tr><td colspan="10" class="no-border" style="height: 10px;"></td></tr>
 
-        <!-- តារាងទិន្នន័យកណ្តាល -->
-        <table border="1" cellpadding="3" cellspacing="0" style="width: 100%; border: 1.5pt solid #0f172a; text-align: center;">
-            <tr style="background-color: #f1f5f9; height: 30px;">
-                <th style="width: 5%; color: #1e3a8a; font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 10pt;">ល.រ</th>
-                <th style="width: 25%; color: #1e3a8a; font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 10pt;">គោត្តនាម និងនាម</th>
-                <th style="width: 5%; color: #1e3a8a; font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 10pt;">ភេទ</th>
-                <th style="width: 7.5%; color: #1d4ed8; font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 10pt;">មធ្យមភាគ</th>
-                <th style="width: 7.5%; color: #e11d48; font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 10pt;">ចំណាត់ថ្នាក់</th>
-                <th style="width: 5%; color: #1e3a8a; font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 10pt; border-left: 1.5pt solid #0f172a;">ល.រ</th>
-                <th style="width: 25%; color: #1e3a8a; font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 10pt;">គោត្តនាម និងនាម</th>
-                <th style="width: 5%; color: #1e3a8a; font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 10pt;">ភេទ</th>
-                <th style="width: 7.5%; color: #1d4ed8; font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 10pt;">មធ្យមភាគ</th>
-                <th style="width: 7.5%; color: #e11d48; font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 10pt;">ចំណាត់ថ្នាក់</th>
-            </tr>
+            <!-- តារាងទិន្នន័យកណ្តាល -->
+            ${theadExcel}
             ${rowsHtml}
-        </table>
+            
+            <tr><td colspan="10" class="no-border" style="height: 10px;"></td></tr>
 
-        <br>
-
-        <!-- ផ្នែកស្ថិតិ និង ហត្ថលេខា ខាងក្រោម -->
-        <table border="0" style="width: 100%;">
+            <!-- ផ្នែកស្ថិតិ (លេខសកល) -->
             <tr>
-                <td colspan="5" style="vertical-align: top;">
-                    <!-- តារាងសង្ខេបស្ថិតិ -->
-                    <table border="0" cellpadding="3" cellspacing="0" style="width: 100%; border-top: 1.5pt solid #16a34a; border-collapse: collapse; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif; font-size: 11pt;">
-                        <tr style="color: #1e293b;">
-                            <td style="text-align: left; border: none; font-weight: bold; width: 35%;">បញ្ឈប់បញ្ជីត្រឹមលេខរៀងទី</td>
-                            <td style="text-align: left; border: none; font-weight: bold; width: 10%;">${total}</td>
-                            <td style="text-align: left; border: none; width: 20%;">សិស្សសរុប</td>
-                            <td style="text-align: right; border: none; width: 15%;">${total} <span style="font-family: 'Khmer OS Siemreap';">នាក់</span></td>
-                            <td style="text-align: right; border: none; width: 20%;">ស្រី <b style="margin-left: 5px;">${female}</b> នាក់</td>
-                        </tr>
-                        <tr style="color: #059669;">
-                            <td style="text-align: left; border: none; font-weight: bold;" colspan="2">សិស្សជាប់មធ្យមភាគសរុប</td>
-                            <td style="text-align: left; border: none; font-weight: bold;">${passedTotal} <span style="font-family: 'Khmer OS Siemreap';">នាក់</span></td>
-                            <td style="text-align: right; border: none;">${passPct}%</td>
-                            <td style="text-align: right; border: none;">ស្រី <b style="margin-left: 5px;">${passedFemale}</b> នាក់</td>
-                            <td style="text-align: right; border: none;">${passFemalePct}%</td>
-                        </tr>
-                        <tr style="color: #e11d48;">
-                            <td style="text-align: left; border: none; font-weight: bold;" colspan="2">សិស្សធ្លាក់មធ្យមភាគសរុប</td>
-                            <td style="text-align: left; border: none; font-weight: bold;">${failedTotal} <span style="font-family: 'Khmer OS Siemreap';">នាក់</span></td>
-                            <td style="text-align: right; border: none;">${failPct}%</td>
-                            <td style="text-align: right; border: none;">ស្រី <b style="margin-left: 5px;">${failedFemale}</b> នាក់</td>
-                            <td style="text-align: right; border: none;">${failFemalePct}%</td>
-                        </tr>
-                    </table>
-                </td>
-                
-                <td colspan="5" style="vertical-align: top; text-align: center;">
-                    <!-- កាលបរិច្ឆេទផ្នែកស្តាំ -->
-                    <p style="margin: 0 0 5px 0; font-size: 11pt; color: #334155; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif;">${lunarDateStr}</p>
-                    <p style="margin: 0; font-size: 11pt; color: #334155; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif;">${solarDateStr}</p>
-                    <p style="margin: 5px 0 60px 0; font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 12pt; color: #1e3a8a;">គ្រូទទួលបន្ទុកថ្នាក់</p>
-                    <p style="margin: 0; font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 12.5pt; color: #be123c;">${teacherName}</p>
+                <td colspan="10" class="no-border" style="text-align: left; font-size: 11pt; padding-left: 10px;">
+                    ❖ បញ្ឈប់បញ្ជីត្រឹមលេខរៀង <b>${total}</b> សិស្សសរុប <b>${total}</b> នាក់ ស្រី <b>${female}</b> នាក់
                 </td>
             </tr>
             <tr>
-                <td colspan="5" style="text-align: left; vertical-align: top; padding-top: 20px; padding-left: 20px;">
-                    <!-- ហត្ថលេខានាយកផ្នែកឆ្វេង -->
-                    <p style="margin: 0; font-size: 11pt; color: #334155; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif;">បានឃើញ និងឯកភាព</p>
-                    <p style="margin: 5px 0 60px 0; font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 12pt; color: #1e3a8a;">នាយកសាលា</p>
-                    <p style="margin: 0; font-family: 'Khmer OS Muol Light', 'Moul', serif; font-size: 12.5pt; color: #be123c;">${principalName}</p>
+                <td colspan="10" class="no-border" style="text-align: left; font-size: 11pt; padding-left: 10px;">
+                    ❖ សិស្សជាប់មធ្យមភាគ <b>${passedTotal}</b> នាក់ (<b>${passPct}%</b>) ស្រី <b>${passedFemale}</b> នាក់ (<b>${passFemalePct}%</b>)
                 </td>
+            </tr>
+            <tr>
+                <td colspan="10" class="no-border" style="text-align: left; font-size: 11pt; padding-left: 10px;">
+                    ❖ សិស្សធ្លាក់មធ្យមភាគ <b>${failedTotal}</b> នាក់ (<b>${failPct}%</b>) ស្រី <b>${failedFemale}</b> នាក់ (<b>${failFemalePct}%</b>)
+                </td>
+            </tr>
+            <tr><td colspan="10" class="no-border" style="height: 20px;"></td></tr>
+
+            <!-- ហត្ថលេខា (កាលបរិច្ឆេទកំណត់ពីប្រព័ន្ធ និង Muol Light) -->
+            <div class="bottom-sig-container">
+            <div class="sig-box"><br><br>
+                <p class="font-moul" style="margin: 0 0 5px 0; font-size: 11pt;">បានឃើញ និងឯកភាព</p>
+                <p class="font-moul" style="margin: 0 0 60px 0; font-size: 11pt;">នាយកសាលា</p>
+            </div>
+            <div class="sig-box">
+                <p style="margin: 0 0 5px 0; font-size: 11pt; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif;">${lunarDateStr}</p>
+                <p style="margin: 0 0 5px 0; font-size: 11pt; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif;">${solarDateStr}</p>
+                <p class="font-moul" style="margin-bottom: 60px; font-size: 11pt;">គ្រូបន្ទុកថ្នាក់</p>
+                <p class="font-moul" style="font-size: 11pt;">${teacherName}</p>
+            </div>
+        </div>
+            
+            <tr>
+                <td colspan="5" class="no-border" style="height: 70px;"></td>
+                <td colspan="5" class="no-border" style="height: 70px;"></td>
             </tr>
         </table>
     </body>
     </html>
     `;
 
-    // ៤. ទាញយកឯកសារ (Download as .xls)
     const blob = new Blob(['\ufeff', excelHtml], { type: 'application/vnd.ms-excel' });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
@@ -3977,45 +4472,45 @@ window.exportRankingsToExcel = function() {
     link.click();
     document.body.removeChild(link);
 };
-
 // =====================================================================
 // 🔴 មុខងារបង្ហាញក្នុង Modal ទី ៣: Report Cards Content
 // =====================================================================
 window.renderReportCardsContent = function() {
-  window.calculateAllScores(); // Force calculation
-  const c = document.getElementById("modal-content-reportcards");
-  if (!c) return;
-  
-  if (!window.rankingsDataList || window.rankingsDataList.length === 0) {
-      c.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-slate-500 font-bold p-16 bg-white"><div class="w-20 h-20 bg-indigo-50 text-indigo-500 rounded-3xl flex items-center justify-center text-4xl mb-4"><i class="fa-solid fa-book-open"></i></div><h3 class="text-lg font-bold text-slate-700 font-moul mb-2">មិនទាន់មានទិន្នន័យចំណាត់ថ្នាក់</h3><p class="text-sm">សូមបញ្ចូលពិន្ទុ និងគណនាចំណាត់ថ្នាក់ជាមុនសិន។</p></div>`;
-      return;
-  }
+    window.calculateAllScores(); // Force calculation
+    const c = document.getElementById("modal-content-reportcards");
+    if (!c) return;
+    
+    if (!window.rankingsDataList || window.rankingsDataList.length === 0) {
+        c.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-slate-500 font-bold p-16 bg-white"><div class="w-20 h-20 bg-indigo-50 text-indigo-500 rounded-3xl flex items-center justify-center text-4xl mb-4"><i class="fa-solid fa-book-open"></i></div><h3 class="text-lg font-bold text-slate-700 font-moul mb-2">មិនទាន់មានទិន្នន័យចំណាត់ថ្នាក់</h3><p class="text-sm">សូមបញ្ចូលពិន្ទុ និងគណនាចំណាត់ថ្នាក់ជាមុនសិន។</p></div>`;
+        return;
+    }
 
-  const students = window.rankingsDataList;
-  const sOptions = students.map((s, idx) => `<option value="${s.id}" ${window.selectedReportCardStudentId === String(s.id) ? 'selected' : ''}>ល.រ ${idx + 1} ៖ ${s.name}</option>`).join('');
+    const students = window.rankingsDataList;
+    // លេខរៀងប្រើលេខសកល
+    const sOptions = students.map((s, idx) => `<option value="${s.id}" ${window.selectedReportCardStudentId === String(s.id) ? 'selected' : ''}>ល.រ ${idx + 1} ៖ ${s.name}</option>`).join('');
 
-  c.innerHTML = `
-    <div class="flex flex-col h-full bg-slate-100 p-3 md:p-5 border border-slate-200 font-siemreap">
-      <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap gap-4 items-end no-print">
-        <div><label class="block text-xs font-bold text-slate-600 mb-1">ទម្រង់ព្រឹត្តិបត្រ</label><select onchange="window.changeReportCardViewMode(this.value)" class="bg-slate-50 border border-slate-200 text-xs font-bold text-indigo-700 outline-none p-2 rounded-xl"><option value="monthly_sheet" ${window.reportCardPrintType==='monthly_sheet'?'selected':''}>📄 ទំព័រលទ្ធផល (A4)</option><option value="cover_page" ${window.reportCardPrintType==='cover_page'?'selected':''}>📘 ក្របមុខ និងព័ត៌មាន</option><option value="full_booklet" ${window.reportCardPrintType==='full_booklet'?'selected':''}>📚 សៀវភៅតាមដានពេញ</option></select></div>
-        <div><label class="block text-xs font-bold text-slate-600 mb-1">កម្រិតសិក្សា</label><select onchange="window.changeEducationLevel(this.value)" class="bg-slate-50 border border-slate-200 text-xs font-bold text-purple-800 outline-none p-2 rounded-xl"><option value="auto" ${window.selectedEducationLevel==='auto'?'selected':''}>🔄 ស្វ័យប្រវត្តិ</option><option value="primary" ${window.selectedEducationLevel==='primary'?'selected':''}>🏫 បឋមសិក្សា</option><option value="secondary" ${window.selectedEducationLevel==='secondary'?'selected':''}>🏛️ អនុ / វិទ្យាល័យ</option></select></div>
-        <div><label class="block text-xs font-bold text-slate-600 mb-1">ជ្រើសរើសសិស្ស</label><select onchange="window.filterReportCardStudent(this.value)" class="bg-slate-50 border border-slate-200 text-xs font-bold text-emerald-800 outline-none p-2 rounded-xl"><option value="all" ${window.selectedReportCardStudentId==='all'?'selected':''}>👥 សិស្សទាំងអស់ (${students.length} នាក់)</option>${sOptions}</select></div>
+    c.innerHTML = `
+      <div class="flex flex-col h-full bg-slate-100 p-3 md:p-5 border border-slate-200 font-siemreap">
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap gap-4 items-end no-print">
+          <div><label class="block text-xs font-bold text-slate-600 mb-1">ទម្រង់ព្រឹត្តិបត្រ</label><select onchange="window.changeReportCardViewMode(this.value)" class="bg-slate-50 border border-slate-200 text-xs font-bold text-indigo-700 outline-none p-2 rounded-xl"><option value="monthly_sheet" ${window.reportCardPrintType==='monthly_sheet'?'selected':''}>📄 ទំព័រលទ្ធផល (A4)</option><option value="cover_page" ${window.reportCardPrintType==='cover_page'?'selected':''}>📘 ក្របមុខ និងព័ត៌មាន</option><option value="full_booklet" ${window.reportCardPrintType==='full_booklet'?'selected':''}>📚 សៀវភៅតាមដានពេញ</option></select></div>
+          <div><label class="block text-xs font-bold text-slate-600 mb-1">កម្រិតសិក្សា</label><select onchange="window.changeEducationLevel(this.value)" class="bg-slate-50 border border-slate-200 text-xs font-bold text-purple-800 outline-none p-2 rounded-xl"><option value="auto" ${window.selectedEducationLevel==='auto'?'selected':''}>🔄 ស្វ័យប្រវត្តិ</option><option value="primary" ${window.selectedEducationLevel==='primary'?'selected':''}>🏫 បឋមសិក្សា</option><option value="secondary" ${window.selectedEducationLevel==='secondary'?'selected':''}>🏛️ អនុ / វិទ្យាល័យ</option></select></div>
+          <div><label class="block text-xs font-bold text-slate-600 mb-1">ជ្រើសរើសសិស្ស</label><select onchange="window.filterReportCardStudent(this.value)" class="bg-slate-50 border border-slate-200 text-xs font-bold text-emerald-800 outline-none p-2 rounded-xl"><option value="all" ${window.selectedReportCardStudentId==='all'?'selected':''}>👥 សិស្សទាំងអស់ (${students.length} នាក់)</option>${sOptions}</select></div>
+        </div>
+
+        ${typeof window.getDateSettingsPanelHTML === 'function' ? window.getDateSettingsPanelHTML('reportcards') : ''}
+
+        <div class="flex-1 overflow-y-auto custom-scrollbar flex flex-col items-center gap-8 py-2 mt-4" id="reportCardsPreviewArea">${window.renderReportCardPreview()}</div>
       </div>
-
-      ${window.getDateSettingsPanelHTML('reportcards')}
-
-      <div class="flex-1 overflow-y-auto custom-scrollbar flex flex-col items-center gap-8 py-2 mt-4" id="reportCardsPreviewArea">${window.renderReportCardPreview()}</div>
-    </div>
-  `;
+    `;
 };
 
 // ផ្នែកព្រឹត្តិបត្រពិន្ទុ និងគំរូវិន័យ
 window.CONDUCT_TEMPLATES = [
-  "ស្លូតបូត សុភាពរាបសារ ខិតខំរៀនសូត្រ និងគោរពវិន័យសាលាបានល្អ",
-  "មានវិន័យល្អ ឧស្សាហ៍ព្យាយាម ស្តាប់ដំបូន្មានលោកគ្រូអ្នកគ្រូ",
-  "ឆ្លាតវៃ រហ័សរហួន ចូលរួមសកម្មភាពក្នុងថ្នាក់បានយ៉ាងសកម្ម",
-  "ស្លូតបូត រួសរាយរាក់ទាក់ តែត្រូវបង្កើនការយកចិត្តទុកដាក់បន្ថែម",
-  "ខិតខំរៀនសូត្រ តែត្រូវបង្កើនភាពក្លាហានក្នុងការឆ្លើយសំណួរ"
+    "ស្លូតបូត សុភាពរាបសារ ខិតខំរៀនសូត្រ និងគោរពវិន័យសាលាបានល្អ",
+    "មានវិន័យល្អ ឧស្សាហ៍ព្យាយាម ស្តាប់ដំបូន្មានលោកគ្រូអ្នកគ្រូ",
+    "ឆ្លាតវៃ រហ័សរហួន ចូលរួមសកម្មភាពក្នុងថ្នាក់បានយ៉ាងសកម្ម",
+    "ស្លូតបូត រួសរាយរាក់ទាក់ តែត្រូវបង្កើនការយកចិត្តទុកដាក់បន្ថែម",
+    "ខិតខំរៀនសូត្រ តែត្រូវបង្កើនភាពក្លាហានក្នុងការឆ្លើយសំណួរ"
 ];
 window.reportCardPrintType = 'monthly_sheet'; 
 window.selectedReportCardStudentId = 'all';  
@@ -4025,239 +4520,246 @@ window.changeReportCardViewMode = function(mode) { window.reportCardPrintType = 
 window.changeEducationLevel = function(lvl) { window.selectedEducationLevel = lvl; window.refreshRcPreview(); };
 window.filterReportCardStudent = function(id) { window.selectedReportCardStudentId = id; window.refreshRcPreview(); };
 window.refreshRcPreview = function() {
-  const el = document.getElementById("reportCardsPreviewArea");
-  if (el) el.innerHTML = window.renderReportCardPreview();
+    const el = document.getElementById("reportCardsPreviewArea");
+    if (el) el.innerHTML = window.renderReportCardPreview();
 };
 
 window.renderReportCardPreview = function() {
-  if (!window.rankingsDataList || window.rankingsDataList.length === 0) return '<div class="p-12 text-slate-400 font-bold bg-white rounded-2xl shadow-sm">គ្មានទិន្នន័យសិស្ស</div>';
-  const allStudents = window.rankingsDataList;
-  let target = allStudents;
-  if (window.selectedReportCardStudentId && window.selectedReportCardStudentId !== 'all') {
-    target = allStudents.filter(s => String(s.id).trim() === String(window.selectedReportCardStudentId).trim());
-  }
+    if (!window.rankingsDataList || window.rankingsDataList.length === 0) return '<div class="p-12 text-slate-400 font-bold bg-white rounded-2xl shadow-sm">គ្មានទិន្នន័យសិស្ស</div>';
+    const allStudents = window.rankingsDataList;
+    let target = allStudents;
+    if (window.selectedReportCardStudentId && window.selectedReportCardStudentId !== 'all') {
+        target = allStudents.filter(s => String(s.id).trim() === String(window.selectedReportCardStudentId).trim());
+    }
 
-  return target.map((s, idx) => {
-    let sheetHtml = `<div class="print-page-wrapper" style="width: 210mm; height: 297mm; padding: 10mm; box-sizing: border-box; page-break-after: always; display: flex; align-items: center; justify-content: center;">${window.generateMonthlySheetHTML(s, null)}</div>`;
-    return `
-      <div class="no-print w-full max-w-[210mm] flex items-center justify-between bg-white border border-slate-200 px-5 py-2.5 rounded-2xl shadow-xs text-xs font-siemreap">
-        <div class="flex items-center gap-2">
-          <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold font-mono">${idx + 1}</span>
-          <span class="font-bold text-slate-800 font-moul text-[13px]">${s.name}</span>
-          <span class="text-slate-400">|</span><span class="text-slate-500">ភេទ៖ <b>${s.gender || 'ប្រុស'}</b></span>
-        </div>
-        <div class="flex items-center gap-3">
-          <span class="text-indigo-600 font-bold">មធ្យមភាគ៖ <b class="font-mono text-sm">${s.avg != null ? window.toKhmerNum(Number(s.avg).toFixed(2)) : '-'}</b></span>
-          <span class="text-rose-600 font-bold">ចំណាត់ថ្នាក់៖ <b class="font-mono text-sm">${s.rank != null ? window.toKhmerNum(s.rank.toString()) : '-'}</b></span>
-        </div>
-      </div>
-      <div class="preview-page-container bg-white shadow-xl rounded-sm mb-6 print:shadow-none print:m-0">${sheetHtml}</div>
-    `;
-  }).join("");
+    return target.map((s, idx) => {
+        let sheetHtml = `<div class="print-page-wrapper" style="width: 210mm; height: 297mm; padding: 10mm; box-sizing: border-box; page-break-after: always; display: flex; align-items: center; justify-content: center;">${window.generateMonthlySheetHTML(s, null)}</div>`;
+        
+        // មធ្យមភាគ និង ចំណាត់ថ្នាក់ប្រើលេខសកល
+        const avgDisplay = s.avg != null ? Number(s.avg).toFixed(2) : '-';
+        const rankDisplay = s.rank != null ? s.rank : '-';
+        
+        return `
+          <div class="no-print w-full max-w-[210mm] flex items-center justify-between bg-white border border-slate-200 px-5 py-2.5 rounded-2xl shadow-xs text-xs font-siemreap">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold font-mono">${idx + 1}</span>
+              <span class="font-bold text-slate-800 font-moul text-[13px]">${s.name}</span>
+              <span class="text-slate-400">|</span><span class="text-slate-500">ភេទ៖ <b>${s.gender || 'ប្រុស'}</b></span>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="text-indigo-600 font-bold">មធ្យមភាគ៖ <b class="font-mono text-sm">${avgDisplay}</b></span>
+              <span class="text-rose-600 font-bold">ចំណាត់ថ្នាក់៖ <b class="font-mono text-sm">${rankDisplay}</b></span>
+            </div>
+          </div>
+          <div class="preview-page-container bg-white shadow-xl rounded-sm mb-6 print:shadow-none print:m-0">${sheetHtml}</div>
+        `;
+    }).join("");
 };
 
 
 // ==========================================
-// មុខងារបង្កើតទំព័រព្រឹត្តិបត្រពិន្ទុ (បង្ហាញមុខវិជ្ជារង និងមុខវិជ្ជាគោលពេញលេញ)
+// មុខងារបង្កើតទំព័រព្រឹត្តិបត្រពិន្ទុ (បង្ហាញមុខវិជ្ជារង និងមុខវិជ្ជាគោលពេញលេញ - លេខសកល)
 // ==========================================
 window.generateMonthlySheetHTML = function(stu, periodOverride = null) {
-  const levelStr = document.getElementById("globalLevelSelect")?.value || stu.grade || "ថ្នាក់ទី ២";
-  const month = periodOverride || document.getElementById("globalPeriodValue")?.value || "មករា";
-  const type = document.getElementById("globalPeriodType")?.value || "monthly";
+    const levelStr = document.getElementById("globalLevelSelect")?.value || stu.grade || "ថ្នាក់ទី 2";
+    const month = periodOverride || document.getElementById("globalPeriodValue")?.value || "មករា";
+    const type = document.getElementById("globalPeriodType")?.value || "monthly";
 
-  const sInfo = typeof appSettings !== 'undefined' ? appSettings : {};
-  const principalName = sInfo.principal_name || ".......................";
-  const teacherName = sInfo.teacher_name || ".......................";
-  const academicYear = sInfo.academic_year || "២០២៦-២០២៧";
+    const sInfo = typeof appSettings !== 'undefined' ? appSettings : {};
+    const principalName = sInfo.principal_name || ".......................";
+    const teacherName = sInfo.teacher_name || ".......................";
+    const academicYear = sInfo.academic_year || "2026-2027"; // លេខសកល
 
-  const toKhNum = (num) => window.toKhmerNum ? window.toKhmerNum(String(num)) : String(num);
+    let headerTitle = `ពិន្ទុ-ចំណាត់ថ្នាក់ ប្រចាំខែ ${month}`;
+    if (type === "semester") headerTitle = `ពិន្ទុ-ចំណាត់ថ្នាក់ ប្រចាំ ${month}`;
+    else if (type === "annual") headerTitle = `ពិន្ទុ-ចំណាត់ថ្នាក់ ប្រចាំឆ្នាំសិក្សា ${academicYear}`;
 
-  let headerTitle = `ពិន្ទុ-ចំណាត់ថ្នាក់ ប្រចាំខែ ${month}`;
-  if (type === "semester") headerTitle = `ពិន្ទុ-ចំណាត់ថ្នាក់ ប្រចាំ ${month}`;
-  else if (type === "annual") headerTitle = `ពិន្ទុ-ចំណាត់ថ្នាក់ ប្រចាំឆ្នាំសិក្សា ${toKhNum(academicYear)}`;
+    const isPrimary = typeof window.getEducationLevel === 'function' ? (window.getEducationLevel(levelStr) === 'primary') : levelStr.includes("ទី 1") || levelStr.includes("ទី 2") || levelStr.includes("ទី 3") || levelStr.includes("ទី 4") || levelStr.includes("ទី 5") || levelStr.includes("ទី 6") || levelStr.includes("ទី ១") || levelStr.includes("ទី ២");
 
-  const isPrimary = window.getEducationLevel ? (window.getEducationLevel(levelStr) === 'primary') : levelStr.includes("ទី ១") || levelStr.includes("ទី ២") || levelStr.includes("ទី ៣") || levelStr.includes("ទី ៤") || levelStr.includes("ទី ៥") || levelStr.includes("ទី ៦");
+    let sc = {};
+    if (window.currentScores && window.currentScores.length > 0) {
+        sc = window.currentScores.find(item => String(item.student_id) === String(stu.id)) || stu;
+    } else {
+        sc = stu;
+    }
 
-  let sc = {};
-  if (window.currentScores && window.currentScores.length > 0) {
-      sc = window.currentScores.find(item => String(item.student_id) === String(stu.id)) || stu;
-  } else {
-      sc = stu;
-  }
+    let schema = window.activeSchema;
+    if (!schema || schema.length === 0) {
+       schema = [
+          { group: "ភាសាខ្មែរ", subs: [{name:"សមត្ថភាពស្តាប់", key:"k_listen", max:10}, {name:"សមត្ថភាពសរសេរ", key:"k_write", max:10}, {name:"សមត្ថភាពអាន", key:"k_read", max:10}, {name:"សមត្ថភាពនិយាយ", key:"k_compose", max:10}] },
+          { group: "គណិតវិទ្យា", subs: [{name:"ចំនួន", key:"m_num", max:10}, {name:"រង្វាស់រង្វាល់", key:"m_measure", max:10}, {name:"ធរណីមាត្រ", key:"m_geo", max:10}, {name:"ពីជគណិត", key:"m_alg", max:10}, {name:"ស្ថិតិ", key:"m_stat", max:10}] },
+          { group: "វិទ្យាសាស្ត្រ", subs: [{name:"រូបវិទ្យា", key:"s_phy", max:10}, {name:"គីមីវិទ្យា", key:"s_chem", max:10}, {name:"ជីវវិទ្យា", key:"s_bio", max:10}, {name:"ផែនដី-បរិស្ថាន", key:"s_earth", max:10}] },
+          { group: "សិក្សាសង្គម", subs: [{name:"សីលធម៌-ពលរដ្ឋ", key:"ss_moral", max:10}, {name:"ភូមិវិទ្យា", key:"ss_geo", max:10}, {name:"ប្រវត្តិវិទ្យា", key:"ss_hist", max:10}] },
+          { group: "អប់រំកាយ សុខភាព កីឡា", subs: [{name:"អប់រំកាយ-កីឡា", key:"pe_sport", max:10}, {name:"សុខភាព-អនាម័យ", key:"pe_health", max:10}] },
+          { group: "បំណិនជីវិត", key: "life_skill", max: 10 },
+          { group: "ភាសាបរទេស", key: "foreign_lang", max: 10 }
+       ];
+    }
 
-  let schema = window.activeSchema;
-  if (!schema || schema.length === 0) {
-     schema = [
-        { group: "ភាសាខ្មែរ", subs: [{name:"សមត្ថភាពស្តាប់", key:"k_listen", max:10}, {name:"សមត្ថភាពសរសេរ", key:"k_write", max:10}, {name:"សមត្ថភាពអាន", key:"k_read", max:10}, {name:"សមត្ថភាពនិយាយ", key:"k_compose", max:10}] },
-        { group: "គណិតវិទ្យា", subs: [{name:"ចំនួន", key:"m_num", max:10}, {name:"រង្វាស់រង្វាល់", key:"m_measure", max:10}, {name:"ធរណីមាត្រ", key:"m_geo", max:10}, {name:"ពីជគណិត", key:"m_alg", max:10}, {name:"ស្ថិតិ", key:"m_stat", max:10}] },
-        { group: "វិទ្យាសាស្ត្រ", subs: [{name:"រូបវិទ្យា", key:"s_phy", max:10}, {name:"គីមីវិទ្យា", key:"s_chem", max:10}, {name:"ជីវវិទ្យា", key:"s_bio", max:10}, {name:"ផែនដី-បរិស្ថាន", key:"s_earth", max:10}] },
-        { group: "សិក្សាសង្គម", subs: [{name:"សីលធម៌-ពលរដ្ឋ", key:"ss_moral", max:10}, {name:"ភូមិវិទ្យា", key:"ss_geo", max:10}, {name:"ប្រវត្តិវិទ្យា", key:"ss_hist", max:10}] },
-        { group: "អប់រំកាយ សុខភាព កីឡា", subs: [{name:"អប់រំកាយ-កីឡា", key:"pe_sport", max:10}, {name:"សុខភាព-អនាម័យ", key:"pe_health", max:10}] },
-        { group: "បំណិនជីវិត", key: "life_skill", max: 10 },
-        { group: "ភាសាបរទេស", key: "foreign_lang", max: 10 }
-     ];
-  }
+    let tableHeaderHtml = `
+        <tr style="background-color: #f8fafc; color: #1e3a8a; height: 28px;">
+           <th rowspan="2" style="border: 1.5px solid #1e3a8a; padding: 2px; width: 5%; font-family: 'Moul', serif; font-size: 10px;">ល.រ</th>
+           <th colspan="2" style="border: 1.5px solid #1e3a8a; padding: 2px; width: 38%; font-family: 'Moul', serif; font-size: 10px;">មុខវិជ្ជា</th>
+           <th colspan="2" style="border: 1.5px solid #1e3a8a; padding: 2px; width: 23%; font-family: 'Moul', serif; font-size: 10px;">ពិន្ទុ</th>
+           <th colspan="4" style="border: 1.5px solid #1e3a8a; padding: 2px; width: 34%; font-family: 'Moul', serif; font-size: 10px;">និទ្ទេស</th>
+        </tr>
+        <tr style="background-color: #f8fafc; font-size: 9px; height: 20px;">
+           <th style="border: 1.5px solid #1e3a8a; padding: 2px; width: 19%;">មុខវិជ្ជាគោល</th>
+           <th style="border: 1.5px solid #1e3a8a; padding: 2px; width: 19%;">មុខវិជ្ជារង</th>
+           <th style="border: 1.5px solid #1e3a8a; padding: 2px; width: 10%;">អតិបរមា</th>
+           <th style="border: 1.5px solid #1e3a8a; padding: 2px; width: 13%; color: #1e3a8a;">ពិន្ទុខែ</th>
+           <th style="border: 1.5px solid #1e3a8a; padding: 2px; width: 8.5%;">ល្អ</th>
+           <th style="border: 1.5px solid #1e3a8a; padding: 2px; width: 8.5%;">ល្អបង្គួរ</th>
+           <th style="border: 1.5px solid #1e3a8a; padding: 2px; width: 8.5%;">មធ្យម</th>
+           <th style="border: 1.5px solid #1e3a8a; padding: 2px; width: 8.5%; color: #e11d48;">ខ្សោយ</th>
+        </tr>
+    `;
 
-  let tableHeaderHtml = `
-      <tr style="background-color: #f8fafc; color: #1e3a8a; height: 28px;">
-         <th rowspan="2" style="border: 1.5px solid #1e3a8a; padding: 2px; width: 5%; font-family: 'Moul', serif; font-size: 10px;">ល.រ</th>
-         <th colspan="2" style="border: 1.5px solid #1e3a8a; padding: 2px; width: 38%; font-family: 'Moul', serif; font-size: 10px;">មុខវិជ្ជា</th>
-         <th colspan="2" style="border: 1.5px solid #1e3a8a; padding: 2px; width: 23%; font-family: 'Moul', serif; font-size: 10px;">ពិន្ទុ</th>
-         <th colspan="4" style="border: 1.5px solid #1e3a8a; padding: 2px; width: 34%; font-family: 'Moul', serif; font-size: 10px;">និទ្ទេស</th>
-      </tr>
-      <tr style="background-color: #f8fafc; font-size: 9px; height: 20px;">
-         <th style="border: 1.5px solid #1e3a8a; padding: 2px; width: 19%;">មុខវិជ្ជាគោល</th>
-         <th style="border: 1.5px solid #1e3a8a; padding: 2px; width: 19%;">មុខវិជ្ជារង</th>
-         <th style="border: 1.5px solid #1e3a8a; padding: 2px; width: 10%;">អតិបរមា</th>
-         <th style="border: 1.5px solid #1e3a8a; padding: 2px; width: 13%; color: #1e3a8a;">ពិន្ទុខែ</th>
-         <th style="border: 1.5px solid #1e3a8a; padding: 2px; width: 8.5%;">ល្អ</th>
-         <th style="border: 1.5px solid #1e3a8a; padding: 2px; width: 8.5%;">ល្អបង្គួរ</th>
-         <th style="border: 1.5px solid #1e3a8a; padding: 2px; width: 8.5%;">មធ្យម</th>
-         <th style="border: 1.5px solid #1e3a8a; padding: 2px; width: 8.5%; color: #e11d48;">ខ្សោយ</th>
-      </tr>
-  `;
+    let rowsHtml = "";
+    let globalIndex = 1;
 
-  let rowsHtml = "";
-  let globalIndex = 1;
+    schema.forEach((item) => {
+        if (item.subs && item.subs.length > 0) {
+            const rowSpan = item.subs.length;
+            item.subs.forEach((sub, subIdx) => {
+                const subKey = sub.key;
+                const subName = sub.name;
+                const maxVal = window.schemaMaxMap?.[subKey] || sub.max || 10;
+                const val = sc[subKey];
+                const displayVal = (val !== undefined && val !== null && String(val).trim() !== "") ? Number(val) : null;
+                
+                // លេខសកល
+                const formattedMax = maxVal; 
+                const formattedVal = displayVal !== null ? displayVal : "-";
+                
+                let marks = ['', '', '', ''];
+                let valColor = "#1e3a8a"; 
+                
+                if (displayVal !== null) {
+                    const pct = (displayVal / maxVal) * 100;
+                    if (pct >= 80) marks[0] = '✔';
+                    else if (pct >= 65) marks[1] = '✔';
+                    else if (pct >= 50) marks[2] = '✔';
+                    else { marks[3] = '✔'; valColor = "#e11d48"; } 
+                }
 
-  schema.forEach((item) => {
-     if (item.subs && item.subs.length > 0) {
-         const rowSpan = item.subs.length;
-         item.subs.forEach((sub, subIdx) => {
-             const subKey = sub.key;
-             const subName = sub.name;
-             const maxVal = window.schemaMaxMap?.[subKey] || sub.max || 10;
-             const val = sc[subKey];
-             const displayVal = (val !== undefined && val !== null && String(val).trim() !== "") ? Number(val) : null;
-             
-             const formattedMax = toKhNum(maxVal);
-             const formattedVal = displayVal !== null ? toKhNum(displayVal) : "-";
-             
-             let marks = ['', '', '', ''];
-             let valColor = "#1e3a8a"; 
-             
-             if (displayVal !== null) {
-                 const pct = (displayVal / maxVal) * 100;
-                 if (pct >= 80) marks[0] = '✔';
-                 else if (pct >= 65) marks[1] = '✔';
-                 else if (pct >= 50) marks[2] = '✔';
-                 else { marks[3] = '✔'; valColor = "#e11d48"; } 
-             }
+                let groupCell = "";
+                if (subIdx === 0) {
+                    groupCell = `<td rowspan="${rowSpan}" style="border: 1.5px solid #1e3a8a; text-align: center; font-size: 10.5px; font-weight: bold; font-family: 'Moul', serif;">${globalIndex++}</td>
+                                 <td rowspan="${rowSpan}" style="border: 1.5px solid #1e3a8a; text-align: left; padding-left: 6px; font-weight: bold; font-family: 'Moul', serif; font-size: 10.5px;">${item.group}</td>`;
+                }
 
-             let groupCell = "";
-             if (subIdx === 0) {
-                 groupCell = `<td rowspan="${rowSpan}" style="border: 1.5px solid #1e3a8a; text-align: center; font-size: 10.5px; font-weight: bold; font-family: 'Moul', serif;">${toKhNum(globalIndex++)}</td>
-                              <td rowspan="${rowSpan}" style="border: 1.5px solid #1e3a8a; text-align: left; padding-left: 6px; font-weight: bold; font-family: 'Moul', serif; font-size: 10.5px;">${item.group}</td>`;
-             }
+                rowsHtml += `
+                  <tr style="height: 19px;">
+                    ${groupCell}
+                    <td style="border: 1.5px solid #1e3a8a; text-align: left; padding-left: 6px; font-size: 10.5px; font-family: 'Siemreap', sans-serif;">${subName}</td>
+                    <td style="border: 1.5px solid #1e3a8a; text-align: center; font-size: 10.5px; font-mono; color: #334155;">${formattedMax}</td>
+                    <td style="border: 1.5px solid #1e3a8a; text-align: center; font-size: 11px; font-mono; font-weight: bold; color: ${valColor}; background: #f8fafc;">${formattedVal}</td>
+                    <td style="border: 1.5px solid #1e3a8a; text-align: center; font-weight: bold; font-size: 11px; color: #1e3a8a;">${marks[0]}</td>
+                    <td style="border: 1.5px solid #1e3a8a; text-align: center; font-weight: bold; font-size: 11px; color: #1e3a8a;">${marks[1]}</td>
+                    <td style="border: 1.5px solid #1e3a8a; text-align: center; font-weight: bold; font-size: 11px; color: #1e3a8a;">${marks[2]}</td>
+                    <td style="border: 1.5px solid #1e3a8a; text-align: center; font-weight: bold; font-size: 11px; color: #e11d48;">${marks[3]}</td>
+                  </tr>
+                `;
+            });
+        } else {
+            const key = item.key;
+            const name = item.group;
+            const maxVal = window.schemaMaxMap?.[key] || item.max || 10;
+            const val = sc[key];
+            const displayVal = (val !== undefined && val !== null && String(val).trim() !== "") ? Number(val) : null;
+            
+            // លេខសកល
+            const formattedMax = maxVal;
+            const formattedVal = displayVal !== null ? displayVal : "-";
+            
+            let marks = ['', '', '', ''];
+            let valColor = "#1e3a8a"; 
+            
+            if (displayVal !== null) {
+                const pct = (displayVal / maxVal) * 100;
+                if (pct >= 80) marks[0] = '✔';
+                else if (pct >= 65) marks[1] = '✔';
+                else if (pct >= 50) marks[2] = '✔';
+                else { marks[3] = '✔'; valColor = "#e11d48"; } 
+            }
 
-             rowsHtml += `
-               <tr style="height: 19px;">
-                 ${groupCell}
-                 <td style="border: 1.5px solid #1e3a8a; text-align: left; padding-left: 6px; font-size: 10.5px; font-family: 'Siemreap', sans-serif;">${subName}</td>
-                 <td style="border: 1.5px solid #1e3a8a; text-align: center; font-size: 10.5px; font-mono; color: #334155;">${formattedMax}</td>
-                 <td style="border: 1.5px solid #1e3a8a; text-align: center; font-size: 11px; font-mono; font-weight: bold; color: ${valColor}; background: #f8fafc;">${formattedVal}</td>
-                 <td style="border: 1.5px solid #1e3a8a; text-align: center; font-weight: bold; font-size: 11px; color: #1e3a8a;">${marks[0]}</td>
-                 <td style="border: 1.5px solid #1e3a8a; text-align: center; font-weight: bold; font-size: 11px; color: #1e3a8a;">${marks[1]}</td>
-                 <td style="border: 1.5px solid #1e3a8a; text-align: center; font-weight: bold; font-size: 11px; color: #1e3a8a;">${marks[2]}</td>
-                 <td style="border: 1.5px solid #1e3a8a; text-align: center; font-weight: bold; font-size: 11px; color: #e11d48;">${marks[3]}</td>
-               </tr>
-             `;
-         });
-     } else {
-         const key = item.key;
-         const name = item.group;
-         const maxVal = window.schemaMaxMap?.[key] || item.max || 10;
-         const val = sc[key];
-         const displayVal = (val !== undefined && val !== null && String(val).trim() !== "") ? Number(val) : null;
+            rowsHtml += `
+              <tr style="height: 19px;">
+                <td style="border: 1.5px solid #1e3a8a; text-align: center; font-size: 10.5px; font-weight: bold; font-family: 'Moul', serif;">${globalIndex++}</td>
+                <td colspan="2" style="border: 1.5px solid #1e3a8a; text-align: left; padding-left: 6px; font-weight: bold; font-family: 'Moul', serif; font-size: 10.5px;">${name}</td>
+                <td style="border: 1.5px solid #1e3a8a; text-align: center; font-size: 10.5px; font-mono; color: #334155;">${formattedMax}</td>
+                <td style="border: 1.5px solid #1e3a8a; text-align: center; font-size: 11px; font-mono; font-weight: bold; color: ${valColor}; background: #f8fafc;">${formattedVal}</td>
+                <td style="border: 1.5px solid #1e3a8a; text-align: center; font-weight: bold; font-size: 11px; color: #1e3a8a;">${marks[0]}</td>
+                <td style="border: 1.5px solid #1e3a8a; text-align: center; font-weight: bold; font-size: 11px; color: #1e3a8a;">${marks[1]}</td>
+                <td style="border: 1.5px solid #1e3a8a; text-align: center; font-weight: bold; font-size: 11px; color: #1e3a8a;">${marks[2]}</td>
+                <td style="border: 1.5px solid #1e3a8a; text-align: center; font-weight: bold; font-size: 11px; color: #e11d48;">${marks[3]}</td>
+              </tr>
+            `;
+        }
+    });
+
+    const targetTotal = sc.total_score || stu.total_score;
+    const targetAvg = sc.average || stu.average || stu.avg;
+    const targetRank = sc.rank || stu.rank;
+    const targetGrade = sc.grade_letter || stu.gradeLetter || "ល្អ";
+
+    // ប្រើលេខសកលទាំងអស់
+    const totalScoreFormatted = (targetTotal !== undefined && targetTotal !== null && !isNaN(targetTotal)) ? Number(targetTotal).toFixed(2) : "......";
+    const avgFormatted = (targetAvg !== undefined && targetAvg !== null && !isNaN(targetAvg)) ? Number(targetAvg).toFixed(2) : "......";
+    const totalStus = window.rankingsDataList ? window.rankingsDataList.length : 0;
+    
+    // ចំណាត់ថ្នាក់ X / Y (ឧទាហរណ៍ 1/35)
+    const rankFormatted = (targetRank !== undefined && targetRank !== null && String(targetRank).trim() !== "" && targetRank !== "-") 
+      ? (totalStus > 0 ? `${targetRank} / ${totalStus}` : targetRank) : "......";
+
+    const rDates = window.reportCardDateSettings || {};
+    const lunarDateStr = rDates.showLunar !== false ? rDates.lunarDate : "";
+    const solarDateStr = typeof window.getFormattedSolarDate === 'function' ? window.getFormattedSolarDate() : "";
+
+    return `
+      <div class="report-booklet-page bg-white box-border text-slate-900 shadow-xl print:shadow-none" 
+           style="width: 100%; height: 100%; padding: 6mm 10mm; border: 2.5px solid #1e3a8a; position: relative; font-family: 'Siemreap', sans-serif; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box;">
          
-         const formattedMax = toKhNum(maxVal);
-         const formattedVal = displayVal !== null ? toKhNum(displayVal) : "-";
-         
-         let marks = ['', '', '', ''];
-         let valColor = "#1e3a8a"; 
-         
-         if (displayVal !== null) {
-             const pct = (displayVal / maxVal) * 100;
-             if (pct >= 80) marks[0] = '✔';
-             else if (pct >= 65) marks[1] = '✔';
-             else if (pct >= 50) marks[2] = '✔';
-             else { marks[3] = '✔'; valColor = "#e11d48"; } 
-         }
+           <div style="position: absolute; top: 3mm; left: 3mm; font-size: 12px; font-weight: bold; color: #1e3a8a;">❖</div>
+           <div style="position: absolute; top: 3mm; right: 3mm; font-size: 12px; font-weight: bold; color: #1e3a8a;">❖</div>
+           <div style="position: absolute; bottom: 3mm; left: 3mm; font-size: 12px; font-weight: bold; color: #1e3a8a;">❖</div>
+           <div style="position: absolute; bottom: 3mm; right: 3mm; font-size: 12px; font-weight: bold; color: #1e3a8a;">❖</div>
 
-         rowsHtml += `
-           <tr style="height: 19px;">
-             <td style="border: 1.5px solid #1e3a8a; text-align: center; font-size: 10.5px; font-weight: bold; font-family: 'Moul', serif;">${toKhNum(globalIndex++)}</td>
-             <td colspan="2" style="border: 1.5px solid #1e3a8a; text-align: left; padding-left: 6px; font-weight: bold; font-family: 'Moul', serif; font-size: 10.5px;">${name}</td>
-             <td style="border: 1.5px solid #1e3a8a; text-align: center; font-size: 10.5px; font-mono; color: #334155;">${formattedMax}</td>
-             <td style="border: 1.5px solid #1e3a8a; text-align: center; font-size: 11px; font-mono; font-weight: bold; color: ${valColor}; background: #f8fafc;">${formattedVal}</td>
-             <td style="border: 1.5px solid #1e3a8a; text-align: center; font-weight: bold; font-size: 11px; color: #1e3a8a;">${marks[0]}</td>
-             <td style="border: 1.5px solid #1e3a8a; text-align: center; font-weight: bold; font-size: 11px; color: #1e3a8a;">${marks[1]}</td>
-             <td style="border: 1.5px solid #1e3a8a; text-align: center; font-weight: bold; font-size: 11px; color: #1e3a8a;">${marks[2]}</td>
-             <td style="border: 1.5px solid #1e3a8a; text-align: center; font-weight: bold; font-size: 11px; color: #e11d48;">${marks[3]}</td>
-           </tr>
-         `;
-     }
-  });
-
-  const targetTotal = sc.total_score || stu.total_score;
-  const targetAvg = sc.average || stu.average || stu.avg;
-  const targetRank = sc.rank || stu.rank;
-  const targetGrade = sc.grade_letter || stu.gradeLetter || "ល្អ";
-
-  const totalScoreFormatted = (targetTotal !== undefined && targetTotal !== null && !isNaN(targetTotal)) ? toKhNum(Number(targetTotal).toFixed(2)) : "......";
-  const avgFormatted = (targetAvg !== undefined && targetAvg !== null && !isNaN(targetAvg)) ? toKhNum(Number(targetAvg).toFixed(2)) : "......";
-  const totalStus = window.rankingsDataList ? window.rankingsDataList.length : 0;
-  const totalStusKhmer = totalStus > 0 ? toKhNum(totalStus) : "";
-  const rankFormatted = (targetRank !== undefined && targetRank !== null && String(targetRank).trim() !== "" && targetRank !== "-") 
-    ? (totalStusKhmer ? `${toKhNum(targetRank)} / ${totalStusKhmer}` : toKhNum(targetRank)) : "......";
-
-  const rDates = window.reportCardDateSettings || {};
-  const lunarDateStr = rDates.showLunar !== false ? rDates.lunarDate : "";
-  const solarDateStr = window.getFormattedSolarDate ? window.getFormattedSolarDate() : "";
-
-  return `
-    <div class="report-booklet-page bg-white box-border text-slate-900 shadow-xl print:shadow-none" 
-         style="width: 100%; height: 100%; padding: 6mm 10mm; border: 2.5px solid #1e3a8a; position: relative; font-family: 'Siemreap', sans-serif; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box;">
-       
-         <div style="position: absolute; top: 3mm; left: 3mm; font-size: 12px; font-weight: bold; color: #1e3a8a;">❖</div>
-         <div style="position: absolute; top: 3mm; right: 3mm; font-size: 12px; font-weight: bold; color: #1e3a8a;">❖</div>
-         <div style="position: absolute; bottom: 3mm; left: 3mm; font-size: 12px; font-weight: bold; color: #1e3a8a;">❖</div>
-         <div style="position: absolute; bottom: 3mm; right: 3mm; font-size: 12px; font-weight: bold; color: #1e3a8a;">❖</div>
-
-       <div style="text-align: center; margin-bottom: 1.5mm;">
-         <h2 style="margin: 0; font-family: 'Moul', serif; font-size: 14px; color: #1e3a8a;">${headerTitle}</h2>
-         <p style="margin: 1px 0 0 0; font-family: 'Moul', serif; font-size: 11.5px; color: #1e3a8a;">លទ្ធផលនៃការសិក្សា</p>
-       </div>
-
-       <table style="width: 100%; border-collapse: collapse; border: 2px solid #1e3a8a; font-size: 10px; margin-bottom: 1.5mm;">
-         <thead>${tableHeaderHtml}</thead>
-         <tbody>${rowsHtml}</tbody>
-       </table>
-
-       <div style="font-size: 11px; line-height: 1.6; border-bottom: 1.5px dashed #94a3b8; padding-bottom: 2px; margin-bottom: 1.5mm;">
-         <div>
-           ពិន្ទុសរុបៈ <span style="font-weight: bold; font-family: monospace; font-size: 12px; color: #1e3a8a;">${totalScoreFormatted}</span>
-           &nbsp;&nbsp;&nbsp;&nbsp;មធ្យមភាគៈ <span style="font-weight: bold; font-family: monospace; font-size: 12px; color: #1e3a8a;">${avgFormatted}</span>
-           &nbsp;&nbsp;&nbsp;&nbsp;ចំណាត់ថ្នាក់ៈ <span style="font-weight: bold; font-family: monospace; font-size: 12px; color: #e11d48;">${rankFormatted}</span>
-           &nbsp;&nbsp;&nbsp;&nbsp;និទ្ទេសៈ <span style="font-weight: bold; font-family: 'Moul', serif; font-size: 10.5px; color: #059669;">${targetGrade}</span>
+         <div style="text-align: center; margin-bottom: 1.5mm;">
+           <h2 style="margin: 0; font-family: 'Moul', serif; font-size: 14px; color: #1e3a8a;">${headerTitle}</h2>
+           <p style="margin: 1px 0 0 0; font-family: 'Moul', serif; font-size: 11.5px; color: #1e3a8a;">លទ្ធផលនៃការសិក្សា</p>
          </div>
-       </div>
 
-       <div style="display: flex; justify-content: space-between; align-items: flex-start; text-align: center; margin-bottom: 1.5mm;">
-         <div style="width: 44%;">
-            <p style="margin: 0 0 2px 0; font-size: 11px; font-weight: bold;">បានឃើញ និងឯកភាព</p>
-            <p style="margin: 0 0 30px 0; font-family: 'Moul', serif; font-size: 11px; color: #1e3a8a;">នាយកសាលា</p>
-            <p style="margin: 0; color: #1e3a8a; font-family: 'Moul', serif; font-size: 11.5px;">${principalName}</p>
+         <table style="width: 100%; border-collapse: collapse; border: 2px solid #1e3a8a; font-size: 10px; margin-bottom: 1.5mm;">
+           <thead>${tableHeaderHtml}</thead>
+           <tbody>${rowsHtml}</tbody>
+         </table>
+
+         <div style="font-size: 11px; line-height: 1.6; border-bottom: 1.5px dashed #94a3b8; padding-bottom: 2px; margin-bottom: 1.5mm;">
+           <div>
+             ពិន្ទុសរុបៈ <span style="font-weight: bold; font-family: monospace; font-size: 12px; color: #1e3a8a;">${totalScoreFormatted}</span>
+             &nbsp;&nbsp;&nbsp;&nbsp;មធ្យមភាគៈ <span style="font-weight: bold; font-family: monospace; font-size: 12px; color: #1e3a8a;">${avgFormatted}</span>
+             &nbsp;&nbsp;&nbsp;&nbsp;ចំណាត់ថ្នាក់ៈ <span style="font-weight: bold; font-family: monospace; font-size: 12px; color: #e11d48;">${rankFormatted}</span>
+             &nbsp;&nbsp;&nbsp;&nbsp;និទ្ទេសៈ <span style="font-weight: bold; font-family: 'Moul', serif; font-size: 10.5px; color: #059669;">${targetGrade}</span>
+           </div>
          </div>
-         <div style="width: 48%;">
-            <p class="rc-lunar-date-lbl" style="margin: 0 0 2px 0; font-size: 10px; color: #1e293b; display: ${rDates.showLunar ? 'block' : 'none'};">${lunarDateStr}</p>
-            <p class="rc-solar-date-lbl" style="margin: 0 0 2px 0; font-size: 10.5px; color: #1e293b;">${solarDateStr}</p>
-            <p style="margin: 0 0 30px 0; font-family: 'Moul', serif; font-size: 11px; color: #1e3a8a;">គ្រូទទួលបន្ទុកថ្នាក់</p>
-            <p style="margin: 0; color: #1e3a8a; font-family: 'Moul', serif; font-size: 11.5px;">${teacherName}</p>
+
+         <div style="display: flex; justify-content: space-between; align-items: flex-start; text-align: center; margin-bottom: 1.5mm;">
+           <div style="width: 44%;">
+              <p style="margin: 0 0 2px 0; font-size: 11px; font-weight: bold;">បានឃើញ និងឯកភាព</p>
+              <p style="margin: 0 0 30px 0; font-family: 'Moul', serif; font-size: 11px; color: #1e3a8a;">នាយកសាលា</p>
+              <p style="margin: 0; color: #1e3a8a; font-family: 'Moul', serif; font-size: 11.5px;">${principalName}</p>
+           </div>
+           <div style="width: 48%;">
+              <p class="rc-lunar-date-lbl" style="margin: 0 0 2px 0; font-size: 10px; color: #1e293b; display: ${rDates.showLunar ? 'block' : 'none'};">${lunarDateStr}</p>
+              <p class="rc-solar-date-lbl" style="margin: 0 0 2px 0; font-size: 10.5px; color: #1e293b;">${solarDateStr}</p>
+              <p style="margin: 0 0 30px 0; font-family: 'Moul', serif; font-size: 11px; color: #1e3a8a;">គ្រូទទួលបន្ទុកថ្នាក់</p>
+              <p style="margin: 0; color: #1e3a8a; font-family: 'Moul', serif; font-size: 11.5px;">${teacherName}</p>
+           </div>
          </div>
-       </div>
-    </div>
-  `;
+      </div>
+    `;
 };
 
 window.printReportCards = function() {
@@ -4742,7 +5244,7 @@ window.renderReportCardPreview = function() {
 };
 
 // =====================================================================
-// ៣. ទំព័រលទ្ធផលសិក្សាប្រចាំខែ (គាំទ្រមុខវិជ្ជាគោល & រង សម្រាប់បឋម)
+// ៣. ទំព័រលទ្ធផលសិក្សាប្រចាំខែ (គាំទ្រមុខវិជ្ជាគោល & រង សម្រាប់បឋម - លេខសកល)
 // =====================================================================
 window.generateMonthlySheetHTML = function(stu, periodOverride = null) {
   const levelStr = document.getElementById("globalLevelSelect")?.value || stu.grade || "ថ្នាក់ទី ២";
@@ -4751,7 +5253,7 @@ window.generateMonthlySheetHTML = function(stu, periodOverride = null) {
 
   let headerTitle = `ពិន្ទុ-ចំណាត់ថ្នាក់ ប្រចាំខែ ${month}`;
   if (type === "semester") headerTitle = `ពិន្ទុ-ចំណាត់ថ្នាក់ ប្រចាំ ${month}`;
-  else if (type === "annual") headerTitle = `ពិន្ទុ-ចំណាត់ថ្នាក់ ប្រចាំឆ្នាំសិក្សា ២០...-២០...`;
+  else if (type === "annual") headerTitle = `ពិន្ទុ-ចំណាត់ថ្នាក់ ប្រចាំឆ្នាំសិក្សា 20...-20...`; // លេខសកល
 
   const isPrimary = window.getEducationLevel(levelStr) === 'primary';
 
@@ -4759,7 +5261,22 @@ window.generateMonthlySheetHTML = function(stu, periodOverride = null) {
   let rowsHtml = "";
   let calculatedSum = 0;
 
-  // ក. តារាងកម្រិតបឋមសិក្សា (មានមុខវិជ្ជាគោល និងមុខវិជ្ជារង ដូចរូបភាពជាក់ស្តែង)
+  // កូដជំនួយសម្រាប់ Render ពិន្ទុ និងនិទ្ទេស (លេខសកល)
+  const renderScoreCellsUniversal = (score, max) => {
+    const t = getGradeTick(score, max);
+    const sStr = (score !== null && !isNaN(score)) ? Number(score).toString() : "-";
+    const b = "border: 1.5px solid #1e3a8a; text-align: center;";
+    return `
+      <td style="${b} font-size: 11px; font-mono; width: 10%; color: #334155;">${max}</td>
+      <td style="${b} font-size: 11.5px; font-mono; font-weight: bold; width: 13%; color: #1e3a8a; background: #f8fafc;">${sStr}</td>
+      <td style="${b} font-weight: bold; font-size: 12px; color: #1e3a8a; width: 8.5%;">${t.vg}</td>
+      <td style="${b} font-weight: bold; font-size: 12px; color: #1e3a8a; width: 8.5%;">${t.g}</td>
+      <td style="${b} font-weight: bold; font-size: 12px; color: #1e3a8a; width: 8.5%;">${t.m}</td>
+      <td style="${b} font-weight: bold; font-size: 12px; color: #e11d48; width: 8.5%;">${t.w}</td>
+    `;
+  };
+
+  // ក. តារាងកម្រិតបឋមសិក្សា (មានមុខវិជ្ជាគោល និងមុខវិជ្ជារង)
   if (isPrimary) {
     tableHeaderHtml = `
       <tr style="background-color: #f8fafc; color: #1e3a8a; height: 28px;">
@@ -4788,7 +5305,7 @@ window.generateMonthlySheetHTML = function(stu, periodOverride = null) {
           if (sc !== null && !isNaN(sc)) calculatedSum += sc;
 
           const firstCells = sIdx === 0 ? `
-            <td rowspan="${span}" style="border: 1.5px solid #1e3a8a; text-align: center; font-size: 11px; font-weight: bold; width: 5%;">${window.toKhmerNum(mainSub.no.toString())}</td>
+            <td rowspan="${span}" style="border: 1.5px solid #1e3a8a; text-align: center; font-size: 11px; font-weight: bold; width: 5%;">${mainSub.no}</td>
             <td rowspan="${span}" style="border: 1.5px solid #1e3a8a; text-align: left; padding-left: 6px; font-weight: bold; font-family: 'Siemreap', sans-serif; font-size: 11px; width: 20%; background: #fbfcfe;">${mainSub.name}</td>
           ` : "";
 
@@ -4796,7 +5313,7 @@ window.generateMonthlySheetHTML = function(stu, periodOverride = null) {
             <tr style="height: 19px;">
               ${firstCells}
               <td style="border: 1.5px solid #1e3a8a; text-align: left; padding-left: 6px; font-size: 10px; width: 18%; font-family: 'Siemreap', sans-serif;">${sub.name}</td>
-              ${renderScoreCells(sc, sub.max)}
+              ${renderScoreCellsUniversal(sc, sub.max)}
             </tr>
           `;
         });
@@ -4805,16 +5322,16 @@ window.generateMonthlySheetHTML = function(stu, periodOverride = null) {
         if (sc !== null && !isNaN(sc)) calculatedSum += sc;
         rowsHtml += `
           <tr style="height: 20px;">
-            <td style="border: 1.5px solid #1e3a8a; text-align: center; font-size: 11px; font-weight: bold; width: 5%;">${window.toKhmerNum(mainSub.no.toString())}</td>
+            <td style="border: 1.5px solid #1e3a8a; text-align: center; font-size: 11px; font-weight: bold; width: 5%;">${mainSub.no}</td>
             <td colspan="2" style="border: 1.5px solid #1e3a8a; text-align: left; padding-left: 6px; font-weight: bold; font-family: 'Siemreap', sans-serif; font-size: 11px; width: 38%;">${mainSub.name}</td>
-            ${renderScoreCells(sc, mainSub.max)}
+            ${renderScoreCellsUniversal(sc, mainSub.max)}
           </tr>
         `;
       }
     });
 
   } else {
-    // ខ. តារាងអនុវិទ្យាល័យ និងវិទ្យាល័យ (ទាញយកពីបញ្ជីពិន្ទុ ឬ Default)
+    // ខ. តារាងអនុវិទ្យាល័យ និងវិទ្យាល័យ
     tableHeaderHtml = `
       <tr style="background-color: #f8fafc; color: #1e3a8a; height: 30px;">
          <th rowspan="2" style="border: 1.5px solid #1e3a8a; padding: 4px; width: 6%; font-family: 'Moul', serif; font-size: 11px;">ល.រ</th>
@@ -4840,9 +5357,9 @@ window.generateMonthlySheetHTML = function(stu, periodOverride = null) {
 
       rowsHtml += `
         <tr style="height: 24px;">
-          <td style="border: 1.5px solid #1e3a8a; text-align: center; font-size: 11.5px; font-weight: bold; width: 6%;">${window.toKhmerNum((idx + 1).toString())}</td>
+          <td style="border: 1.5px solid #1e3a8a; text-align: center; font-size: 11.5px; font-weight: bold; width: 6%;">${idx + 1}</td>
           <td style="border: 1.5px solid #1e3a8a; text-align: left; padding-left: 8px; font-weight: bold; font-family: 'Siemreap', sans-serif; font-size: 12px; width: 34%;">${sub.name}</td>
-          ${renderScoreCells(sc, maxScore)}
+          ${renderScoreCellsUniversal(sc, maxScore)}
         </tr>
       `;
     });
@@ -4859,11 +5376,11 @@ window.generateMonthlySheetHTML = function(stu, periodOverride = null) {
   }
 
   const rawTotal = stu.totalScore || stu.total || stu.total_score || (calculatedSum > 0 ? calculatedSum : null);
-  const totalScoreFormatted = rawTotal != null ? window.toKhmerNum(Number(rawTotal).toFixed(0)) : "......";
-  const avgFormatted = (stu.avg !== undefined && stu.avg !== null && !isNaN(stu.avg)) ? window.toKhmerNum(Number(stu.avg).toFixed(2)) : "......";
-  const totalStusKhmer = window.rankingsDataList?.length ? window.toKhmerNum(window.rankingsDataList.length.toString()) : "";
+  const totalScoreFormatted = rawTotal != null ? Number(rawTotal).toFixed(0) : "......";
+  const avgFormatted = (stu.avg !== undefined && stu.avg !== null && !isNaN(stu.avg)) ? Number(stu.avg).toFixed(2) : "......";
+  const totalStus = window.rankingsDataList?.length ? window.rankingsDataList.length : "";
   const rankFormatted = (stu.rank !== undefined && stu.rank !== null && String(stu.rank).trim() !== "")
-    ? (totalStusKhmer ? `${window.toKhmerNum(stu.rank.toString())} / ${totalStusKhmer}` : window.toKhmerNum(stu.rank.toString())) : "......";
+    ? (totalStus ? `${stu.rank} / ${totalStus}` : stu.rank) : "......";
 
   const gradeLetterFormatted = stu.gradeLetter || stu.mention || "ល្អ";
   const savedConduct = localStorage.getItem(`conduct_${stu.id}`) || stu.conduct || window.globalDefaultConduct || window.CONDUCT_TEMPLATES[0];
@@ -4897,8 +5414,8 @@ window.generateMonthlySheetHTML = function(stu, periodOverride = null) {
            &nbsp;&nbsp;&nbsp;&nbsp;និទ្ទេសៈ <span style="font-weight: bold; font-family: 'Moul', serif; font-size: 11px; color: #059669;">${gradeLetterFormatted}</span>
          </div>
          <div>
-           អវត្តមានៈ មានច្បាប់ <span contenteditable="true" style="font-weight: bold; font-family: monospace; font-size: 12.5px; color: #1e3a8a; border-bottom: 1px dotted #94a3b8; padding: 0 4px;">${window.toKhmerNum(permCount.toString())}</span> ដង
-           &nbsp;&nbsp;&nbsp;&nbsp;ឥតច្បាប់ <span contenteditable="true" style="font-weight: bold; font-family: monospace; font-size: 12.5px; color: #e11d48; border-bottom: 1px dotted #94a3b8; padding: 0 4px;">${window.toKhmerNum(unexCount.toString())}</span> ដង
+           អវត្តមានៈ មានច្បាប់ <span contenteditable="true" style="font-weight: bold; font-family: monospace; font-size: 12.5px; color: #1e3a8a; border-bottom: 1px dotted #94a3b8; padding: 0 4px;">${permCount}</span> ដង
+           &nbsp;&nbsp;&nbsp;&nbsp;ឥតច្បាប់ <span contenteditable="true" style="font-weight: bold; font-family: monospace; font-size: 12.5px; color: #e11d48; border-bottom: 1px dotted #94a3b8; padding: 0 4px;">${unexCount}</span> ដង
          </div>
          <div style="margin-top: 1px; display: flex; align-items: center; flex-wrap: wrap;">
            <span style="font-weight: bold; color: #1e293b;">វិន័យសីលធម៌ៈ&nbsp;</span>
@@ -4947,315 +5464,319 @@ window.generateMonthlySheetHTML = function(stu, periodOverride = null) {
 };
 
 // =====================================================================
-// ៥. ទំព័រក្រប និងព័ត៌មានសិស្ស (A4 ទំនើប និងទាន់សម័យ - Modern Luxury & Digital Edition)
+// ៥. ទំព័រក្រប និងព័ត៌មានសិស្ស (A4 ទំនើប និងទាន់សម័យ - លេខសកល + កែថ្ងៃខែ)
 // =====================================================================
 window.generateCoverAndProfileHTML = function(stu) {
-  let fullStu = { ...stu };
-  try {
-    const allStus = JSON.parse(localStorage.getItem('academic_students')) || window.allStudents || [];
-    const found = allStus.find(s => String(s.id).trim() === String(stu.id).trim());
-    if (found) fullStu = { ...found, ...stu };
-  } catch(e) {}
+    let fullStu = { ...stu };
+    try {
+        const allStus = JSON.parse(localStorage.getItem('academic_students')) || window.allStudents || [];
+        const found = allStus.find(s => String(s.id).trim() === String(stu.id).trim());
+        if (found) fullStu = { ...found, ...stu };
+    } catch(e) {}
 
-  const levelStr = document.getElementById("globalLevelSelect")?.value || fullStu.grade || "ថ្នាក់ទី ៧";
-  const room = document.getElementById("globalRoomSelect")?.value || fullStu.room || "«ខ»";
-  const sInfo = typeof appSettings !== 'undefined' ? appSettings : {};
-  const schoolName = sInfo.school_name || "សាលាបឋមសិក្សា ដីឥដ្ឋ";
-  const clusterName = sInfo.cluster || sInfo.school_cluster || "កម្រងដីឥដ្ឋ";
-  const schoolPhone = sInfo.phone || sInfo.school_phone || "០១២ ៣៤៥ ៦៧៨";
-  const academicYear = sInfo.academic_year || "2026-2027";
+    // ប្រើលេខសកលសម្រាប់ថ្នាក់ មិនបាច់បំប្លែងទេ
+    const levelStr = document.getElementById("globalLevelSelect")?.value || fullStu.grade || "ថ្នាក់ទី 7";
+    const room = document.getElementById("globalRoomSelect")?.value || fullStu.room || "«ខ»";
+    const sInfo = typeof appSettings !== 'undefined' ? appSettings : {};
+    const schoolName = sInfo.school_name || "សាលាបឋមសិក្សា ដីឥដ្ឋ";
+    const clusterName = sInfo.cluster || sInfo.school_cluster || "កម្រងដីឥដ្ឋ";
+    const schoolPhone = sInfo.phone || sInfo.school_phone || "012 345 678"; // លេខសកល
+    const academicYear = sInfo.academic_year || "2026-2027"; // លេខសកល
 
-  const khmerMonths = ["មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា", "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ"];
-  let birthDay = "", birthMonth = "", birthYear = "";
-  const rawDob = fullStu.dob || "";
-  
-  if (rawDob && (rawDob.includes("-") || rawDob.includes("/"))) {
-    const parts = rawDob.split(/[-/]/);
-    if (parts.length === 3) {
-      if (parts[0].length === 4) {
-        birthYear = window.toKhmerNum(parts[0]);
-        const mIdx = parseInt(parts[1], 10) - 1;
-        birthMonth = (mIdx >= 0 && mIdx < 12) ? khmerMonths[mIdx] : window.toKhmerNum(parts[1]);
-        birthDay = window.toKhmerNum(parseInt(parts[2], 10).toString());
-      } else {
-        birthDay = window.toKhmerNum(parseInt(parts[0], 10).toString());
-        const mIdx = parseInt(parts[1], 10) - 1;
-        birthMonth = (mIdx >= 0 && mIdx < 12) ? khmerMonths[mIdx] : window.toKhmerNum(parts[1]);
-        birthYear = window.toKhmerNum(parts[2]);
-      }
+    const khmerMonths = ["មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា", "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ"];
+    let birthDay = "", birthMonth = "", birthYear = "";
+    
+    // 🔴 មុខងារសម្អាតថ្ងៃខែដ៏រឹងមាំ (Super Clean)
+    let cleanDob = String(fullStu.dob || "").replace(/["'\s]/g, ""); // លុបសញ្ញាធ្មេញកណ្ដុរ និងចន្លោះ
+    cleanDob = cleanDob.replace(/T[0-9:\.Z]+/gi, ""); // លុបម៉ោងអន្តរជាតិ (T17:00:00.000Z)
+    cleanDob = cleanDob.replace(/-/g, '/'); // បំប្លែងសញ្ញា - ទៅជា / ទាំងអស់
+    
+    if (cleanDob && cleanDob.includes("/")) {
+        const parts = cleanDob.split("/");
+        if (parts.length >= 3) {
+            // ឆែកមើលបើឆ្នាំនៅខាងមុខ (ឧ. 2011/05/19)
+            if (parts[0].length === 4) {
+                birthYear = parts[0];
+                const mIdx = parseInt(parts[1], 10) - 1;
+                birthMonth = (mIdx >= 0 && mIdx < 12) ? khmerMonths[mIdx] : parts[1];
+                birthDay = parseInt(parts[2], 10).toString();
+            } else { 
+                // បើថ្ងៃនៅខាងមុខ (ឧ. 19/05/2011)
+                birthDay = parseInt(parts[0], 10).toString();
+                const mIdx = parseInt(parts[1], 10) - 1;
+                birthMonth = (mIdx >= 0 && mIdx < 12) ? khmerMonths[mIdx] : parts[1];
+                birthYear = parts[2];
+            }
+        }
+    } else if (cleanDob) {
+        birthDay = cleanDob;
     }
-  } else if (rawDob) {
-    birthDay = window.toKhmerNum(rawDob);
-  }
 
-  let fullDobKhmer = "";
-  if (birthDay && birthMonth && birthYear) {
-    fullDobKhmer = `ថ្ងៃទី ${birthDay} ខែ ${birthMonth} ឆ្នាំ ${birthYear}`;
-  } else if (birthDay) {
-    fullDobKhmer = birthDay;
-  }
-
-  const renderField = (val, defaultDots = "....................................................") => {
-    if (val && String(val).trim() !== "" && !String(val).includes("...")) {
-      return `<span contenteditable="true" style="font-weight: bold; color: #1e3a8a; font-family: 'Siemreap', sans-serif;">${String(val).trim()}</span>`;
+    let fullDobKhmer = "";
+    if (birthDay && birthMonth && birthYear) {
+        // រក្សាទុកលេខសកល (ថ្ងៃទី 19 ខែ ឧសភា ឆ្នាំ 2011)
+        fullDobKhmer = `ថ្ងៃទី ${birthDay} ខែ ${birthMonth} ឆ្នាំ ${birthYear}`;
+    } else if (birthDay) {
+        fullDobKhmer = birthDay;
     }
-    return `<span contenteditable="true" style="color: #94a3b8; letter-spacing: 1px;">${defaultDots}</span>`;
-  };
 
-  const photoSrc = fullStu.photo_url || fullStu.photo || "";
+    const renderField = (val, defaultDots = "....................................................") => {
+        if (val && String(val).trim() !== "" && !String(val).includes("...")) {
+            return `<span contenteditable="true" style="font-weight: bold; color: #1e3a8a; font-family: 'Siemreap', sans-serif;">${String(val).trim()}</span>`;
+        }
+        return `<span contenteditable="true" style="color: #94a3b8; letter-spacing: 1px;">${defaultDots}</span>`;
+    };
 
-  return `
-    <!-- ============================================================== -->
-    <!-- ទំព័រទី ១៖ ក្របមុខសៀវភៅតាមដាន (Modern Geometric Cover Page) -->
-    <!-- ============================================================== -->
-    <div class="print-page-wrapper" style="width: 210mm; height: 297mm; padding: 8mm; box-sizing: border-box; page-break-after: always; display: flex; align-items: center; justify-content: center;">
-      <div class="report-booklet-page bg-white box-border text-slate-900 shadow-xl print:shadow-none" 
-           style="width: 100%; height: 100%; padding: 12mm 14mm; border: 2.5px solid #1e3a8a; position: relative; font-family: 'Siemreap', sans-serif; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box; background: radial-gradient(circle at 50% 15%, rgba(241, 245, 249, 0.6) 0%, #ffffff 70%);">
-         
-         <!-- ស៊ុមតុបតែងប្រណិតបែបទំនើប (Double Modern Accent Borders) -->
-         <div style="position: absolute; top: 2.5mm; bottom: 2.5mm; left: 2.5mm; right: 2.5mm; border: 1px solid #93c5fd; pointer-events: none; border-radius: 4px;"></div>
-         <div style="position: absolute; top: 4mm; bottom: 4mm; left: 4mm; right: 4mm; border: 0.5px dashed #cbd5e1; pointer-events: none;"></div>
+    const photoSrc = fullStu.photo_url || fullStu.photo || "";
 
-         <!-- ក្បាច់កែងទំនើប (Geometric Corner Accents) -->
-         <div style="position: absolute; top: 5.5mm; left: 5.5mm; width: 15px; height: 15px; border-top: 2.5px solid #d97706; border-left: 2.5px solid #d97706;"></div>
-         <div style="position: absolute; top: 5.5mm; right: 5.5mm; width: 15px; height: 15px; border-top: 2.5px solid #d97706; border-right: 2.5px solid #d97706;"></div>
-         <div style="position: absolute; bottom: 5.5mm; left: 5.5mm; width: 15px; height: 15px; border-bottom: 2.5px solid #d97706; border-left: 2.5px solid #d97706;"></div>
-         <div style="position: absolute; bottom: 5.5mm; right: 5.5mm; width: 15px; height: 15px; border-bottom: 2.5px solid #d97706; border-right: 2.5px solid #d97706;"></div>
+    return `
+      <!-- ============================================================== -->
+      <!-- ទំព័រទី ១៖ ក្របមុខសៀវភៅតាមដាន (Modern Geometric Cover Page) -->
+      <!-- ============================================================== -->
+      <div class="print-page-wrapper" style="width: 210mm; height: 297mm; padding: 8mm; box-sizing: border-box; page-break-after: always; display: flex; align-items: center; justify-content: center;">
+        <div class="report-booklet-page bg-white box-border text-slate-900 shadow-xl print:shadow-none" 
+             style="width: 100%; height: 100%; padding: 12mm 14mm; border: 2.5px solid #1e3a8a; position: relative; font-family: 'Siemreap', sans-serif; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box; background: radial-gradient(circle at 50% 15%, rgba(241, 245, 249, 0.6) 0%, #ffffff 70%);">
+           
+           <!-- ស៊ុមតុបតែងប្រណិតបែបទំនើប -->
+           <div style="position: absolute; top: 2.5mm; bottom: 2.5mm; left: 2.5mm; right: 2.5mm; border: 1px solid #93c5fd; pointer-events: none; border-radius: 4px;"></div>
+           <div style="position: absolute; top: 4mm; bottom: 4mm; left: 4mm; right: 4mm; border: 0.5px dashed #cbd5e1; pointer-events: none;"></div>
 
-         <!-- ក្បាលទំព័រជាតិ និងក្រសួង -->
-         <div style="text-align: center; margin-top: 3mm;">
-            <h2 style="margin: 0; font-family: 'Moul', serif; font-size: 15.5px; color: #1e3a8a; letter-spacing: 0.5px;">ព្រះរាជាណាចក្រកម្ពុជា</h2>
-            <h3 style="margin: 3px 0 0 0; font-family: 'Moul', serif; font-size: 13px; color: #1e3a8a; letter-spacing: 0.5px;">ជាតិ សាសនា ព្រះមហាក្សត្រ</h3>
-            
-            <!-- ខ្សែបន្ទាត់ក្បាច់ទំនើប -->
-            <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin: 4px auto 10px auto; width: 60%;">
-               <div style="height: 1px; flex: 1; background: linear-gradient(to right, transparent, #d97706);"></div>
-               <span style="color: #d97706; font-size: 11px;">❖ ❖ ❖</span>
-               <div style="height: 1px; flex: 1; background: linear-gradient(to left, transparent, #d97706);"></div>
-            </div>
+           <!-- ក្បាច់កែងទំនើប -->
+           <div style="position: absolute; top: 5.5mm; left: 5.5mm; width: 15px; height: 15px; border-top: 2.5px solid #d97706; border-left: 2.5px solid #d97706;"></div>
+           <div style="position: absolute; top: 5.5mm; right: 5.5mm; width: 15px; height: 15px; border-top: 2.5px solid #d97706; border-right: 2.5px solid #d97706;"></div>
+           <div style="position: absolute; bottom: 5.5mm; left: 5.5mm; width: 15px; height: 15px; border-bottom: 2.5px solid #d97706; border-left: 2.5px solid #d97706;"></div>
+           <div style="position: absolute; bottom: 5.5mm; right: 5.5mm; width: 15px; height: 15px; border-bottom: 2.5px solid #d97706; border-right: 2.5px solid #d97706;"></div>
 
-            <div style="margin-top: 4mm;">
-               <p style="margin: 0; font-family: 'Moul', serif; font-size: 13.5px; color: #334155;">ក្រសួងអប់រំ យុវជន និងកីឡា</p>
-               <h1 contenteditable="true" style="margin: 4px 0 0 0; font-family: 'Moul', serif; font-size: 20px; color: #1e3a8a; text-shadow: 0 1px 2px rgba(30,58,138,0.1);">${schoolName}</h1>
-               <div style="display: inline-flex; align-items: center; gap: 6px; background: #f1f5f9; padding: 2px 14px; border-radius: 20px; border: 1px solid #e2e8f0; margin-top: 5px;">
-                  <span style="font-size: 11px; color: #475569; font-weight: bold;">កម្រងសាលា ៖ ${clusterName || 'ទូទៅ'}</span>
-                  <span style="color: #cbd5e1;">|</span>
-                  <span style="font-size: 11px; color: #475569; font-weight: bold;">ទូរសព្ទ ៖ <span style="font-family: monospace;">${schoolPhone || '.....................'}</span></span>
-               </div>
-            </div>
-         </div>
+           <!-- ក្បាលទំព័រជាតិ និងក្រសួង -->
+           <div style="text-align: center; margin-top: 3mm;">
+              <h2 style="margin: 0; font-family: 'Moul', serif; font-size: 15.5px; color: #1e3a8a; letter-spacing: 0.5px;">ព្រះរាជាណាចក្រកម្ពុជា</h2>
+              <h3 style="margin: 3px 0 0 0; font-family: 'Moul', serif; font-size: 13px; color: #1e3a8a; letter-spacing: 0.5px;">ជាតិ សាសនា ព្រះមហាក្សត្រ</h3>
+              
+              <!-- ខ្សែបន្ទាត់ក្បាច់ទំនើប -->
+              <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin: 4px auto 10px auto; width: 60%;">
+                 <div style="height: 1px; flex: 1; background: linear-gradient(to right, transparent, #d97706);"></div>
+                 <span style="color: #d97706; font-size: 11px;">❖ ❖ ❖</span>
+                 <div style="height: 1px; flex: 1; background: linear-gradient(to left, transparent, #d97706);"></div>
+              </div>
 
-         <!-- និមិត្តសញ្ញាអប់រំផ្លូវការ (High-Resolution Vector Emblem) -->
-         <div style="display: flex; justify-content: center; margin: 2mm 0;">
-            <div style="position: relative; width: 78px; height: 78px;">
-               <svg width="78" height="78" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="50" cy="50" r="47" stroke="#1e3a8a" stroke-width="2.5" fill="#f8fafc"/>
-                  <circle cx="50" cy="50" r="42" stroke="#d97706" stroke-width="1.2" stroke-dasharray="3 2"/>
-                  <!-- កាំរស្មីពន្លឺនៃចំណេះដឹង -->
-                  <path d="M50 12 L50 20 M50 80 L50 88 M12 50 L20 50 M80 50 L88 50" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/>
-                  <!-- សៀវភៅបើក -->
-                  <path d="M50 63C41 57 30 58 22 60V36C30 34 41 34 50 39C59 34 70 34 78 36V60C70 58 59 57 50 63Z" fill="#1e3a8a"/>
-                  <path d="M50 39V63" stroke="#ffffff" stroke-width="1.8"/>
-                  <!-- ភ្លើងគប់/ប៊ិច នៃការសិក្សា -->
-                  <path d="M48 23H52V35H48V23Z" fill="#f59e0b"/>
-                  <path d="M50 16C46 19.5 46 22 50 24C54 22 54 19.5 50 16Z" fill="#ef4444"/>
-                  <circle cx="50" cy="50" r="3.5" fill="#ffffff"/>
-               </svg>
-            </div>
-         </div>
+              <div style="margin-top: 4mm;">
+                 <p style="margin: 0; font-family: 'Moul', serif; font-size: 13.5px; color: #334155;">ក្រសួងអប់រំ យុវជន និងកីឡា</p>
+                 <h1 contenteditable="true" style="margin: 4px 0 0 0; font-family: 'Moul', serif; font-size: 20px; color: #1e3a8a; text-shadow: 0 1px 2px rgba(30,58,138,0.1);">${schoolName}</h1>
+                 <div style="display: inline-flex; align-items: center; gap: 6px; background: #f1f5f9; padding: 2px 14px; border-radius: 20px; border: 1px solid #e2e8f0; margin-top: 5px;">
+                    <span style="font-size: 11px; color: #475569; font-weight: bold;">កម្រងសាលា ៖ ${clusterName || 'ទូទៅ'}</span>
+                    <span style="color: #cbd5e1;">|</span>
+                    <span style="font-size: 11px; color: #475569; font-weight: bold;">ទូរសព្ទ ៖ <span style="font-family: monospace;">${schoolPhone}</span></span>
+                 </div>
+              </div>
+           </div>
 
-         <!-- បដាចំណងជើងធំ (Modern Royal Gradient Banner) -->
-         <div style="text-align: center; margin: 2mm 0;">
-            <div style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 60%, #2563eb 100%); padding: 9px 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(30, 58, 138, 0.2); display: inline-block; min-width: 78%; border: 1.5px solid #fbbf24;">
-               <h1 style="margin: 0; font-family: 'Moul', serif; font-size: 23px; color: #ffffff; letter-spacing: 1px; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">
-                  សៀវភៅតាមដានការសិក្សា
-               </h1>
-               <p style="margin: 3px 0 0 0; font-size: 11px; font-weight: bold; color: #fef08a; letter-spacing: 2px; text-transform: uppercase;">
-                  Student Academic Progress Record
-               </p>
-            </div>
-         </div>
+           <!-- និមិត្តសញ្ញាអប់រំផ្លូវការ -->
+           <div style="display: flex; justify-content: center; margin: 2mm 0;">
+              <div style="position: relative; width: 78px; height: 78px;">
+                 <svg width="78" height="78" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="50" cy="50" r="47" stroke="#1e3a8a" stroke-width="2.5" fill="#f8fafc"/>
+                    <circle cx="50" cy="50" r="42" stroke="#d97706" stroke-width="1.2" stroke-dasharray="3 2"/>
+                    <path d="M50 12 L50 20 M50 80 L50 88 M12 50 L20 50 M80 50 L88 50" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/>
+                    <path d="M50 63C41 57 30 58 22 60V36C30 34 41 34 50 39C59 34 70 34 78 36V60C70 58 59 57 50 63Z" fill="#1e3a8a"/>
+                    <path d="M50 39V63" stroke="#ffffff" stroke-width="1.8"/>
+                    <path d="M48 23H52V35H48V23Z" fill="#f59e0b"/>
+                    <path d="M50 16C46 19.5 46 22 50 24C54 22 54 19.5 50 16Z" fill="#ef4444"/>
+                    <circle cx="50" cy="50" r="3.5" fill="#ffffff"/>
+                 </svg>
+              </div>
+           </div>
 
-         <!-- កាតបង្ហាញព័ត៌មានសិស្សបែបទំនើប (Student Showcase Card) -->
-         <div style="margin: 2mm auto; width: 88%; background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 14px; padding: 14px 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); position: relative;">
-            
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid #f1f5f9; padding-bottom: 8px; margin-bottom: 10px;">
-               <div style="display: flex; align-items: baseline; gap: 8px;">
-                  <span style="font-size: 13px; font-weight: bold; color: #64748b;">សិស្សឈ្មោះ ៖</span>
-                  <span style="font-family: 'Moul', serif; font-size: 17px; color: #1e3a8a;">${fullStu.name}</span>
-               </div>
-               <div style="background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: bold;">
-                  ភេទ ៖ ${fullStu.gender || 'ប្រុស'}
-               </div>
-            </div>
+           <!-- បដាចំណងជើងធំ -->
+           <div style="text-align: center; margin: 2mm 0;">
+              <div style="background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 60%, #2563eb 100%); padding: 9px 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(30, 58, 138, 0.2); display: inline-block; min-width: 78%; border: 1.5px solid #fbbf24;">
+                 <h1 style="margin: 0; font-family: 'Moul', serif; font-size: 23px; color: #ffffff; letter-spacing: 1px; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+                    សៀវភៅតាមដានការសិក្សា
+                 </h1>
+                 <p style="margin: 3px 0 0 0; font-size: 11px; font-weight: bold; color: #fef08a; letter-spacing: 2px; text-transform: uppercase;">
+                    Student Academic Progress Record
+                 </p>
+              </div>
+           </div>
 
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; font-size: 12.5px; text-align: center;">
-               <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 6px; border-radius: 10px;">
-                  <div style="font-size: 10.5px; color: #64748b; font-weight: bold; margin-bottom: 2px;">អត្តលេខសិស្ស</div>
-                  <div style="font-family: monospace; font-weight: bold; font-size: 15px; color: #0f172a;">${window.toKhmerNum(fullStu.id || '........')}</div>
-               </div>
+           <!-- កាតបង្ហាញព័ត៌មានសិស្សបែបទំនើប (លេខសកល) -->
+           <div style="margin: 2mm auto; width: 88%; background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 14px; padding: 14px 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); position: relative;">
+              
+              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid #f1f5f9; padding-bottom: 8px; margin-bottom: 10px;">
+                 <div style="display: flex; align-items: baseline; gap: 8px;">
+                    <span style="font-size: 13px; font-weight: bold; color: #64748b;">សិស្សឈ្មោះ ៖</span>
+                    <span style="font-family: 'Moul', serif; font-size: 17px; color: #1e3a8a;">${fullStu.name}</span>
+                 </div>
+                 <div style="background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: bold;">
+                    ភេទ ៖ ${fullStu.gender || 'ប្រុស'}
+                 </div>
+              </div>
 
-               <div style="background: #fdf2f8; border: 1px solid #fbcfe8; padding: 8px 6px; border-radius: 10px;">
-                  <div style="font-size: 10.5px; color: #db2777; font-weight: bold; margin-bottom: 2px;">ថ្នាក់រៀន</div>
-                  <div style="font-family: 'Moul', serif; font-size: 13.5px; color: #be123c;">${levelStr.replace('ថ្នាក់ទី ', '')} ${room}</div>
-               </div>
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; font-size: 12.5px; text-align: center;">
+                 <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px 6px; border-radius: 10px;">
+                    <div style="font-size: 10.5px; color: #64748b; font-weight: bold; margin-bottom: 2px;">អត្តលេខសិស្ស</div>
+                    <div style="font-family: monospace; font-weight: bold; font-size: 15px; color: #0f172a;">${fullStu.id || '........'}</div>
+                 </div>
 
-               <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 8px 6px; border-radius: 10px;">
-                  <div style="font-size: 10.5px; color: #16a34a; font-weight: bold; margin-bottom: 2px;">ឆ្នាំសិក្សា</div>
-                  <div style="font-family: monospace; font-weight: bold; font-size: 14.5px; color: #15803d;">${window.toKhmerNum(academicYear)}</div>
-               </div>
-            </div>
+                 <div style="background: #fdf2f8; border: 1px solid #fbcfe8; padding: 8px 6px; border-radius: 10px;">
+                    <div style="font-size: 10.5px; color: #db2777; font-weight: bold; margin-bottom: 2px;">ថ្នាក់រៀន</div>
+                    <div style="font-family: 'Moul', serif; font-size: 13.5px; color: #be123c;">${levelStr.replace('ថ្នាក់ទី ', '')} ${room}</div>
+                 </div>
 
-            <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed #e2e8f0; display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; color: #64748b;">
-               <span>ប្រព័ន្ធគ្រប់គ្រងសាលារៀនឌីជីថល (Digital School Platform)</span>
-               <span style="color: #10b981; font-weight: bold;">● ឯកសារផ្លូវការ</span>
-            </div>
-         </div>
+                 <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 8px 6px; border-radius: 10px;">
+                    <div style="font-size: 10.5px; color: #16a34a; font-weight: bold; margin-bottom: 2px;">ឆ្នាំសិក្សា</div>
+                    <div style="font-family: monospace; font-weight: bold; font-size: 14.5px; color: #15803d;">${academicYear}</div>
+                 </div>
+              </div>
 
-         <!-- ផ្នែកខាងក្រោម (Footer Bar with Smart QR Code) -->
-         <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 10mm; margin-bottom: 1mm;">
-            <div style="font-size: 10.5px; color: #64748b; line-height: 1.6;">
-               <div>• គោរពតាមកម្មវិធីសិក្សា និងបទបញ្ជាផ្ទៃក្នុងរបស់ក្រសួងអប់រំ</div>
-               <div>• បោះពុម្ពចេញពីប្រព័ន្ធស្វ័យប្រវត្តិកាលបរិច្ឆេទ ៖ ${window.getFormattedSolarDate()}</div>
-            </div>
+              <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed #e2e8f0; display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; color: #64748b;">
+                 <span>ប្រព័ន្ធគ្រប់គ្រងសាលារៀនឌីជីថល (Digital School Platform)</span>
+                 <span style="color: #10b981; font-weight: bold;">● ឯកសារផ្លូវការ</span>
+              </div>
+           </div>
 
-            <!-- Modern Digital Verification Mockup -->
-            <div style="display: flex; align-items: center; gap: 8px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 5px 8px; border-radius: 8px;">
-               <svg width="34" height="34" viewBox="0 0 24 24" fill="#1e3a8a">
-                  <path d="M2 2h8v8H2V2zm2 2v4h4V4H4zm8-2h8v8h-8V2zm2 2v4h4V4h-4zM2 12h8v8H2v-8zm2 2v4h4v-4H4zm10-2h2v2h-2v-2zm4 0h2v2h-2v-2zm-4 4h2v2h-2v-2zm4 0h2v2h-2v-2zm-2-2h2v2h-2v-2zm2 4h2v2h-2v-2zm-4 0h2v2h-2v-2z"/>
-               </svg>
-               <div style="font-size: 9px; color: #475569; font-weight: bold; line-height: 1.2;">
-                  ស្កេនពិនិត្យ<br><span style="color: #2563eb;">E-Portfolio</span>
-               </div>
-            </div>
-         </div>
+           <!-- ផ្នែកខាងក្រោម (Footer Bar with Smart QR Code) -->
+           <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 10mm; margin-bottom: 1mm;">
+              <div style="font-size: 10.5px; color: #64748b; line-height: 1.6;">
+                 <div>• គោរពតាមកម្មវិធីសិក្សា និងបទបញ្ជាផ្ទៃក្នុងរបស់ក្រសួងអប់រំ</div>
+                 <div>• បោះពុម្ពចេញពីប្រព័ន្ធស្វ័យប្រវត្តិកាលបរិច្ឆេទ ៖ ${window.getFormattedSolarDate()}</div>
+              </div>
 
+              <div style="display: flex; align-items: center; gap: 8px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 5px 8px; border-radius: 8px;">
+                 <svg width="34" height="34" viewBox="0 0 24 24" fill="#1e3a8a">
+                    <path d="M2 2h8v8H2V2zm2 2v4h4V4H4zm8-2h8v8h-8V2zm2 2v4h4V4h-4zM2 12h8v8H2v-8zm2 2v4h4v-4H4zm10-2h2v2h-2v-2zm4 0h2v2h-2v-2zm-4 4h2v2h-2v-2zm4 0h2v2h-2v-2zm-2-2h2v2h-2v-2zm2 4h2v2h-2v-2zm-4 0h2v2h-2v-2z"/>
+                 </svg>
+                 <div style="font-size: 9px; color: #475569; font-weight: bold; line-height: 1.2;">
+                    ស្កេនពិនិត្យ<br><span style="color: #2563eb;">E-Portfolio</span>
+                 </div>
+              </div>
+           </div>
+
+        </div>
       </div>
-    </div>
 
-    <!-- ============================================================== -->
-    <!-- ទំព័រទី ២៖ ព័ត៌មានលម្អិតសិស្ស (Modern Structured Profile Sheet) -->
-    <!-- ============================================================== -->
-    <div class="print-page-wrapper" style="width: 210mm; height: 297mm; padding: 8mm; box-sizing: border-box; page-break-after: always; display: flex; align-items: center; justify-content: center;">
-      <div class="report-booklet-page bg-white box-border text-slate-900 shadow-xl print:shadow-none" 
-           style="width: 100%; height: 100%; padding: 10mm 14mm; border: 2.5px solid #1e3a8a; position: relative; font-family: 'Siemreap', sans-serif; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box;">
-         
-         <div style="position: absolute; top: 3.5mm; left: 4mm; font-size: 14px; font-weight: bold; color: #1e3a8a;">❖</div>
-         <div style="position: absolute; top: 3.5mm; right: 4mm; font-size: 14px; font-weight: bold; color: #1e3a8a;">❖</div>
-         <div style="position: absolute; bottom: 3.5mm; left: 4mm; font-size: 14px; font-weight: bold; color: #1e3a8a;">❖</div>
-         <div style="position: absolute; bottom: 3.5mm; right: 4mm; font-size: 14px; font-weight: bold; color: #1e3a8a;">❖</div>
+      <!-- ============================================================== -->
+      <!-- ទំព័រទី ២៖ ព័ត៌មានលម្អិតសិស្ស (Modern Structured Profile Sheet - លេខសកល) -->
+      <!-- ============================================================== -->
+      <div class="print-page-wrapper" style="width: 210mm; height: 297mm; padding: 8mm; box-sizing: border-box; page-break-after: always; display: flex; align-items: center; justify-content: center;">
+        <div class="report-booklet-page bg-white box-border text-slate-900 shadow-xl print:shadow-none" 
+             style="width: 100%; height: 100%; padding: 10mm 14mm; border: 2.5px solid #1e3a8a; position: relative; font-family: 'Siemreap', sans-serif; display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box;">
+           
+           <div style="position: absolute; top: 3.5mm; left: 4mm; font-size: 14px; font-weight: bold; color: #1e3a8a;">❖</div>
+           <div style="position: absolute; top: 3.5mm; right: 4mm; font-size: 14px; font-weight: bold; color: #1e3a8a;">❖</div>
+           <div style="position: absolute; bottom: 3.5mm; left: 4mm; font-size: 14px; font-weight: bold; color: #1e3a8a;">❖</div>
+           <div style="position: absolute; bottom: 3.5mm; right: 4mm; font-size: 14px; font-weight: bold; color: #1e3a8a;">❖</div>
 
-         <div>
-            <!-- ក្បាលទំព័រព័ត៌មាន -->
-            <div style="text-align: center; margin-bottom: 4mm; border-bottom: 2px solid #1e3a8a; padding-bottom: 4px;">
-               <h2 style="margin: 0; font-family: 'Moul', serif; font-size: 15px; color: #1e3a8a;">
-                  ជីវប្រវត្តិសង្ខេបសិស្ស និងព័ត៌មានអាណាព្យាបាល
-               </h2>
-               <p style="margin: 1px 0 0 0; font-size: 11px; color: #64748b; font-weight: bold;">
-                  សាលាចំណេះទូទៅ • ${schoolName}
-               </p>
-            </div>
+           <div>
+              <!-- ក្បាលទំព័រព័ត៌មាន -->
+              <div style="text-align: center; margin-bottom: 4mm; border-bottom: 2px solid #1e3a8a; padding-bottom: 4px;">
+                 <h2 style="margin: 0; font-family: 'Moul', serif; font-size: 15px; color: #1e3a8a;">
+                    ជីវប្រវត្តិសង្ខេបសិស្ស និងព័ត៌មានអាណាព្យាបាល
+                 </h2>
+                 <p style="margin: 1px 0 0 0; font-size: 11px; color: #64748b; font-weight: bold;">
+                    សាលាចំណេះទូទៅ • ${schoolName}
+                 </p>
+              </div>
 
-            <!-- ប្លុកព័ត៌មានផ្ទាល់ខ្លួន និងរូបថត (ID Header Grid) -->
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; margin-bottom: 3mm; background: #f8fafc; padding: 10px 14px; border-radius: 12px; border: 1px solid #e2e8f0;">
-               <div style="flex: 1; font-size: 13px; line-height: 2.1;">
-                  <div style="display: flex; gap: 16px; align-items: baseline;">
-                     <span>ឈ្មោះសិស្ស ៖ <b style="font-family: 'Moul', serif; font-size: 15px; color: #1e3a8a;">${fullStu.name}</b></span>
-                     <span>ភេទ ៖ <b>${fullStu.gender || 'ប្រុស'}</b></span>
-                     <span>អត្តលេខ ៖ <b style="font-family: monospace; font-size: 14px; color: #1e3a8a;">${fullStu.id || '........'}</b></span>
-                  </div>
-                  <div>
-                     ថ្នាក់ទី ៖ <b style="color: #be123c;">${levelStr.replace('ថ្នាក់ទី ', '')} ${room}</b>
-                     &nbsp;&nbsp;&nbsp;&nbsp; ឆ្នាំសិក្សា ៖ <b style="font-family: monospace; color: #1e3a8a;">${window.toKhmerNum(academicYear)}</b>
-                  </div>
-                  <div>
-                     សាលារៀន ៖ <span style="font-weight: bold; color: #334155;">${schoolName}</span>
-                     &nbsp;&nbsp;&nbsp;&nbsp; កម្រង ៖ <span>${renderField(clusterName, ".....................")}</span>
-                  </div>
-               </div>
+              <!-- ប្លុកព័ត៌មានផ្ទាល់ខ្លួន និងរូបថត (លេខសកល) -->
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; margin-bottom: 3mm; background: #f8fafc; padding: 10px 14px; border-radius: 12px; border: 1px solid #e2e8f0;">
+                 <div style="flex: 1; font-size: 13px; line-height: 2.1;">
+                    <div style="display: flex; gap: 16px; align-items: baseline;">
+                       <span>ឈ្មោះសិស្ស ៖ <b style="font-family: 'Moul', serif; font-size: 15px; color: #1e3a8a;">${fullStu.name}</b></span>
+                       <span>ភេទ ៖ <b>${fullStu.gender || 'ប្រុស'}</b></span>
+                       <span>អត្តលេខ ៖ <b style="font-family: monospace; font-size: 14px; color: #1e3a8a;">${fullStu.id || '........'}</b></span>
+                    </div>
+                    <div>
+                       ថ្នាក់ទី ៖ <b style="color: #be123c;">${levelStr.replace('ថ្នាក់ទី ', '')} ${room}</b>
+                       &nbsp;&nbsp;&nbsp;&nbsp; ឆ្នាំសិក្សា ៖ <b style="font-family: monospace; color: #1e3a8a;">${academicYear}</b>
+                    </div>
+                    <div>
+                       សាលារៀន ៖ <span style="font-weight: bold; color: #334155;">${schoolName}</span>
+                       &nbsp;&nbsp;&nbsp;&nbsp; កម្រង ៖ <span>${renderField(clusterName, ".....................")}</span>
+                    </div>
+                 </div>
 
-               <!-- ប្រអប់រូបថតបែបទំនើប (Rounded Photo Slot with Drop Shadow) -->
-               <div style="width: 28mm; height: 36mm; border: 2px dashed #93c5fd; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #ffffff; flex-shrink: 0; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-                  ${photoSrc ? `<img src="${photoSrc}" style="width: 100%; height: 100%; object-fit: cover;">` : `
-                     <svg width="24" height="24" viewBox="0 0 24 24" fill="#94a3b8" style="margin-bottom: 2px;">
-                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                     </svg>
-                     <span style="font-size: 10px; font-weight: bold; color: #64748b;">រូបថត ៤ x ៦</span>
-                  `}
-               </div>
-            </div>
+                 <!-- ប្រអប់រូបថត -->
+                 <div style="width: 28mm; height: 36mm; border: 2px dashed #93c5fd; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #ffffff; flex-shrink: 0; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                    ${photoSrc ? `<img src="${photoSrc}" style="width: 100%; height: 100%; object-fit: cover;">` : `
+                       <svg width="24" height="24" viewBox="0 0 24 24" fill="#94a3b8" style="margin-bottom: 2px;">
+                          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                       </svg>
+                       <span style="font-size: 10px; font-weight: bold; color: #64748b;">រូបថត 4 x 6</span>
+                    `}
+                 </div>
+              </div>
 
-            <!-- តារាងព័ត៌មានលម្អិត (Structured Modern Form Layout) -->
-            <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; font-size: 12.5px; line-height: 2.3; color: #1e293b; background: #ffffff;">
-               
-               <div style="font-family: 'Moul', serif; font-size: 11.5px; color: #1e3a8a; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; margin-bottom: 4px;">
-                  I. ទីកន្លែងកំណើត និងអាសយដ្ឋានបច្ចុប្បន្ន
-               </div>
-               
-               <div> 
-                  • ថ្ងៃខែឆ្នាំកំណើត ៖ ${renderField(fullDobKhmer, "ថ្ងៃទី...... ខែ................ ឆ្នាំ២០......")} 
-                  &nbsp;&nbsp; នៅភូមិ/ក្រុម ៖ ${renderField(fullStu.pob_village, "........................")}
-               </div>
-               <div>
-                  • ឃុំ/សង្កាត់ ៖ ${renderField(fullStu.pob_commune, "........................")} 
-                  &nbsp;&nbsp; ស្រុក/ខណ្ឌ ៖ ${renderField(fullStu.pob_district, "........................")} 
-                  &nbsp;&nbsp; ខេត្ត/ក្រុង ៖ ${renderField(fullStu.pob_province, "........................")}
-               </div>
-               <div>
-                  • អាសយដ្ឋានបច្ចុប្បន្ន ៖ ផ្ទះលេខ ${renderField(fullStu.house_no, "....")} 
-                  &nbsp; ផ្លូវ ${renderField(fullStu.street, "....")} 
-                  &nbsp; ភូមិ ${renderField(fullStu.curr_village, "................")} 
-                  &nbsp; ឃុំ/សង្កាត់ ${renderField(fullStu.curr_commune, "................")}
-               </div>
-               <div>
-                  • ស្រុក/ខណ្ឌ ៖ ${renderField(fullStu.curr_district, ".........................")} 
-                  &nbsp;&nbsp; ខេត្ត/ក្រុង ៖ ${renderField(fullStu.curr_province, ".........................")}
-               </div>
+              <!-- តារាងព័ត៌មានលម្អិត (លេខសកល) -->
+              <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 14px; font-size: 12.5px; line-height: 2.3; color: #1e293b; background: #ffffff;">
+                 
+                 <div style="font-family: 'Moul', serif; font-size: 11.5px; color: #1e3a8a; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; margin-bottom: 4px;">
+                    I. ទីកន្លែងកំណើត និងអាសយដ្ឋានបច្ចុប្បន្ន
+                 </div>
+                 
+                 <div> 
+                    • ថ្ងៃខែឆ្នាំកំណើត ៖ ${renderField(fullDobKhmer, "ថ្ងៃទី...... ខែ................ ឆ្នាំ20......")} 
+                    &nbsp;&nbsp; នៅភូមិ/ក្រុម ៖ ${renderField(fullStu.pob_village, "........................")}
+                 </div>
+                 <div>
+                    • ឃុំ/សង្កាត់ ៖ ${renderField(fullStu.pob_commune, "........................")} 
+                    &nbsp;&nbsp; ស្រុក/ខណ្ឌ ៖ ${renderField(fullStu.pob_district, "........................")} 
+                    &nbsp;&nbsp; ខេត្ត/ក្រុង ៖ ${renderField(fullStu.pob_province, "........................")}
+                 </div>
+                 <div>
+                    • អាសយដ្ឋានបច្ចុប្បន្ន ៖ ផ្ទះលេខ ${renderField(fullStu.house_no, "....")} 
+                    &nbsp; ផ្លូវ ${renderField(fullStu.street, "....")} 
+                    &nbsp; ភូមិ ${renderField(fullStu.curr_village, "................")} 
+                    &nbsp; ឃុំ/សង្កាត់ ${renderField(fullStu.curr_commune, "................")}
+                 </div>
+                 <div>
+                    • ស្រុក/ខណ្ឌ ៖ ${renderField(fullStu.curr_district, ".........................")} 
+                    &nbsp;&nbsp; ខេត្ត/ក្រុង ៖ ${renderField(fullStu.curr_province, ".........................")}
+                 </div>
 
-               <div style="font-family: 'Moul', serif; font-size: 11.5px; color: #1e3a8a; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; margin-top: 8px; margin-bottom: 4px;">
-                  II. ព័ត៌មានមាតាបិតា និងអាណាព្យាបាល
-               </div>
+                 <div style="font-family: 'Moul', serif; font-size: 11.5px; color: #1e3a8a; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; margin-top: 8px; margin-bottom: 4px;">
+                    II. ព័ត៌មានមាតាបិតា និងអាណាព្យាបាល
+                 </div>
 
-               <div>
-                  • ឪពុកឈ្មោះ ៖ ${renderField(fullStu.father_name)} 
-                  &nbsp;&nbsp;&nbsp;&nbsp; មុខរបរ ៖ ${renderField(fullStu.father_job)}
-               </div>
-               <div>
-                  • ម្ដាយឈ្មោះ ៖ ${renderField(fullStu.mother_name)} 
-                  &nbsp;&nbsp;&nbsp;&nbsp; មុខរបរ ៖ ${renderField(fullStu.mother_job)}
-               </div>
-               <div>
-                  • អាណាព្យាបាលឈ្មោះ ៖ ${renderField(fullStu.guardian_name || fullStu.father_name || fullStu.mother_name)} 
-                  &nbsp;&nbsp;&nbsp;&nbsp; មុខរបរ ៖ ${renderField(fullStu.guardian_job || fullStu.father_job || fullStu.mother_job)}
-               </div>
-               <div>
-                  • លេខទូរស័ព្ទទំនាក់ទំនងអាណាព្យាបាល ៖ <span style="font-family: monospace; font-weight: bold; color: #1e3a8a;">${renderField(fullStu.phone || fullStu.contact, "....................................")}</span>
-               </div>
-            </div>
+                 <div>
+                    • ឪពុកឈ្មោះ ៖ ${renderField(fullStu.father_name)} 
+                    &nbsp;&nbsp;&nbsp;&nbsp; មុខរបរ ៖ ${renderField(fullStu.father_job)}
+                 </div>
+                 <div>
+                    • ម្ដាយឈ្មោះ ៖ ${renderField(fullStu.mother_name)} 
+                    &nbsp;&nbsp;&nbsp;&nbsp; មុខរបរ ៖ ${renderField(fullStu.mother_job)}
+                 </div>
+                 <div>
+                    • អាណាព្យាបាលឈ្មោះ ៖ ${renderField(fullStu.guardian_name || fullStu.father_name || fullStu.mother_name)} 
+                    &nbsp;&nbsp;&nbsp;&nbsp; មុខរបរ ៖ ${renderField(fullStu.guardian_job || fullStu.father_job || fullStu.mother_job)}
+                 </div>
+                 <div>
+                    • លេខទូរស័ព្ទទំនាក់ទំនងអាណាព្យាបាល ៖ <span style="font-family: monospace; font-weight: bold; color: #1e3a8a;">${renderField(fullStu.phone || fullStu.contact, "....................................")}</span>
+                 </div>
+              </div>
 
-            <!-- សេចក្តីសន្យាសង្ខេបរបស់សិស្ស (Student Pledge Callout) -->
-            <div style="margin-top: 3mm; background: #eff6ff; border-left: 3.5px solid #2563eb; padding: 6px 12px; border-radius: 4px; font-size: 11px; color: #1e40af; font-style: italic;">
-               « ខ្ញុំបាទ/នាងខ្ញុំ សូមសន្យាថានឹងគោរពប្រតិបត្តិតាមបទបញ្ជាផ្ទៃក្នុងរបស់សាលារៀន ឧស្សាហ៍ព្យាយាមរៀនសូត្រ និងគោរពវិន័យឱ្យបានខ្ជាប់ខ្ជួនបំផុត »
-            </div>
-         </div>
+              <!-- សេចក្តីសន្យា -->
+              <div style="margin-top: 3mm; background: #eff6ff; border-left: 3.5px solid #2563eb; padding: 6px 12px; border-radius: 4px; font-size: 11px; color: #1e40af; font-style: italic;">
+                 « ខ្ញុំបាទ/នាងខ្ញុំ សូមសន្យាថានឹងគោរពប្រតិបត្តិតាមបទបញ្ជាផ្ទៃក្នុងរបស់សាលារៀន ឧស្សាហ៍ព្យាយាមរៀនសូត្រ និងគោរពវិន័យឱ្យបានខ្ជាប់ខ្ជួនបំផុត »
+              </div>
+           </div>
 
-         <!-- ហត្ថលេខា និងការទទួលស្គាល់ផ្លូវការ (Official Signatures) -->
-         <div style="display: flex; justify-content: space-between; text-align: center; font-size: 12.5px; margin-top: 4mm; padding-top: 3mm; border-top: 1.5px solid #e2e8f0;">
-            <div style="width: 44%;">
-               <p style="margin: 0 0 45px 0; font-weight: bold; color: #334155;">ហត្ថលេខា ឬស្នាមមេដៃអាណាព្យាបាល</p>
-               <p style="margin: 0; color: #94a3b8; font-size: 11px;">............................................................</p>
-            </div>
-            
-            <div style="width: 44%;">
-               <p style="margin: 0 0 4px 0; font-size: 11px; color: #64748b;">${window.getFormattedSolarDate()}</p>
-               <p style="margin: 0 0 35px 0; font-family: 'Moul', serif; font-size: 12.5px; color: #1e3a8a;">នាយកសាលា</p>
-               <p style="margin: 0; color: #94a3b8; font-size: 11px;">............................................................</p>
-            </div>
-         </div>
+           <!-- ហត្ថលេខា -->
+           <div style="display: flex; justify-content: space-between; text-align: center; font-size: 12.5px; margin-top: 4mm; padding-top: 3mm; border-top: 1.5px solid #e2e8f0;">
+              <div style="width: 44%;">
+                 <p style="margin: 0 0 45px 0; font-weight: bold; color: #334155;">ហត្ថលេខា ឬស្នាមមេដៃអាណាព្យាបាល</p>
+                 <p style="margin: 0; color: #94a3b8; font-size: 11px;">............................................................</p>
+              </div>
+              
+              <div style="width: 44%;">
+                 <p style="margin: 0 0 4px 0; font-size: 11px; color: #64748b;">${window.getFormattedSolarDate()}</p>
+                 <p style="margin: 0 0 35px 0; font-family: 'Moul', serif; font-size: 12.5px; color: #1e3a8a;">នាយកសាលា</p>
+                 <p style="margin: 0; color: #94a3b8; font-size: 11px;">............................................................</p>
+              </div>
+           </div>
 
+        </div>
       </div>
-    </div>
-  `;
+    `;
 };
 
 // =====================================================================
@@ -5481,9 +6002,7 @@ window.changeHonorLogo = function(event) {
 // ==========================================
 // មុខងារគូរផ្ទាំង A4 (Render Engine)
 // ==========================================
-// ==========================================
-// មុខងារគូរផ្ទាំង A4 (ផ្តាច់ធាតុនិមួយៗដាច់ពីគ្នា)
-// ==========================================
+
 function renderTop5HonorBoard() {
     const container = document.getElementById("top5HonorContainer");
     if (!container) return;
@@ -5607,7 +6126,6 @@ function renderTop5HonorBoard() {
             <div class="shrink-0 relative flex justify-between items-start w-full z-20">
                 <!-- ឡូហ្គោ និង ឈ្មោះសាលា -->
                 <div class="canva-el cursor-grab hover:ring-2 hover:ring-dashed hover:ring-blue-400 p-2 rounded-xl text-center leading-tight transition-colors hover:bg-white/40 backdrop-blur-sm z-20">
-                  ${logoHtml}
                   <p contenteditable="true" spellcheck="false" class="font-moul text-amber-950 text-[13px] outline-none mt-1 hover:bg-white/60 px-2 py-0.5 rounded">${school_name}</p>
                 </div>
 

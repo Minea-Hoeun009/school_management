@@ -109,164 +109,304 @@ window.getTeacherGradeInfo = function() {
 };
 
 // =====================================================================
-// ១. Layout មេ (Main Layout) 
+// ១. Layout មេ (Main Layout) - លុបបំបាត់ setTimeout ផ្តាច់មុខ
 // =====================================================================
 window.loadAttendanceView = async function() {
-    const container = document.getElementById("attendanceContainer") || document.getElementById("attendanceView") || document.getElementById("mainContentArea");
-    if (!container) return;
+    try {
+        const container = document.getElementById("attendanceContainer") || document.getElementById("attendanceView") || document.getElementById("mainContentArea");
+        if (!container) return;
 
-    const academicYear = document.getElementById("globalAcademicYear")?.value || localStorage.getItem('selected_academic_year') || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`;
-    
-    const sInfo = typeof appSettings !== 'undefined' ? appSettings : {};
-    
-    const defaultGrade = sInfo.teacher_level && sInfo.teacher_room ? `${sInfo.teacher_level} ${sInfo.teacher_room}` : "ថ្នាក់រៀនរបស់ខ្ញុំ";
-    const currentYear = new Date().getFullYear();
-    
-    // 🟢 បន្ថែមការចាប់យកខែបច្ចុប្បន្នដោយស្វ័យប្រវត្តិ 🟢
-    const currentMonthName = KHMER_MONTHS[new Date().getMonth()];;
+        const sInfo = typeof appSettings !== 'undefined' ? appSettings : (JSON.parse(localStorage.getItem('school_settings') || '{}'));
+        const academicYear = document.getElementById("globalAcademicYear")?.value || localStorage.getItem('selected_academic_year') || sInfo.academic_year || "2026-2027";
+        
+        const defaultGrade = sInfo.teacher_level && sInfo.teacher_room ? `${sInfo.teacher_level} ${sInfo.teacher_room}` : "ថ្នាក់រៀនរបស់ខ្ញុំ";
+        const currentYear = new Date().getFullYear();
+        
+        const localKhmerMonths = typeof KHMER_MONTHS !== 'undefined' ? KHMER_MONTHS : ["មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា", "កក្កដា", "សីហា", "កញ្ញា", "តុលា", "វិច្ឆិកា", "ធ្នូ"];
+        const currentMonthName = localKhmerMonths[new Date().getMonth()];
 
-    container.className = "p-2 md:p-6 transition duration-500 h-full w-full flex flex-col min-h-0 bg-slate-50";
-    container.innerHTML = `
-      <style>
-        .font-moul { font-family: 'Khmer OS Muol Light', 'Moul', serif !important; font-weight: normal; }
-        .font-siemreap { font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif !important; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 8px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        .att-input:focus { background-color: #fff !important; box-shadow: 0 0 0 2px #f43f5e inset; z-index: 10; position: relative; border-radius: 4px; }
-      </style>
+        container.className = "p-2 md:p-6 transition duration-500 h-full w-full flex flex-col min-h-0 bg-slate-50";
+        container.innerHTML = `
+          <style>
+            .font-moul { font-family: 'Khmer OS Muol Light', 'Moul', serif !important; font-weight: normal; }
+            .font-siemreap { font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif !important; }
+            .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 8px; }
+            .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+            .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+            .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+            .att-input:focus { background-color: #fff !important; box-shadow: 0 0 0 2px #f43f5e inset; z-index: 10; position: relative; border-radius: 4px; }
+          </style>
 
-      <div class="w-full h-full overflow-y-auto overflow-x-hidden custom-scrollbar bg-slate-50 relative">
-        <div class="animate-fade-in flex flex-col font-siemreap max-w-[1680px] mx-auto space-y-5 pb-16 pt-1">
-          
-          <div class="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-slate-200 shrink-0 relative overflow-hidden flex flex-col xl:flex-row justify-between items-center gap-6 transition-all no-print">
-            <div class="absolute -right-10 -top-10 w-40 h-40 bg-rose-50 rounded-full blur-3xl pointer-events-none hidden md:block"></div>
-            <div class="absolute -left-10 -bottom-10 w-32 h-32 bg-orange-50 rounded-full blur-3xl pointer-events-none hidden md:block"></div>
-            
-            <div class="flex items-center gap-5 relative z-10 w-full xl:w-auto">
-                <div class="w-14 h-14 md:w-16 md:h-16 bg-gradient-to-br from-rose-500 to-orange-500 text-white rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-rose-200 shrink-0 transform -rotate-3">
-                  <i class="fa-solid fa-clipboard-user"></i>
-                </div>
-                <div>
-                    <h2 class="text-xl md:text-3xl font-black text-slate-800 font-moul mb-1">បញ្ជីវត្តមានសិស្ស</h2>
-                    <div class="flex flex-wrap gap-2 mt-2">
-                        <span class="text-[10px] md:text-xs font-bold bg-blue-50 text-blue-700 px-3 py-1 rounded-lg border border-blue-100 flex items-center gap-1.5"><i class="fa-solid fa-circle text-[6px]"></i> ច្បាប់ (ច្ប)</span>
-                        <span class="text-[10px] md:text-xs font-bold bg-rose-50 text-rose-700 px-3 py-1 rounded-lg border border-rose-100 flex items-center gap-1.5"><i class="fa-solid fa-circle text-[6px]"></i> អត់ច្បាប់ (អច្ប)</span>
-                        <span class="text-[10px] md:text-xs font-bold bg-purple-50 text-purple-700 px-3 py-1 rounded-lg border border-purple-100 flex items-center gap-1.5"><i class="fa-solid fa-circle text-[6px]"></i> ឈឺ (ឈ)</span>
-                        <span class="text-[10px] md:text-xs font-bold bg-amber-50 text-amber-700 px-3 py-1 rounded-lg border border-amber-100 flex items-center gap-1.5"><i class="fa-solid fa-circle text-[6px]"></i> សម្រាក (៖)</span>
+          <div class="w-full h-full overflow-y-auto overflow-x-hidden custom-scrollbar bg-slate-50 relative">
+            <div class="animate-fade-in flex flex-col font-siemreap max-w-[1680px] mx-auto space-y-5 pb-16 pt-1">
+              
+              <div class="bg-white p-6 md:p-8 rounded-[2rem] shadow-sm border border-slate-200 shrink-0 relative overflow-hidden flex flex-col xl:flex-row justify-between items-center gap-6 transition-all no-print">
+                <div class="absolute -right-10 -top-10 w-40 h-40 bg-rose-50 rounded-full blur-3xl pointer-events-none hidden md:block"></div>
+                <div class="absolute -left-10 -bottom-10 w-32 h-32 bg-orange-50 rounded-full blur-3xl pointer-events-none hidden md:block"></div>
+                
+                <div class="flex items-center gap-5 relative z-10 w-full xl:w-auto">
+                    <div class="w-14 h-14 md:w-16 md:h-16 bg-gradient-to-br from-rose-500 to-orange-500 text-white rounded-2xl flex items-center justify-center text-2xl shadow-lg shadow-rose-200 shrink-0 transform -rotate-3">
+                      <i class="fa-solid fa-clipboard-user"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl md:text-3xl font-black text-slate-800 font-moul mb-1">បញ្ជីវត្តមានសិស្ស</h2>
+                        <div class="flex flex-wrap gap-2 mt-2">
+                            <span class="text-[10px] md:text-xs font-bold bg-blue-50 text-blue-700 px-3 py-1 rounded-lg border border-blue-100 flex items-center gap-1.5"><i class="fa-solid fa-circle text-[6px]"></i> ច្បាប់ (ច្ប)</span>
+                            <span class="text-[10px] md:text-xs font-bold bg-rose-50 text-rose-700 px-3 py-1 rounded-lg border border-rose-100 flex items-center gap-1.5"><i class="fa-solid fa-circle text-[6px]"></i> អត់ច្បាប់ (អច្ប)</span>
+                            <span class="text-[10px] md:text-xs font-bold bg-purple-50 text-purple-700 px-3 py-1 rounded-lg border border-purple-100 flex items-center gap-1.5"><i class="fa-solid fa-circle text-[6px]"></i> ឈឺ (ឈ)</span>
+                            <span class="text-[10px] md:text-xs font-bold bg-amber-50 text-amber-700 px-3 py-1 rounded-lg border border-amber-100 flex items-center gap-1.5"><i class="fa-solid fa-circle text-[6px]"></i> សម្រាក (៖)</span>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="flex flex-wrap items-center justify-end gap-3 w-full xl:w-auto relative z-10">
-                <div class="relative w-full sm:w-auto group">
-                  <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-rose-500 transition-colors"><i class="fa-solid fa-magnifying-glass text-[13px]"></i></span>
-                  <input type="text" id="attSearch" oninput="window.filterAttendanceTable()" placeholder="ស្វែងរកឈ្មោះសិស្ស..." 
-                         class="pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl text-[13px] font-bold focus:ring-2 focus:ring-rose-500/30 focus:border-rose-400 focus:bg-white outline-none w-full sm:w-56 bg-slate-50 transition shadow-inner font-siemreap">
+                <div class="flex flex-wrap items-center justify-end gap-3 w-full xl:w-auto relative z-10">
+                    <div class="relative w-full sm:w-auto group">
+                      <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-rose-500 transition-colors"><i class="fa-solid fa-magnifying-glass text-[13px]"></i></span>
+                      <input type="text" id="attSearch" oninput="if(typeof window.filterAttendanceTable === 'function') window.filterAttendanceTable();" placeholder="ស្វែងរកឈ្មោះសិស្ស..." 
+                             class="pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl text-[13px] font-bold focus:ring-2 focus:ring-rose-500/30 focus:border-rose-400 focus:bg-white outline-none w-full sm:w-56 bg-slate-50 transition shadow-inner font-siemreap">
+                    </div>
+                    
+                    <div class="flex flex-1 sm:flex-none items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 shadow-inner">
+                      <i class="fa-solid fa-calendar-days text-slate-400 text-[13px]"></i>
+                      <select id="attMonthSelect" onchange="if(typeof window.fetchMonthlyAttendance === 'function') window.fetchMonthlyAttendance();" class="border-none bg-transparent text-[13px] font-bold text-rose-600 outline-none cursor-pointer font-siemreap w-full focus:ring-0">
+                        ${localKhmerMonths.map(m => `<option value="${m}" ${m === currentMonthName ? 'selected' : ''}>${m}</option>`).join('')}
+                      </select>
+                      <span class="text-slate-300">|</span>
+                      <select id="attYearSelect" onchange="if(typeof window.fetchMonthlyAttendance === 'function') window.fetchMonthlyAttendance();" class="border-none bg-transparent text-[13px] font-bold text-slate-700 outline-none cursor-pointer font-mono focus:ring-0">
+                        <option value="${currentYear - 1}">${currentYear - 1}</option>
+                        <option value="${currentYear}" selected>${currentYear}</option>
+                        <option value="${currentYear + 1}">${currentYear + 1}</option>
+                      </select>
+                    </div>
                 </div>
+              </div>
+
+              <!-- កាតស្ថិតិសង្ខេប -->
+              <div id="attendanceKpiSummaryContainer" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 no-print"></div>
+
+              <!-- របារឧបករណ៍បញ្ជា -->
+              <div class="flex flex-wrap items-center justify-between gap-3 shrink-0 no-print bg-white p-4 rounded-[1.5rem] border border-slate-200 shadow-sm">
+                <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                  <button onclick="if(typeof window.openDailyAttendanceModal === 'function') window.openDailyAttendanceModal();" class="flex-1 md:flex-none px-5 py-2.5 bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-600 hover:to-orange-600 text-white rounded-xl text-[13px] font-bold shadow-md shadow-rose-200 transition flex items-center justify-center gap-2 transform hover:-translate-y-0.5">
+                    <i class="fa-solid fa-calendar-day"></i> កត់វត្តមាន (Pop-Up)
+                  </button>
+                  <button onclick="if(typeof window.openHolidayManagerModal === 'function') window.openHolidayManagerModal();" class="flex-1 md:flex-none px-5 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-xl text-[13px] font-bold transition flex items-center justify-center gap-2 hover:shadow-sm">
+                    <i class="fa-solid fa-calendar-xmark"></i> កំណត់ថ្ងៃឈប់
+                  </button>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2 w-full md:w-auto mt-2 md:mt-0">
+                  <button onclick="if(typeof window.toggleSharedDatePanel === 'function') window.toggleSharedDatePanel('datePanel-attendance');" class="px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-[13px] font-bold transition flex items-center gap-2 hover:shadow-sm">
+                    <i class="fa-solid fa-calendar-week text-indigo-500"></i> កាលបរិច្ឆេទ
+                  </button>
+                  <button onclick="if(typeof window.openAnnualReportModal === 'function') window.openAnnualReportModal();" class="px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-[13px] font-bold transition flex items-center gap-2 hover:shadow-sm">
+                    <i class="fa-solid fa-file-contract text-emerald-500"></i> របាយការណ៍ឆ្នាំ
+                  </button>
+                  <button onclick="if(typeof window.printOfficialAttendance === 'function') window.printOfficialAttendance();" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-[13px] font-bold shadow-md transition flex items-center gap-2 transform hover:-translate-y-0.5">
+                    <i class="fa-solid fa-print"></i> បោះពុម្ពបញ្ជី
+                  </button>
+                  <button type="button" id="btnSaveAttendance" onclick="if(typeof window.saveMonthlyAttendance === 'function') window.saveMonthlyAttendance();"
+                          class="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl text-[13px] font-black shadow-lg shadow-emerald-200 transition flex items-center gap-2 transform hover:-translate-y-0.5">
+                    <i class="fa-solid fa-floppy-disk"></i> រក្សាទុក
+                  </button>
+                </div>
+              </div>
+
+              ${typeof window.getDateSettingsPanelHTML === 'function' ? window.getDateSettingsPanelHTML('attendance') : ''}
+
+              <!-- ផ្ទៃតារាងវត្តមាន -->
+              <div class="bg-white rounded-[2rem] border border-slate-200 shadow-sm relative flex flex-col w-full print:border-none print:shadow-none min-h-[400px]" id="attendanceWebArea">
                 
-                <div class="flex flex-1 sm:flex-none items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 shadow-inner">
-                  <i class="fa-solid fa-calendar-days text-slate-400 text-[13px]"></i>
-                  <select id="attMonthSelect" onchange="window.fetchMonthlyAttendance()" class="border-none bg-transparent text-[13px] font-bold text-rose-600 outline-none cursor-pointer font-siemreap w-full focus:ring-0">
-                    <!-- 🟢 ឱ្យវា Auto Selected ទៅខែបច្ចុប្បន្ន 🟢 -->
-                    ${KHMER_MONTHS.map(m => `<option value="${m}" ${m === currentMonthName ? 'selected' : ''}>${m}</option>`).join('')}
-                  </select>
-                  <span class="text-slate-300">|</span>
-                  <select id="attYearSelect" onchange="window.fetchMonthlyAttendance()" class="border-none bg-transparent text-[13px] font-bold text-slate-700 outline-none cursor-pointer font-mono focus:ring-0">
-                    <option value="${currentYear - 1}">${currentYear - 1}</option>
-                    <option value="${currentYear}" selected>${currentYear}</option>
-                    <option value="${currentYear + 1}">${currentYear + 1}</option>
-                  </select>
+                <div class="flex justify-between items-center py-4 px-6 no-print shrink-0 border-b border-slate-100 bg-slate-50/90 rounded-t-[2rem]">
+                    <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2 font-moul">
+                       <i class="fa-solid fa-list-check text-rose-500 text-lg"></i> បញ្ជីវត្តមានប្រចាំខែ <span id="lblMonthTitle" class="text-rose-600">${currentMonthName}</span>
+                    </h3>
+                    <p class="text-[13px] font-bold text-slate-500">
+                      ថ្នាក់ទី <span id="attHeaderGrade" class="text-indigo-700 mx-1 font-moul bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100 shadow-sm">${defaultGrade.replace('ថ្នាក់ទី', '').trim()}</span> 
+                      | ឆ្នាំសិក្សា <span id="lblAcademicYearTitle" class="ml-1 font-siemreap">${academicYear}</span>
+                    </p>
                 </div>
-            </div>
-          </div>
 
-          <!-- កាតស្ថិតិសង្ខេប -->
-          <div id="attendanceKpiSummaryContainer" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 no-print"></div>
+                <div class="w-full overflow-x-auto custom-scrollbar relative bg-white pb-6 rounded-b-[2rem] print:overflow-visible shadow-inner">
+                    <table class="w-max min-w-full border-collapse border-y border-slate-200 print:border-black text-[12px] text-center bg-white relative font-siemreap mx-auto" id="mainAttendanceTable" style="table-layout: fixed;">
+                      <thead class="sticky top-0 z-30 shadow-sm text-[12px]">
+                        <tr id="trKhmerDays" class="bg-slate-100 text-slate-700 border-b border-slate-300 print:border-black font-moul h-[42px]"></tr>
+                        <tr id="trDayNumbers" class="bg-slate-50 text-slate-700 border-b-2 border-slate-300 print:border-black font-bold h-[36px]"></tr>
+                      </thead>
+                      <tbody id="attendanceTableRows" class="divide-y divide-slate-100 print:divide-black text-slate-800 print:text-black">
+                        <tr><td colspan="42" class="p-20 text-center text-slate-400 font-bold"><i class="fa-solid fa-circle-notch fa-spin text-4xl mb-4 text-rose-400"></i><br>កំពុងរៀបចំទិន្នន័យ...</td></tr>
+                      </tbody>
+                      <tfoot id="attendanceTableFoot" class="bg-slate-50 font-bold border-t-2 border-slate-300 print:border-black text-slate-800 sticky bottom-0 z-30 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+                      </tfoot>
+                    </table>
+                </div>
+              </div>
+            </div> 
+          </div> 
 
-          <!-- របារឧបករណ៍បញ្ជា -->
-          <div class="flex flex-wrap items-center justify-between gap-3 shrink-0 no-print bg-white p-4 rounded-[1.5rem] border border-slate-200 shadow-sm">
-            <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
-              <button onclick="window.openDailyAttendanceModal()" class="flex-1 md:flex-none px-5 py-2.5 bg-gradient-to-r from-rose-500 to-orange-500 hover:from-rose-600 hover:to-orange-600 text-white rounded-xl text-[13px] font-bold shadow-md shadow-rose-200 transition flex items-center justify-center gap-2 transform hover:-translate-y-0.5">
-                <i class="fa-solid fa-calendar-day"></i> កត់វត្តមាន (Pop-Up)
-              </button>
-              <button onclick="window.openHolidayManagerModal()" class="flex-1 md:flex-none px-5 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-xl text-[13px] font-bold transition flex items-center justify-center gap-2 hover:shadow-sm">
-                <i class="fa-solid fa-calendar-xmark"></i> កំណត់ថ្ងៃឈប់
-              </button>
-            </div>
+          <div id="annualReportModalContainer"></div>
+        `;
 
-            <div class="flex flex-wrap items-center gap-2 w-full md:w-auto mt-2 md:mt-0">
-              <button onclick="window.toggleSharedDatePanel('datePanel-attendance')" class="px-4 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-[13px] font-bold transition flex items-center gap-2 hover:shadow-sm">
-                <i class="fa-solid fa-calendar-week text-indigo-500"></i> កាលបរិច្ឆេទ
-              </button>
-              <button onclick="openAnnualReportModal()" class="px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-[13px] font-bold transition flex items-center gap-2 hover:shadow-sm">
-                <i class="fa-solid fa-file-contract text-emerald-500"></i> របាយការណ៍ឆ្នាំ
-              </button>
-              <button onclick="window.printOfficialAttendance()" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-[13px] font-bold shadow-md transition flex items-center gap-2 transform hover:-translate-y-0.5">
-                <i class="fa-solid fa-print"></i> បោះពុម្ពបញ្ជី
-              </button>
-              <button type="button" id="btnSaveAttendance" onclick="window.saveMonthlyAttendance()"
-                      class="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl text-[13px] font-black shadow-lg shadow-emerald-200 transition flex items-center gap-2 transform hover:-translate-y-0.5">
-                <i class="fa-solid fa-floppy-disk"></i> រក្សាទុក
-              </button>
-            </div>
-          </div>
+        if (typeof window.renderAnnualReportModal === 'function') {
+            window.renderAnnualReportModal();
+        }
 
-          <!-- Date Settings Panel -->
-          ${window.getDateSettingsPanelHTML('attendance')}
+        // 🔴 ហៅមុខងារទាញទិន្នន័យដោយផ្ទាល់ គ្មាន setTimeout 🔴
+        if (typeof window.fetchMonthlyAttendance === 'function') {
+            await window.fetchMonthlyAttendance();
+        } else {
+            console.warn("មិនទាន់ស្គាល់មុខងារ fetchMonthlyAttendance ទេ!");
+        }
+        
+        if (typeof window.setupAttExcelLikeNavigation === 'function') {
+            window.setupAttExcelLikeNavigation();
+        }
 
-          <!-- ផ្ទៃតារាងវត្តមាន -->
-          <div class="bg-white rounded-[2rem] border border-slate-200 shadow-sm relative flex flex-col w-full print:border-none print:shadow-none min-h-[400px]" id="attendanceWebArea">
-            
-            <div class="flex justify-between items-center py-4 px-6 no-print shrink-0 border-b border-slate-100 bg-slate-50/90 rounded-t-[2rem]">
-                <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2 font-moul">
-                   <i class="fa-solid fa-list-check text-rose-500 text-lg"></i> បញ្ជីវត្តមានប្រចាំខែ <span id="lblMonthTitle" class="text-rose-600">${currentMonthName}</span>
-                </h3>
-                <p class="text-[13px] font-bold text-slate-500">
-                  ថ្នាក់ទី <span id="attHeaderGrade" class="text-indigo-700 mx-1 font-moul bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100 shadow-sm">${defaultGrade.replace('ថ្នាក់ទី', '').trim()}</span> 
-                  | ឆ្នាំសិក្សា <span id="lblAcademicYearTitle" class="ml-1 font-siemreap">${window.toKhmerNum(academicYear)}</span>
-                </p>
-            </div>
-
-            <div class="w-full overflow-x-auto custom-scrollbar relative bg-white pb-6 rounded-b-[2rem] print:overflow-visible shadow-inner">
-                <table class="w-max min-w-full border-collapse border-y border-slate-200 print:border-black text-[12px] text-center bg-white relative font-siemreap mx-auto" id="mainAttendanceTable" style="table-layout: fixed;">
-                  <thead class="sticky top-0 z-30 shadow-sm text-[12px]">
-                    <tr id="trKhmerDays" class="bg-slate-100 text-slate-700 border-b border-slate-300 print:border-black font-moul h-[42px]"></tr>
-                    <tr id="trDayNumbers" class="bg-slate-50 text-slate-700 border-b-2 border-slate-300 print:border-black font-bold h-[36px]"></tr>
-                  </thead>
-                  <tbody id="attendanceTableRows" class="divide-y divide-slate-100 print:divide-black text-slate-800 print:text-black">
-                    <tr><td colspan="42" class="p-20 text-center text-slate-400 font-bold"><i class="fa-solid fa-circle-notch fa-spin text-4xl mb-4 text-rose-400"></i><br>កំពុងទាញយកទិន្នន័យ...</td></tr>
-                  </tbody>
-                  <tfoot id="attendanceTableFoot" class="bg-slate-50 font-bold border-t-2 border-slate-300 print:border-black text-slate-800 sticky bottom-0 z-30 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-                  </tfoot>
-                </table>
-            </div>
-          </div>
-        </div> 
-      </div> 
-
-      <!-- Annual Modal Container -->
-      <div id="annualReportModalContainer"></div>
-    `;
-
-    const currentMonthIdx = new Date().getMonth();
-    const attMonthSelect = document.getElementById("attMonthSelect");
-    if (attMonthSelect) {
-        Array.from(attMonthSelect.options).forEach(opt => {
-            if (opt.value === KHMER_MONTHS[currentMonthIdx]) opt.selected = true;
-        });
+    } catch (error) {
+        console.error("មានកំហុសក្នុងការ Load ផ្ទាំងវត្តមាន:", error);
     }
-
-    // Render HTML components
-    window.renderAnnualReportModal();
-
-    await window.fetchMonthlyAttendance();
-    window.setupAttExcelLikeNavigation();
 };
 
 // =====================================================================
-// ២. ទាញយកទិន្នន័យសិស្ស និងវត្តមានប្រចាំខែ (Fixed Multi-Teacher & Backward Compatible)
+// ២. ទាញយកទិន្នន័យវត្តមាន (Safe Mode + Fast Load)
+// =====================================================================
+window.fetchMonthlyAttendance = async function(forceRefresh = false) {
+    const tbody = document.getElementById("attendanceTableRows");
+    const btn = document.getElementById("btnSaveAttendance");
+    
+    try {
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> កំពុងទាញយក...`;
+        }
+        
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="42" class="p-20 text-center text-slate-400 font-bold"><i class="fa-solid fa-circle-notch fa-spin text-4xl mb-4 text-rose-400"></i><br>កំពុងរៀបចំទិន្នន័យ...</td></tr>`;
+        }
+
+        const monthSelect = document.getElementById("attMonthSelect");
+        const yearSelect = document.getElementById("attYearSelect");
+        
+        if (!monthSelect || !yearSelect) {
+            throw new Error("មិនអាចស្វែងរកប្រអប់ជ្រើសរើសខែ ឬឆ្នាំបានទេ។");
+        }
+
+        const month = monthSelect.value;
+        const year = parseInt(yearSelect.value);
+
+        // ទាញសិស្សពី Memory ផ្ទាល់
+        let allStus = [];
+        if (window.allStudents && window.allStudents.length > 0) {
+            allStus = window.allStudents;
+        } else {
+            const ls = localStorage.getItem('academic_students');
+            if (ls && ls !== "undefined") allStus = JSON.parse(ls);
+        }
+
+        attendanceStudents = allStus.filter(s => s && s.status !== "Dropped");
+        attendanceStudents.sort((a, b) => String(a.name || "").trim().localeCompare(String(b.name || "").trim(), "km"));
+
+        let levelVal = "ថ្នាក់ទី 1", roomVal = "«ក»";
+        if (attendanceStudents.length > 0) {
+            levelVal = String(attendanceStudents[0].grade || "ថ្នាក់ទី 1").trim();
+            if (!levelVal.includes("ថ្នាក់ទី")) levelVal = "ថ្នាក់ទី " + levelVal;
+            roomVal = String(attendanceStudents[0].room || "«ក»").trim();
+        }
+        const fullGradeName = `${levelVal} ${roomVal}`;
+
+        // Update UI
+        const titleEl = document.getElementById("lblMonthTitle");
+        if (titleEl) titleEl.textContent = month;
+        const attHeaderGrade = document.getElementById("attHeaderGrade");
+        if (attHeaderGrade) attHeaderGrade.textContent = `${levelVal.replace('ថ្នាក់ទី', '').trim()} ${roomVal}`;
+
+        const monthMap = { "មករា": 1, "កុម្ភៈ": 2, "មីនា": 3, "មេសា": 4, "ឧសភា": 5, "មិថុនា": 6, "កក្កដា": 7, "សីហា": 8, "កញ្ញា": 9, "តុលា": 10, "វិច្ឆិកា": 11, "ធ្នូ": 12 };
+        const monthNum = monthMap[month] || 1;
+        const daysInMonth = new Date(year, monthNum, 0).getDate();
+
+        // 🟢 ហៅមុខងារគូរក្បាលតារាង (ត្រូវប្រាកដថាវាដើរ)
+        if (typeof window.renderCalendarHeaders === 'function') {
+            window.renderCalendarHeaders(year, monthNum, daysInMonth);
+        } else {
+            throw new Error("ប្រព័ន្ធបាត់មុខងារ renderCalendarHeaders (គូរក្បាលតារាង)");
+        }
+
+        try {
+            const savedHolidays = JSON.parse(localStorage.getItem(`att_holidays_${fullGradeName}_${month}_${year}`) || '{}');
+            window.monthlyHolidays = savedHolidays;
+        } catch(e) { window.monthlyHolidays = {}; }
+
+        let attRes = [];
+        try { 
+            const rawAtt = localStorage.getItem('academic_attendance');
+            if (rawAtt) attRes = JSON.parse(rawAtt) || []; 
+        } catch(e) {}
+
+        monthlyAttendanceData = {};
+        try {
+            const cached = JSON.parse(localStorage.getItem(`att_${fullGradeName}_${month}_${year}`) || '{}');
+            monthlyAttendanceData = { ...cached };
+        } catch(e) {}
+
+        if (attRes && attRes.length > 0) {
+            attRes.forEach(r => {
+                if (!r || typeof r !== 'object') return;
+                
+                const rMonth = String(r.month || "").trim();
+                if (rMonth !== month) return;
+
+                const day = typeof parseDayNumber === 'function' ? parseDayNumber(r.date || r.day) : parseInt(r.date || r.day, 10);
+                if (!day || day < 1 || day > daysInMonth) return;
+                
+                const stuId = String(r.student_id || r.studentId || r.id || "").trim();
+
+                if (stuId) {
+                    if (!monthlyAttendanceData[stuId]) monthlyAttendanceData[stuId] = {};
+                    monthlyAttendanceData[stuId][day] = typeof normalizeStatus === 'function' ? normalizeStatus(r.status || r.attendance || r['ស្ថានភាព']) : (r.status || r.attendance || r['ស្ថានភាព']);
+                }
+            });
+        }
+
+        // បញ្ចូលថ្ងៃឈប់សម្រាក
+        Object.keys(window.monthlyHolidays).forEach(dayKey => {
+            const d = parseInt(dayKey, 10);
+            if (d >= 1 && d <= daysInMonth) {
+                attendanceStudents.forEach(s => {
+                    if (!monthlyAttendanceData[s.id]) monthlyAttendanceData[s.id] = {};
+                    if (!monthlyAttendanceData[s.id][d]) {
+                        monthlyAttendanceData[s.id][d] = "៖";
+                    }
+                });
+            }
+        });
+
+        window.monthlyAttendanceData = monthlyAttendanceData;
+        
+        // 🟢 ហៅមុខងារគូរជួរដេកសិស្ស
+        if (typeof window.renderAttendanceRows === 'function') {
+            window.renderAttendanceRows(daysInMonth);
+        } else {
+            throw new Error("ប្រព័ន្ធបាត់មុខងារ renderAttendanceRows (គូរតារាងសិស្ស)");
+        }
+
+    } catch (err) {
+        console.error("កំហុសក្នុងការទាញយកទិន្នន័យវត្តមាន:", err);
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="42" class="p-10 text-center text-rose-600 font-bold bg-rose-50 border border-rose-200">
+                <i class="fa-solid fa-triangle-exclamation text-4xl mb-4"></i><br>
+                បរាជ័យក្នុងការរៀបចំតារាងវត្តមាន៖ ${err.message}
+            </td></tr>`;
+        }
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> រក្សាទុក`;
+        }
+    }
+};
+
+// =====================================================================
+// ២. ទាញយកទិន្នន័យសិស្ស និងវត្តមានប្រចាំខែ (លឿនបំផុត - Fast Load)
 // =====================================================================
 window.fetchMonthlyAttendance = async function(forceRefresh = false) {
     const btn = document.getElementById("btnSaveAttendance");
@@ -285,19 +425,40 @@ window.fetchMonthlyAttendance = async function(forceRefresh = false) {
 
     const month = monthSelect.value;
     const year = parseInt(yearSelect.value);
+
+    // 🔴 ទាញយកសិស្សពី Memory ផ្ទាល់ (លឿនបំផុត) ជំនួសការទាញពី LocalStorage 🔴
+    let allStus = [];
+    if (window.allStudents && window.allStudents.length > 0) {
+        allStus = window.allStudents;
+    } else {
+        try { allStus = JSON.parse(localStorage.getItem('academic_students')) || []; } catch(e) {}
+    }
+
+    // ចម្រោះយកតែសិស្សដែលកំពុងរៀន
+    attendanceStudents = allStus.filter(s => s && typeof s === 'object' && s.status !== "Dropped");
     
-    // 🟢 ប្រើប្រាស់មុខងារ Auto-Detect Grade ដើម្បី Update ផ្ទាំង UI 🟢
-    const gradeInfo = window.getTeacherGradeInfo();
-    const levelVal = gradeInfo.level;
-    const roomVal = gradeInfo.room;
+    // តម្រៀបអក្ខរក្រម
+    attendanceStudents.sort((a, b) => String(a.name || "").trim().localeCompare(String(b.name || "").trim(), "km"));
+
+    // 🔴 ចាប់យកឈ្មោះថ្នាក់ពីសិស្សទី១ ផ្ទាល់តែម្តង (លឿន និងច្បាស់លាស់) 🔴
+    let levelVal = "ថ្នាក់ទី 1";
+    let roomVal = "«ក»";
+    if (attendanceStudents.length > 0) {
+        const firstStu = attendanceStudents[0];
+        levelVal = String(firstStu.grade || "ថ្នាក់ទី 1").trim();
+        if (!levelVal.includes("ថ្នាក់ទី")) levelVal = "ថ្នាក់ទី " + levelVal;
+        roomVal = String(firstStu.room || "«ក»").trim();
+    }
     const fullGradeName = `${levelVal} ${roomVal}`;
 
+    // Update UI ឈ្មោះខែ និងថ្នាក់
     const titleEl = document.getElementById("lblMonthTitle");
     if(titleEl) titleEl.textContent = month;
 
     const attHeaderGrade = document.getElementById("attHeaderGrade");
     if (attHeaderGrade) attHeaderGrade.textContent = `${levelVal.replace('ថ្នាក់ទី', '').trim()} ${roomVal}`;
 
+    // រៀបចំប្រតិទិន
     const monthMap = { "មករា": 1, "កុម្ភៈ": 2, "មីនា": 3, "មេសា": 4, "ឧសភា": 5, "មិថុនា": 6, "កក្កដា": 7, "សីហា": 8, "កញ្ញា": 9, "តុលា": 10, "វិច្ឆិកា": 11, "ធ្នូ": 12 };
     const monthNum = monthMap[month] || 1;
     const daysInMonth = new Date(year, monthNum, 0).getDate();
@@ -310,39 +471,9 @@ window.fetchMonthlyAttendance = async function(forceRefresh = false) {
     window.renderCalendarHeaders(year, monthNum, daysInMonth);
 
     const tbody = document.getElementById("attendanceTableRows");
-    if(tbody) tbody.innerHTML = `<tr><td colspan="42" class="p-20 text-center text-slate-400 font-bold"><i class="fa-solid fa-circle-notch fa-spin text-4xl mb-4 text-rose-400"></i><br>កំពុងទាញយកទិន្នន័យ...</td></tr>`;
+    if(tbody) tbody.innerHTML = `<tr><td colspan="42" class="p-20 text-center text-slate-400 font-bold"><i class="fa-solid fa-circle-notch fa-spin text-4xl mb-4 text-rose-400"></i><br>កំពុងរៀបចំទិន្នន័យ...</td></tr>`;
 
     try {
-        const rawStudentsData = localStorage.getItem('academic_students');
-        let allStus = [];
-        if (rawStudentsData) {
-             try { allStus = JSON.parse(rawStudentsData) || []; } catch(e) {}
-        }
-        
-        const currentTeacherId = window.AuthState ? window.AuthState.teacherId : localStorage.getItem('auth_teacher_id');
-        const currentYearStr = document.getElementById("globalAcademicYear")?.value || localStorage.getItem('selected_academic_year') || "2026-2027";
-
-        // 🟢 បន្ធូរបន្ថយលក្ខខណ្ឌ៖ អនុញ្ញាតឱ្យទាញសិស្សទាំងអស់ ឬសិស្សដែលត្រូវនឹងគណនីគ្រូ មកបង្ហាញ 🟢
-        attendanceStudents = allStus.filter(s => {
-            if (!s || typeof s !== 'object') return false; 
-            if (s.status === "Dropped") return false;
-            
-            const sTeacherId = String(s.teacher_id || "").trim();
-            const sYear = String(s.academic_year || "").trim();
-            
-            // បើមានសិស្សចាស់ដែលអត់ទាន់មាន teacher_id គឺទាញមកបង្ហាញជាមួយគ្នាដើម្បីកុំឱ្យបាត់
-            const isMatch = (sTeacherId === "" || sTeacherId === "undefined" || sTeacherId === String(currentTeacherId)) &&
-                            (sYear === "" || sYear === "undefined" || sYear === String(currentYearStr));
-            return isMatch;
-        });
-
-        // បើរកមិនឃើញតាមលក្ខខណ្ឌខាងលើ ហៅទាញយកសិស្សទាំងអស់មកតែម្តងដើម្បីសុវត្ថិភាព
-        if (attendanceStudents.length === 0 && allStus.length > 0) {
-            attendanceStudents = allStus.filter(s => s.status !== "Dropped");
-        }
-
-        attendanceStudents.sort((a, b) => String(a.name || "").trim().localeCompare(String(b.name || "").trim(), "km"));
-
         let attRes = [];
         try { 
             const rawAtt = localStorage.getItem('academic_attendance');
@@ -358,21 +489,26 @@ window.fetchMonthlyAttendance = async function(forceRefresh = false) {
         if (attRes && attRes.length > 0) {
             attRes.forEach(r => {
                 if (!r || typeof r !== 'object') return;
-                if (!isRecordInMonth(r, month, monthNum, year)) return;
                 
-                const day = parseDayNumber(r.date || r.day);
+                // បើមានមុខងារ isRecordInMonth លោកគ្រូអាចបើកវិញបាន តែបើអត់ទេ ប្រើលក្ខខណ្ឌផ្ទាល់ខាងក្រោម
+                // if (typeof isRecordInMonth === 'function' && !isRecordInMonth(r, month, monthNum, year)) return;
+                
+                const rMonth = String(r.month || "").trim();
+                if (rMonth !== month) return;
+
+                const day = typeof parseDayNumber === 'function' ? parseDayNumber(r.date || r.day) : parseInt(r.date || r.day, 10);
                 if (!day || day < 1 || day > daysInMonth) return;
                 
-                const stu = findMatchingStudent(r, attendanceStudents);
-                const stuId = stu ? stu.id : String(r.student_id || r.studentId || r.id || "").trim();
+                const stuId = String(r.student_id || r.studentId || r.id || "").trim();
 
                 if (stuId) {
                     if (!monthlyAttendanceData[stuId]) monthlyAttendanceData[stuId] = {};
-                    monthlyAttendanceData[stuId][day] = normalizeStatus(r.status || r.attendance || r['ស្ថានភាព']);
+                    monthlyAttendanceData[stuId][day] = typeof normalizeStatus === 'function' ? normalizeStatus(r.status || r.attendance || r['ស្ថានភាព']) : (r.status || r.attendance || r['ស្ថានភាព']);
                 }
             });
         }
 
+        // បញ្ចូលថ្ងៃឈប់សម្រាក
         Object.keys(window.monthlyHolidays).forEach(dayKey => {
             const d = parseInt(dayKey, 10);
             if (d >= 1 && d <= daysInMonth) {
@@ -391,7 +527,7 @@ window.fetchMonthlyAttendance = async function(forceRefresh = false) {
         window.renderAttendanceRows(daysInMonth);
 
     } catch (err) {
-        console.error("Fetch Monthly Attendance Error:", err);
+        console.error("កំហុសក្នុងការទាញយកទិន្នន័យវត្តមាន:", err);
         if(tbody) tbody.innerHTML = `<tr><td colspan="42" class="p-20 text-center text-rose-500 font-bold bg-rose-50"><i class="fa-solid fa-triangle-exclamation text-4xl mb-4"></i><br>បរាជ័យក្នុងការទាញយកទិន្នន័យ: ${err.message}</td></tr>`;
     } finally {
         if (btn) {
@@ -533,8 +669,8 @@ window.renderAttendanceRows = function(daysInMonth) {
               <tr class="hover:bg-slate-50/80 transition-colors border-b border-slate-200 print:border-black h-[36px] bg-white group">
                 <td class="border-r border-slate-200 print:border-black text-center font-bold sticky left-0 z-10 bg-white group-hover:bg-slate-50 font-mono text-[11px] text-slate-400" style="width: 40px; min-width: 40px; max-width: 40px;">${idx + 1}</td>
                 <td class="border-r border-slate-200 print:border-black text-center font-mono text-[11px] font-bold text-indigo-400/70 hidden md:table-cell sticky left-[40px] z-10 bg-white group-hover:bg-slate-50" style="width: 75px; min-width: 75px; max-width: 75px;">${s.id || '-'}</td>
-                <td class="border-r border-slate-200 print:border-black px-4 text-left font-bold text-slate-800 sticky md:left-[115px] left-[40px] z-10 bg-white group-hover:bg-slate-50 font-moul text-[13px] truncate" style="width: 195px; min-width: 195px; max-width: 195px;" title="${s.name || ''}">${s.name || '-'}</td>
-                <td class="border-r border-slate-200 print:border-black text-center font-bold ${genderColor} font-siemreap text-xs" style="width: 42px; min-width: 42px; max-width: 42px;">${genderShort}</td>
+                <td class="border-r border-slate-200 print:border-black px-4 text-left font-bold text-slate-800 sticky md:left-[115px] left-[40px] z-10 bg-white group-hover:bg-slate-50 font-Siemreap text-[13px] truncate" style="width: 195px; min-width: 195px; max-width: 195px;" title="${s.name || ''}">${s.name || '-'}</td>
+                <td class="border-r border-slate-200 print:border-black text-center font-bold ${genderColor} font-Siemreap text-[12px]" style="width: 42px; min-width: 42px; max-width: 42px;">${genderShort}</td>
                 
                 ${dayInputs}
 
@@ -543,7 +679,7 @@ window.renderAttendanceRows = function(daysInMonth) {
                 <td class="border-r border-slate-200 print:border-black text-center font-mono font-bold text-purple-700 bg-purple-50/50 text-xs" style="width: 36px; min-width: 36px; max-width: 36px;" id="sick_${s.id}">0</td>
                 <td class="border-r border-slate-200 print:border-black text-center font-mono font-black text-amber-800 bg-amber-100/50 text-xs shadow-[inset_1px_0_0_rgba(0,0,0,0.05)]" style="width: 42px; min-width: 42px; max-width: 42px;" id="tot_${s.id}">0</td>
                 <td class="p-0 bg-white group-hover:bg-slate-50" style="width: 90px; min-width: 90px; max-width: 90px;">
-                  <input type="text" id="note_${s.id}" class="w-full h-[36px] text-[11px] border-0 bg-transparent px-2 outline-none text-slate-500 focus:bg-white focus:ring-2 focus:ring-inset focus:ring-slate-200 font-siemreap placeholder:text-slate-300 placeholder:font-normal" placeholder="ចំណាំ...">
+                  <input type="text" id="note_${s.id}" class="w-full h-[36px] text-[11px] border-0 bg-transparent px-2 outline-none text-slate-500 focus:bg-white focus:ring-2 focus:ring-inset focus:ring-slate-200 font-Siemreap placeholder:text-slate-300 placeholder:font-normal" placeholder="ចំណាំ...">
                 </td>
               </tr>
             `;
@@ -1792,10 +1928,10 @@ window.printOfficialAttendance = function() {
           
           /* តារាង (Table) */
           table { width: 100%; border-collapse: collapse; text-align: center; margin-bottom: 10px; table-layout: fixed; border: 1.5px solid #0f172a; }
-          th, td { border: 1px solid #475569; padding: 2px 0px; height: 26px; font-size: 10px; overflow: hidden; white-space: nowrap; }
+          th, td { border: 1px solid #475569; padding: 2px 0px; height: 26px; font-family: 'Khmer OS Bokor', 'Bokor', sans-serif; font-size: 10px; overflow: hidden; white-space: nowrap; }
           th { background-color: #dbeafe; color: #1e3a8a; font-weight: bold; }
           tr:nth-child(even) { background-color: #f8fafc; }
-          td:nth-child(3) { text-align: left; padding-left: 5px; font-size: 10px; font-weight: bold; color: #0f172a; }
+          td:nth-child(3) { text-align: left; padding-left: 5px; font-family: 'Khmer OS Siemreap', 'Siemreap', sans-serif; font-size: 12px; font-weight: bold; color: #0f172a; }
           
           /* ផ្នែកសង្ខេបខាងក្រោម (Footer Summary) */
           .summary-container { background-color: #f0fdf4; border: 1px solid #86efac; border-radius: 5px; padding: 6px 10px; margin-bottom: 8px; }
@@ -1824,12 +1960,27 @@ window.printOfficialAttendance = function() {
             <p class="class-name">${grade}</p>
           </div>
           <div class="header-right">
-            <p>ព្រះរាជាណាចក្រកម្ពុជា</p>
-            <p class="motto">ជាតិ សាសនា ព្រះមហាក្សត្រ</p>
-            <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin: 4px auto 10px auto; width: 60%;">
-                 <div style="height: 1px; flex: 1; background: linear-gradient(to right, transparent, #d97706);"></div>
-                 <span style="color: #d97706; font-size: 11px;">❖ ❖ ❖</span>
-                 <div style="height: 1px; flex: 1; background: linear-gradient(to left, transparent, #d97706);"></div>
+           <div class="header-right">
+                <p class="font-moul">ព្រះរាជាណាចក្រកម្ពុជា</p>
+                <p class="font-moul">ជាតិ សាសនា ព្រះមហាក្សត្រ</p>
+                
+                <!-- ក្បាច់រចនាប័ទ្ម Tacteing គូរដោយ HTML សុទ្ធ (ធានា ១០០% ដើរលើគ្រប់ទូរស័ព្ទ) -->
+                <div style="display: flex; align-items: center; justify-content: center; margin: 4px auto 12px auto; gap: 3px;">
+                    <!-- បន្ទាត់ឆ្វេង -->
+                    <div style="width: 35px; height: 1.5px; background-color: #9c6705; -webkit-print-color-adjust: exact; print-color-adjust: exact;"></div>
+                    <div style="width: 3.5px; height: 3.5px; background-color: #1e3a8a; border-radius: 50%; -webkit-print-color-adjust: exact; print-color-adjust: exact;"></div>
+                    <div style="width: 12px; height: 1.5px; background-color: #9c6705; -webkit-print-color-adjust: exact; print-color-adjust: exact;"></div>
+                    <div style="width: 3.5px; height: 3.5px; background-color: #1e3a8a; border-radius: 50%; -webkit-print-color-adjust: exact; print-color-adjust: exact;"></div>
+                    
+                    <!-- ក្បាច់កណ្តាល -->
+                    <div style="font-size: 11pt; color: #755000; margin: 0 2px; -webkit-print-color-adjust: exact; print-color-adjust: exact;">❖</div>
+                    
+                    <!-- បន្ទាត់ស្តាំ -->
+                    <div style="width: 3.5px; height: 3.5px; background-color: #1e3a8a; border-radius: 50%; -webkit-print-color-adjust: exact; print-color-adjust: exact;"></div>
+                    <div style="width: 12px; height: 1.5px; background-color: #9c6705; -webkit-print-color-adjust: exact; print-color-adjust: exact;"></div>
+                    <div style="width: 3.5px; height: 3.5px; background-color: #1e3a8a; border-radius: 50%; -webkit-print-color-adjust: exact; print-color-adjust: exact;"></div>
+                    <div style="width: 35px; height: 1.5px; background-color: #9c6705; -webkit-print-color-adjust: exact; print-color-adjust: exact;"></div>
+                </div>
             </div>
           </div>
         </div>
@@ -1903,33 +2054,95 @@ window.printOfficialAttendance = function() {
 };
 
 // =====================================================================
-// ៩. បោះពុម្ពរបាយការណ៍អវត្តមានប្រចាំឆ្នាំ (Annual Attendance Report)
+// ៩. បោះពុម្ពរបាយការណ៍អវត្តមានប្រចាំឆ្នាំ (Annual Attendance Report - Dynamic Modal)
 // =====================================================================
 window.openAnnualReportModal = function() {
-    document.getElementById('annualReportModal')?.classList.remove('hidden');
+    let modal = document.getElementById('annualReportModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'annualReportModal';
+        modal.className = 'fixed inset-0 z-[3000] bg-slate-900/80 backdrop-blur-sm p-4 flex items-center justify-center font-siemreap';
+        modal.innerHTML = `
+            <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-slate-200 animate-scale-up">
+                <div class="bg-gradient-to-r from-indigo-600 to-blue-600 p-5 flex justify-between items-center text-white">
+                    <h3 class="font-moul text-sm sm:text-base flex items-center gap-2 drop-shadow-sm">
+                        <i class="fa-solid fa-calendar-days"></i> បោះពុម្ពរបាយការណ៍អវត្តមានប្រចាំឆ្នាំ
+                    </h3>
+                    <button onclick="window.closeAnnualReportModal()" class="w-8 h-8 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center transition shadow-sm">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+                <div class="p-6 bg-slate-50 space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-2">សូមបញ្ចូល ឬជ្រើសរើសឆ្នាំសិក្សា៖</label>
+                        <input type="text" id="annualYearSelect" value="២០២៦-២០២៧" class="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 shadow-inner">
+                    </div>
+                </div>
+                <div class="p-4 bg-white border-t border-slate-200 flex justify-end gap-3 shadow-[0_-4px_10px_rgba(0,0,0,0.02)]">
+                    <button onclick="window.closeAnnualReportModal()" class="px-5 py-2.5 rounded-xl text-slate-600 font-bold bg-slate-100 hover:bg-slate-200 text-sm transition-colors">បោះបង់</button>
+                    <button onclick="window.handlePrintAnnualAction()" class="px-6 py-2.5 rounded-xl text-white font-bold bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 text-sm shadow-md transition-all transform hover:-translate-y-0.5">
+                        <i class="fa-solid fa-print"></i> បញ្ជាក់ & បោះពុម្ព
+                    </button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
 };
 
 window.closeAnnualReportModal = function() {
-    document.getElementById('annualReportModal')?.classList.add('hidden');
+    const modal = document.getElementById('annualReportModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
 };
 
 window.handlePrintAnnualAction = function() {
     const selectedYear = document.getElementById('annualYearSelect')?.value || "២០២៦-២០២៧";
-    closeAnnualReportModal();
+    window.closeAnnualReportModal();
     
-    const mockStudentsDataForAnnual = attendanceStudents.map(s => {
+    // ទាញយកបញ្ជីសិស្សពិតប្រាកដពីប្រព័ន្ធ
+    let currentStudents = window.scoresStudentList || [];
+    if (currentStudents.length === 0) {
+        try {
+            currentStudents = JSON.parse(localStorage.getItem('academic_students')) || [];
+        } catch(e) {}
+    }
+
+    if (currentStudents.length === 0) {
+        alert("⚠️ រកមិនឃើញទិន្នន័យសិស្សសម្រាប់ធ្វើរបាយការណ៍អវត្តមានទេ!");
+        return;
+    }
+
+    const mockStudentsDataForAnnual = currentStudents.map(s => {
+        let savedMonthly = {};
+        const months = ["តុលា", "វិច្ឆិកា", "ធ្នូ", "មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា", "កក្កដា"];
+        
+        months.forEach(m => {
+            if (typeof window.getStudentAttendance === "function") {
+                const att = window.getStudentAttendance(s.id, m);
+                if (att && att.hasData) {
+                    savedMonthly[m] = { perm: att.permission || 0, unex: att.unexcused || 0 };
+                    return;
+                }
+            }
+            try {
+                const monthAtt = JSON.parse(localStorage.getItem(`attendance_${s.id}_${m}`)) || { perm: 0, unex: 0 };
+                savedMonthly[m] = monthAtt;
+            } catch(err) {
+                savedMonthly[m] = { perm: 0, unex: 0 };
+            }
+        });
+
         return {
             id: s.id,
             name: s.name,
             gender: s.gender,
-            monthlyData: {
-                "តុលា": { perm: Math.floor(Math.random()*2), unex: Math.floor(Math.random()*1) },
-                "វិច្ឆិកា": { perm: Math.floor(Math.random()*1), unex: 0 },
-                "ធ្នូ": { perm: 0, unex: 0 },
-                "មករា": { perm: 0, unex: Math.floor(Math.random()*2) },
-                "កុម្ភៈ": { perm: 1, unex: 0 }
-            },
-            remark: ""
+            monthlyData: savedMonthly,
+            remark: s.remark || ""
         };
     });
 
@@ -1939,20 +2152,21 @@ window.handlePrintAnnualAction = function() {
 window.printAnnualAttendanceReport = function(studentsData, academicYear) {
     const months = ["តុលា", "វិច្ឆិកា", "ធ្នូ", "មករា", "កុម្ភៈ", "មីនា", "មេសា", "ឧសភា", "មិថុនា", "កក្កដា"];
     
-    const gradeInfo = window.getTeacherGradeInfo();
-    const grade = `${gradeInfo.level} ${gradeInfo.room}`;
-    
     const sInfo = typeof appSettings !== 'undefined' ? appSettings : {};
+    const levelStr = sInfo.teacher_level || "ថ្នាក់ទី ១";
+    const roomStr = sInfo.teacher_room || "«ក»";
+    const grade = `${levelStr} ${roomStr}`;
+    
     let rawDistrict = sInfo.district || "ស្រុកកៀនស្វាយ";
     const districtName = rawDistrict.replace('ស្រុក', '').trim(); 
-    const schoolName = sInfo.school_name || "សាលាបឋមសិក្សា ធំ";
+    const schoolName = sInfo.school_name || "សាលាបឋមសិក្សា";
     const principalName = sInfo.principal_name || ".......................";
-    const teacherName = window.AuthState ? window.AuthState.teacherName : ".......................";
+    const teacherName = window.AuthState ? window.AuthState.teacherName : (sInfo.teacher_name || ".......................");
     const acYear = academicYear || "២០២៦-២០២៧"; 
     
     const rDates = window.reportCardDateSettings || {};
     const lunarDateStr = rDates.showLunar !== false ? rDates.lunarDate : "";
-    const solarDateStr = window.getFormattedSolarDate();
+    const solarDateStr = typeof window.getFormattedSolarDate === 'function' ? window.getFormattedSolarDate() : "ធ្វើនៅ...................., ថ្ងៃទី........ ខែ........ ឆ្នាំ ២០២...";
     
     let tbodyHtml = "";
     const rowsCount = studentsData && studentsData.length > 0 ? studentsData.length : 15;
@@ -1972,21 +2186,21 @@ window.printAnnualAttendanceReport = function(studentsData, academicYear) {
         let totalUnex = 0; 
         
         months.forEach((m) => {
-            const perm = stu.monthlyData && stu.monthlyData[m] ? stu.monthlyData[m].perm : "";
-            const unex = stu.monthlyData && stu.monthlyData[m] ? stu.monthlyData[m].unex : "";
+            const perm = stu.monthlyData && stu.monthlyData[m] ? stu.monthlyData[m].perm : 0;
+            const unex = stu.monthlyData && stu.monthlyData[m] ? stu.monthlyData[m].unex : 0;
             
             if(Number(perm) > 0) totalPerm += Number(perm);
             if(Number(unex) > 0) totalUnex += Number(unex);
             
             rowHtml += `
-                <td class="text-blue font-bold ${perm ? 'bg-blue-50/50' : ''}">${perm ? window.toKhmerNum(perm) : ""}</td>
-                <td class="text-red font-bold ${unex ? 'bg-rose-50/50' : ''}">${unex ? window.toKhmerNum(unex) : ""}</td>
+                <td class="text-blue font-bold ${Number(perm) > 0 ? 'bg-blue-50/50' : ''}">${Number(perm) > 0 ? window.toKhmerNum(perm.toString()) : ""}</td>
+                <td class="text-red font-bold ${Number(unex) > 0 ? 'bg-rose-50/50' : ''}">${Number(unex) > 0 ? window.toKhmerNum(unex.toString()) : ""}</td>
             `;
         });
         
         rowHtml += `
-                <td class="text-blue" style="font-weight: bold; background-color: #dbeafe; font-size: 11px;">${totalPerm > 0 ? window.toKhmerNum(totalPerm) : ""}</td>
-                <td class="text-red" style="font-weight: bold; background-color: #ffe4e6; font-size: 11px;">${totalUnex > 0 ? window.toKhmerNum(totalUnex) : ""}</td>
+                <td class="text-blue" style="font-weight: bold; background-color: #dbeafe; font-size: 11px;">${totalPerm > 0 ? window.toKhmerNum(totalPerm.toString()) : ""}</td>
+                <td class="text-red" style="font-weight: bold; background-color: #ffe4e6; font-size: 11px;">${totalUnex > 0 ? window.toKhmerNum(totalUnex.toString()) : ""}</td>
                 <td class="text-slate-500 text-[9px]">${stu.remark || ""}</td>
             </tr>
         `;
@@ -2006,7 +2220,6 @@ window.printAnnualAttendanceReport = function(studentsData, academicYear) {
           body { margin: 0; padding: 0; font-family: 'Siemreap', sans-serif; color: #0f172a; background: #fff; line-height: 1.3; }
           .font-moul { font-family: 'Moul', serif; font-weight: normal; }
           
-          /* ផ្នែកក្បាល (Header) */
           .header-box { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
           .header-left p { margin: 0 0 3px 0; font-size: 11px; font-family: 'Moul', serif; color: #334155; }
           .header-left .school-name { color: #1e3a8a; font-size: 13px; text-shadow: 0.5px 0.5px 0px #cbd5e1; }
@@ -2017,7 +2230,6 @@ window.printAnnualAttendanceReport = function(studentsData, academicYear) {
           .title-box { text-align: center; margin-bottom: 15px; }
           .title-box h2 { margin: 0 0 5px 0; font-size: 16px; font-family: 'Moul', serif; color: #be123c; letter-spacing: 1px; }
           
-          /* តារាង (Table) */
           table { width: 100%; border-collapse: collapse; text-align: center; border: 1.5px solid #0f172a; }
           th, td { border: 1px solid #475569; padding: 2px; font-size: 10px; overflow: hidden; }
           th { font-family: 'Siemreap', sans-serif; font-weight: bold; background-color: #f1f5f9; color: #1e3a8a; }
@@ -2040,12 +2252,10 @@ window.printAnnualAttendanceReport = function(studentsData, academicYear) {
           .text-blue { color: #1d4ed8; }
           .text-red { color: #be123c; }
           
-          /* ផ្នែកសរុបខាងក្រោមតារាង */
           .summary-footer { font-size: 11px; font-weight: bold; border: 1.5px solid #0f172a; border-top: none; padding: 5px; background-color: #f0fdf4; }
           .summary-row { display: flex; align-items: center; }
           .summary-label { width: 25%; padding-left: 10px; border-right: 1px dashed #cbd5e1; color: #15803d; }
           
-          /* ផ្នែកហត្ថលេខា (Signatures) */
           .footer-box { display: flex; justify-content: space-between; align-items: flex-start; font-size: 11px; margin-top: 20px; padding: 0 40px; page-break-inside: avoid; }
           .footer-col-left { text-align: center; font-family: 'Moul', serif; line-height: 1.6; color: #1e3a8a; }
           .footer-col-right { text-align: center; line-height: 1.6; color: #334155; }
